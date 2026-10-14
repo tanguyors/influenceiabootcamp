@@ -56,7 +56,7 @@ export default function Recreate() {
     }
     try {
       const res = await base44.functions.invoke("higgsfieldGateway", { action: "list_tools" });
-      setTools(res.tools || []);
+      setTools(res.data?.tools || []);
     } catch (e) {
       setTools([]);
     }

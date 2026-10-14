@@ -15,8 +15,9 @@ export default function HiggsfieldConnection() {
     setLoading(true);
     try {
       const res = await base44.functions.invoke("higgsfieldGateway", { action: "list_tools" });
-      setStatus({ connected: true, server_url: res.server_url, message: res.message });
-      setTools(res.tools || []);
+      const data = res.data || {};
+      setStatus({ connected: data.connected, server_url: data.server_url, message: data.message });
+      setTools(data.tools || []);
     } catch (e) {
       setStatus({ connected: false, message: e.message || "Connexion impossible" });
       setTools([]);
