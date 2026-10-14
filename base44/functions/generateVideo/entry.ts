@@ -85,6 +85,36 @@ function supportsDuration(model, seconds) {
   return true;
 }
 
+function modelRoles(model) {
+  return Array.from(new Set((model.medias || []).flatMap((x) => x.roles || [])));
+}
+
+async function listVideoModels(token) {
+  const res = await callTool(token, "models_explore", { action: "list", type: "video", limit: 60 });
+  let items = ((res && res.structuredContent) || {}).items;
+  if (!items) {
+    try { items = JSON.parse(resultText(res)).items; } catch { items = []; }
+  }
+  return items || [];
+}
+
+// Modèles capables de reprendre la vidéo source (cadre, caméra, décor, mouvement)
+// tout en utilisant le personnage fourni comme référence.
+const REFERENCE_MODELS = ["seedance_2_5", "seedance_2_0", "minimax_h3_max", "minimax_h3", "wan2_6", "flux_3_video"];
+
+function referenceRank(model) {
+  const i = REFERENCE_MODELS.indexOf(String(model.id || "").toLowerCase());
+  return i < 0 ? 0 : REFERENCE_MODELS.length - i;
+}
+
+function pickReferenceModel(models, seconds) {
+  const usable = models.filter((m) => {
+    const roles = modelRoles(m);
+    return roles.includes("video_references") && (roles.includes("image_references") || roles.includes("image"));
+  }).sort((a, b) => referenceRank(b) - referenceRank(a));
+  return usable.find((m) => supportsDuration(m, seconds)) || usable[0] || null;
+}
+
 function scoreModel(model) {
   const id = String(model.id || "").toLowerCase();
   const tags = (model.tags || []).map((t) => String(t).toLowerCase());
@@ -100,14 +130,9 @@ function scoreModel(model) {
 }
 
 // Sélectionne un modèle vidéo acceptant une image de référence.
-async function pickVideoModel(token, seconds) {
-  const res = await callTool(token, "models_explore", { action: "list", type: "video", limit: 40 });
-  let items = ((res && res.structuredContent) || {}).items;
-  if (!items) {
-    try { items = JSON.parse(resultText(res)).items; } catch { items = []; }
-  }
-  const usable = (items || []).filter((m) => {
-    const roles = (m.medias || []).reduce((acc, x) => acc.concat(x.roles || []), []);
+function pickImageModel(models, seconds) {
+  const usable = models.filter((m) => {
+    const roles = modelRoles(m);
     return roles.includes("image") || roles.includes("start_image");
   }).sort((a, b) => scoreModel(b) - scoreModel(a));
   if (!seconds) return usable[0] || null;
@@ -218,7 +243,7 @@ export default async function(req) {
     }
 
     const parts = [];
-    if (videoUrl) parts.push("Reprendre le mouvement, le cadrage et le rythme de la vidéo de référence.");
+    if (videoUrl) parts.push("Reprendre la vidéo de référence en remplaçant uniquement la personne filmée par le personnage principal : conserver à l'identique le cadrage, les mouvements de caméra, le décor, la lumière, le montage et le rythme de la vidéo ; seules l'identité et l'apparence de la personne changent.");
     else if (viralVideo) parts.push(`Reprendre la direction visuelle (cadrage, mise en scène, rythme) de la vidéo de référence « ${viralVideo.title} » (${viralVideo.platform}, ${viralVideo.category}).`);
     parts.push(`Personnage principal : ${influencer.name}, conserver son visage et son apparence.`);
     if (imageUrls.length > 1) {
@@ -255,10 +280,33 @@ export default async function(req) {
         try { motionMediaId = await importMedia(token, videoUrl, "video"); } catch { motionMediaId = ""; }
       }
 
-      // 2. Transfert de mouvement quand la vidéo source est disponible : mouvement et durée identiques à l'original.
+      // 2. La vidéo source sert de référence (cadre, caméra, décor, rythme) : seule la personne est remplacée.
+      const videoModels = motionMediaId ? await listVideoModels(token) : [];
+      const referenceModel = motionMediaId ? pickReferenceModel(videoModels, sourceDuration) : null;
+
       let toolName = "";
       let result = null;
-      if (motionMediaId) {
+      if (referenceModel && motionMediaId) {
+        toolName = `generate_video:${referenceModel.id}`;
+        const medias = [
+          { value: motionMediaId, role: "video_references" },
+          { value: imageMediaId, role: "image_references" },
+        ];
+        // Une seconde photo aide le modèle à garder le visage.
+        if (imageUrls[1]) {
+          try { medias.push({ value: await importMedia(token, imageUrls[1], "image"), role: "image_references" }); } catch { /* une référence suffit */ }
+        }
+        result = await callTool(token, "generate_video", {
+          params: {
+            model: referenceModel.id,
+            prompt,
+            aspect_ratio: aspect_ratio || "9:16",
+            ...(sourceDuration ? { duration: sourceDuration } : {}),
+            medias,
+          },
+        });
+      } else if (motionMediaId) {
+        // Repli : transfert de mouvement, le décor de la vidéo source est conservé.
         toolName = "motion_control";
         result = await callTool(token, toolName, {
           params: {
@@ -269,7 +317,7 @@ export default async function(req) {
           },
         });
       } else {
-        const model = await pickVideoModel(token, sourceDuration);
+        const model = pickImageModel(videoModels.length ? videoModels : await listVideoModels(token), sourceDuration);
         if (!model) throw new Error("Aucun modèle vidéo compatible n'est disponible sur votre compte Higgsfield.");
         toolName = `generate_video:${model.id}`;
         result = await callTool(token, "generate_video", {

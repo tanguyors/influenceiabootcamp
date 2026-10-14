@@ -139,7 +139,7 @@ export default function Recreate() {
   return (
     <PageShell
       title="Recréer avec mon influenceur"
-      subtitle="Reprenez la direction visuelle de la référence avec votre personnage. Le résultat est une adaptation, non une reproduction fidèle des mouvements, selon les capacités du modèle."
+      subtitle="Votre personnage remplace la personne de la vidéo : le cadre, la caméra et le mouvement de l'original sont repris. Le rendu reste une adaptation, selon les capacités du modèle."
       actions={<Link to="/videos" className="inline-flex items-center gap-1.5 text-sm text-black/60 hover:text-black"><ArrowLeft className="h-4 w-4" /> Retour</Link>}
     >
       <div className="grid gap-6 lg:grid-cols-2">
@@ -282,7 +282,7 @@ export default function Recreate() {
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-black/55">
               <span>Modèle : <strong>automatique</strong></span>
-              <span>Mode : <strong>{hasSourceVideo ? "mouvement de la référence repris" : "adaptation sans fichier source"}</strong></span>
+              <span>Mode : <strong>{hasSourceVideo ? "cadre et mouvement de l'original, votre personnage à la place de la personne" : "adaptation sans fichier source"}</strong></span>
               <span>Durée : <strong>identique à la vidéo d'origine</strong></span>
               <span>Format : <strong>{form.aspect_ratio}</strong></span>
               <span>Résolution : <strong>{form.resolution}</strong></span>
