@@ -4,6 +4,9 @@ import { secrets } from 'base44:runtime';
 const TIKTOK_ACTOR = "clockworks~tiktok-scraper";
 const INSTAGRAM_ACTOR = "apify~instagram-scraper";
 
+// Seuil de viralit\u00e9 : seules les vid\u00e9os d\u00e9passant ce nombre de vues sont conserv\u00e9es.
+const MIN_VIEWS = 1000000;
+
 // Hashtags de découverte par catégorie de la bibliothèque.
 const CATEGORY_HASHTAGS = {
   danse: ["dance", "dancechallenge"],
@@ -56,6 +59,11 @@ function mapTikTok(item, category) {
   };
 }
 
+function isViral(video) {
+  const views = video.stats && video.stats.views;
+  return typeof views === "number" && views >= MIN_VIEWS;
+}
+
 function mapInstagram(item, category) {
   const url = item.url || (item.shortCode ? `https://www.instagram.com/p/${item.shortCode}/` : "");
   if (!url) return null;
@@ -106,25 +114,28 @@ export default async function(req) {
 
     const limit = Math.min(Math.max(parseInt(body.limit, 10) || 12, 4), 30);
 
+    // On r\u00e9cup\u00e8re large pour ne garder ensuite que les vid\u00e9os vraiment virales.
+    const fetchCount = Math.min(limit * 5, 60);
+
     const jobs = platforms.map(async (platform) => {
       if (platform === "tiktok") {
         const items = await runActor(TIKTOK_ACTOR, {
           hashtags,
-          resultsPerPage: limit,
+          resultsPerPage: fetchCount,
           shouldDownloadVideos: false,
           shouldDownloadCovers: false,
           excludePinnedPosts: false,
           proxyCountryCode: "None",
-        }, token, limit);
-        return items.map((i) => mapTikTok(i, category)).filter(Boolean);
+        }, token, fetchCount);
+        return items.map((i) => mapTikTok(i, category)).filter(Boolean).filter(isViral);
       }
       const items = await runActor(INSTAGRAM_ACTOR, {
         directUrls: hashtags.map((h) => `https://www.instagram.com/explore/tags/${h}/`),
         resultsType: "reels",
-        resultsLimit: limit,
+        resultsLimit: fetchCount,
         addParentData: false,
-      }, token, limit);
-      return items.map((i) => mapInstagram(i, category)).filter(Boolean);
+      }, token, fetchCount);
+      return items.map((i) => mapInstagram(i, category)).filter(Boolean).filter(isViral);
     });
 
     const settled = await Promise.allSettled(jobs);
@@ -142,15 +153,19 @@ export default async function(req) {
       return true;
     });
 
+    // Les plus vues d'abord, puis on s'arr\u00eate au nombre demand\u00e9.
+    unique.sort((a, b) => (b.stats.views || 0) - (a.stats.views || 0));
+    const selected = unique.slice(0, limit);
+
     let created = 0;
     let updated = 0;
-    if (unique.length) {
-      const result = await base44.entities.ViralVideo.upsert(unique, { key: "source_url" });
+    if (selected.length) {
+      const result = await base44.entities.ViralVideo.upsert(selected, { key: "source_url" });
       created = (result && result.created) || 0;
       updated = (result && result.updated) || 0;
     }
 
-    return Response.json({ created, updated, total: unique.length, errors });
+    return Response.json({ created, updated, total: selected.length, minViews: MIN_VIEWS, errors });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }
