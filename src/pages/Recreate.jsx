@@ -86,7 +86,9 @@ export default function Recreate() {
       toast({ title: "Génération lancée", description: "Suivez l'état dans Mes créations." });
       navigate("/creations");
     } catch (e) {
-      toast({ title: "Lancement impossible", description: e.message, variant: "destructive" });
+      // Affiche la raison envoyée par le serveur, pas le seul code HTTP.
+      const detail = e?.response?.data?.error || e?.response?.data?.message || e.message;
+      toast({ title: "Lancement impossible", description: detail, variant: "destructive" });
     } finally {
       setLaunching(false);
     }

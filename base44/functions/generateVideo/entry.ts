@@ -18,7 +18,7 @@ function collectStrings(value, out = []) {
   return out;
 }
 
-const VIDEO_RE = /^https?:\/\/[^\s"'<>]+\.(mp4|mov|webm)/i;
+const VIDEO_RE = /https?:\/\/[^\s"'<>]+\.(mp4|mov|webm)(\?[^\s"'<>]*)?/i;
 
 function mapStatus(raw) {
   const s = String(raw || "").toLowerCase();
@@ -28,17 +28,33 @@ function mapStatus(raw) {
 }
 
 // Lit un résultat MCP (soumission ou état de tâche) quelle que soit sa forme.
+// Higgsfield imbrique l'état réel dans structuredContent.generation.
 function readJob(res) {
   const sc = (res && res.structuredContent) || {};
+  const layers = [sc, sc.generation, sc.job, sc.data, sc.result].filter((l) => l && typeof l === "object");
   const strings = collectStrings(res);
   const text = resultText(res);
-  const videoUrl = strings.find((s) => VIDEO_RE.test(s)) || "";
-  let jobId = sc.job_id || sc.jobId || sc.id || "";
+
+  const videoUrl = strings.map((s) => (s.match(VIDEO_RE) || [])[0]).find(Boolean) || "";
+
+  let status = "";
+  let jobId = "";
+  let failure = "";
+  for (const layer of layers) {
+    if (!status) status = layer.status || layer.job_status || layer.state || "";
+    if (!jobId) jobId = layer.job_id || layer.jobId || layer.id || "";
+    if (!failure) failure = layer.error || layer.error_message || layer.failure_reason || "";
+  }
   if (!jobId) {
     const m = text.match(/\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b/);
     if (m) jobId = m[0];
   }
-  return { status: mapStatus(sc.status || sc.job_status || sc.state), videoUrl, jobId, error: (res && res.isError) ? (text || "Appel refusé par Higgsfield").slice(0, 500) : "" };
+
+  const error = (res && res.isError)
+    ? (text || "Appel refusé par Higgsfield").slice(0, 500)
+    : String(failure || "").slice(0, 500);
+
+  return { status: mapStatus(status), videoUrl, jobId, error };
 }
 
 // Importe un média (URL signée) dans Higgsfield : les outils de génération n'acceptent que des media_id confirmés.
@@ -169,8 +185,9 @@ export default async function(req) {
     // Higgsfield télécharge lui-même les médias : URLs signées temporaires.
     const imageUrls = (await Promise.all(photoUris.map(async (uri) => {
       try {
+        // 3600 s est le maximum autorisé pour une URL signée.
         const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
-          file_uri: uri, expires_in: 7200,
+          file_uri: uri, expires_in: 3600,
         });
         return signed_url;
       } catch { return ""; }
@@ -183,7 +200,7 @@ export default async function(req) {
     if (viralVideo && viralVideo.video_file_uri) {
       try {
         const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
-          file_uri: viralVideo.video_file_uri, expires_in: 7200,
+          file_uri: viralVideo.video_file_uri, expires_in: 3600,
         });
         videoUrl = signed_url;
       } catch { /* on continue sans vidéo source */ }
