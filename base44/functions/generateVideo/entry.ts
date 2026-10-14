@@ -11,10 +11,17 @@ function resultText(res) {
   return "";
 }
 
+// Les URLs du résultat uniquement : le sous-objet "params" ne contient que l'écho de la requête
+// (les médias importés), jamais la vidéo produite.
 function collectStrings(value, out = []) {
   if (typeof value === "string") out.push(value);
   else if (Array.isArray(value)) for (const v of value) collectStrings(v, out);
-  else if (value && typeof value === "object") for (const v of Object.values(value)) collectStrings(v, out);
+  else if (value && typeof value === "object") {
+    for (const [key, v] of Object.entries(value)) {
+      if (key === "params") continue;
+      collectStrings(v, out);
+    }
+  }
   return out;
 }
 
@@ -35,7 +42,7 @@ function readJob(res) {
   const strings = collectStrings(res);
   const text = resultText(res);
 
-  const videoUrl = strings.map((s) => (s.match(VIDEO_RE) || [])[0]).find(Boolean) || "";
+  const found = strings.map((s) => (s.match(VIDEO_RE) || [])[0]).find(Boolean) || "";
 
   let status = "";
   let jobId = "";
@@ -54,7 +61,10 @@ function readJob(res) {
     ? (text || "Appel refusé par Higgsfield").slice(0, 500)
     : String(failure || "").slice(0, 500);
 
-  return { status: mapStatus(status), videoUrl, jobId, error };
+  const mapped = mapStatus(status);
+  // Une URL n'est retenue que si la tâche est terminée : tant qu'elle tourne, les seules
+  // vidéos présentes sont celles des médias d'entrée.
+  return { status: mapped, videoUrl: mapped === "ready" ? found : "", jobId, error };
 }
 
 // Importe un média (URL signée) dans Higgsfield : les outils de génération n'acceptent que des media_id confirmés.
@@ -128,7 +138,8 @@ async function refreshProcessing(base44, token) {
       const patch = {};
       if (job.error) { patch.status = "failed"; patch.error = job.error; }
       else if (job.videoUrl) { patch.status = "ready"; patch.result_video_url = job.videoUrl; }
-      else if (job.status) patch.status = job.status;
+      // Tâche terminée mais résultat illisible : on garde le suivi en cours pour la relire.
+      else if (job.status === "processing") patch.status = "processing";
       if (Object.keys(patch).length) {
         await base44.entities.Creation.update(creation.id, patch);
         updated++;

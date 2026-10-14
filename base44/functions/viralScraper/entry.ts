@@ -65,6 +65,67 @@ function isViral(video) {
   return typeof views === "number" && views >= MIN_VIEWS;
 }
 
+/* ------------------- Fichier source (transfert de mouvement) ---------------- */
+
+function candidateMediaUrls(item) {
+  const list = [];
+  if (Array.isArray(item.mediaUrls)) list.push(...item.mediaUrls);
+  for (const key of ["videoUrl", "downloadUrl", "video_url"]) if (item[key]) list.push(item[key]);
+  return list.filter((u) => typeof u === "string" && /^https?:\/\//.test(u));
+}
+
+// Télécharge le fichier vidéo d'une publication et le stocke avec la vidéo de la bibliothèque.
+async function storeSourceFile(base44, video, token) {
+  const isTikTok = video.platform === "tiktok";
+  const items = isTikTok
+    ? await runActor(TIKTOK_ACTOR, {
+        postURLs: [video.source_url],
+        resultsPerPage: 1,
+        shouldDownloadVideos: true,
+        shouldDownloadCovers: false,
+        proxyCountryCode: "None",
+      }, token, 1)
+    : await runActor(INSTAGRAM_ACTOR, {
+        directUrls: [video.source_url],
+        resultsType: "posts",
+        resultsLimit: 1,
+        addParentData: false,
+      }, token, 1);
+
+  const item = items[0];
+  if (!item) throw new Error("Publication introuvable chez le fournisseur.");
+  const candidates = candidateMediaUrls(item);
+  if (!candidates.length) throw new Error("Cette publication n'expose aucun fichier vidéo.");
+
+  let failure = "";
+  for (const url of candidates) {
+    try {
+      const res = await fetch(url, {
+        headers: {
+          "User-Agent": "Mozilla/5.0",
+          "Referer": isTikTok ? "https://www.tiktok.com/" : "https://www.instagram.com/",
+        },
+        signal: AbortSignal.timeout(90000),
+      });
+      if (!res.ok) { failure = `Téléchargement refusé (${res.status})`; continue; }
+      const blob = await res.blob();
+      if (blob.size < 20000) { failure = "Fichier vidéo illisible"; continue; }
+      if (blob.size > 45 * 1024 * 1024) { failure = "Fichier vidéo trop volumineux"; continue; }
+      const file = new File([blob], "source.mp4", { type: blob.type || "video/mp4" });
+      const { file_uri } = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
+      const duration = Number((item.videoMeta && item.videoMeta.duration) || item.videoDuration || 0) || null;
+      const patch = { video_file_uri: file_uri };
+      if (duration) patch.duration = duration;
+      if (!video.thumbnail_url) patch.thumbnail_url = (item.covers && item.covers.default) || item.displayUrl || "";
+      await base44.entities.ViralVideo.update(video.id, patch);
+      return { video_file_uri: file_uri, duration };
+    } catch (e) {
+      failure = e.message;
+    }
+  }
+  throw new Error(failure || "Téléchargement impossible.");
+}
+
 function mapInstagram(item, category) {
   const url = item.url || (item.shortCode ? `https://www.instagram.com/p/${item.shortCode}/` : "");
   if (!url) return null;
@@ -102,6 +163,24 @@ export default async function(req) {
     }
 
     const body = await req.json().catch(() => ({}));
+
+    // Récupère le fichier source d'une vidéo déjà en bibliothèque (requis pour reprendre le mouvement).
+    if (body.action === "fetchSource") {
+      const id = String(body.viral_video_id || "");
+      if (!id) return Response.json({ error: "viral_video_id requis" }, { status: 400 });
+      const vp = await base44.entities.ViralVideo.filter({ id }, { limit: 1 });
+      const video = (vp.items || [])[0];
+      if (!video) return Response.json({ error: "Vidéo introuvable dans la bibliothèque." }, { status: 404 });
+      if (video.video_file_uri) {
+        return Response.json({ ok: true, video_file_uri: video.video_file_uri, duration: video.duration || null });
+      }
+      try {
+        return Response.json({ ok: true, ...(await storeSourceFile(base44, video, token)) });
+      } catch (e) {
+        return Response.json({ error: e.message }, { status: 502 });
+      }
+    }
+
     const category = String(body.category || "");
     const hashtags = CATEGORY_HASHTAGS[category];
     if (!hashtags) {
