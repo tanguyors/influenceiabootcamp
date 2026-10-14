@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
-import { Image as ContentImage } from "@/components/ui/image";
+import SignedImage from "@/components/SignedImage";
 
 const ACTIVE_KEY = "influenceia.activeInfluencer";
 
@@ -129,7 +129,7 @@ export default function Influencers() {
               <button onClick={() => selectActive(inf.id)} className="block w-full text-left">
                 <div className="relative aspect-[3/4] bg-black/5">
                   {photosOf(inf).length ? (
-                    <ContentImage src={photosOf(inf)[0]} fittingType="fill" className="h-full w-full" />
+                    <SignedImage src={photosOf(inf)[0]} fittingType="fill" className="h-full w-full" />
                   ) : (
                     <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-black/20" /></div>
                   )}
@@ -147,6 +147,13 @@ export default function Influencers() {
                 <div className="p-4">
                   <h3 className="font-heading text-base font-semibold tracking-tight">{inf.name}</h3>
                   {inf.notes && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-black/50">{inf.notes}</p>}
+                  {photosOf(inf).length > 1 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {photosOf(inf).slice(1).map((uri) => (
+                        <SignedImage key={uri} src={uri} fittingType="fill" className="h-12 w-12 rounded-md border border-black/10 bg-black/5" />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </button>
               <button onClick={() => remove(inf.id)} className="absolute bottom-3 right-3 rounded-md bg-white/80 p-1.5 text-black/40 opacity-0 transition hover:text-red-600 group-hover:opacity-100">
