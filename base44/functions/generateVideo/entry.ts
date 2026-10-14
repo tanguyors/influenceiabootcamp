@@ -20,10 +20,14 @@ function pickVideoTool(tools) {
 // Construit les arguments de l'outil à partir du contexte de génération.
 function buildArgs(ctx) {
   const args = { prompt: ctx.prompt };
-  if (ctx.imageUrl) {
-    args.image = ctx.imageUrl;
-    args.image_url = ctx.imageUrl;
-    args.reference_image = ctx.imageUrl;
+  const images = (ctx.imageUrls || []).filter(Boolean);
+  if (images.length) {
+    args.image = images[0];
+    args.image_url = images[0];
+    args.reference_image = images[0];
+    args.images = images;
+    args.image_urls = images;
+    args.reference_images = images;
   }
   if (ctx.videoUrl) {
     args.video = ctx.videoUrl;
@@ -88,8 +92,11 @@ export default async function(req) {
     const infPage = await base44.entities.Influencer.filter({ id: influencer_id }, { limit: 1 });
     const influencer = (infPage.items || [])[0];
     if (!influencer) return Response.json({ error: "Influenceur introuvable" }, { status: 404 });
-    if (!influencer.reference_image) {
-      return Response.json({ error: "Cet influenceur n'a pas d'image de référence." }, { status: 400 });
+    const photoUris = (Array.isArray(influencer.reference_images) && influencer.reference_images.length
+      ? influencer.reference_images
+      : [influencer.reference_image]).filter(Boolean).slice(0, 8);
+    if (!photoUris.length) {
+      return Response.json({ error: "Cet influenceur n'a aucune photo de référence." }, { status: 400 });
     }
 
     let viralVideo = null;
@@ -99,13 +106,15 @@ export default async function(req) {
     }
 
     // Higgsfield télécharge lui-même les médias : URLs signées temporaires.
-    let imageUrl = "";
-    try {
-      const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
-        file_uri: influencer.reference_image, expires_in: 7200,
-      });
-      imageUrl = signed_url;
-    } catch { /* on continue sans image */ }
+    // Toutes les photos de référence sont envoyées : le personnage est mieux reproduit.
+    const imageUrls = (await Promise.all(photoUris.map(async (uri) => {
+      try {
+        const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+          file_uri: uri, expires_in: 7200,
+        });
+        return signed_url;
+      } catch { return ""; }
+    }))).filter(Boolean);
 
     let videoUrl = "";
     if (viralVideo && viralVideo.video_file_uri) {
@@ -121,6 +130,9 @@ export default async function(req) {
     if (videoUrl) parts.push("Reprendre le mouvement, le cadrage et le rythme de la vidéo de référence.");
     else if (viralVideo) parts.push(`Reprendre la direction visuelle (cadrage, mise en scène, rythme) de la vidéo de référence « ${viralVideo.title} » (${viralVideo.platform}, ${viralVideo.category}).`);
     parts.push(`Personnage principal : ${influencer.name}, conserver son visage et son apparence.`);
+    if (imageUrls.length > 1) {
+      parts.push(`Le personnage est fourni sous ${imageUrls.length} angles différents : garder exactement le même visage, la même coiffure et la même morphologie.`);
+    }
     if (influencer.notes) parts.push(`Notes du personnage : ${influencer.notes}`);
     if (wardrobe) parts.push(`Tenue : ${wardrobe}.`);
     if (setting) parts.push(`Décor : ${setting}.`);
@@ -152,7 +164,7 @@ export default async function(req) {
       return Response.json({ error: "Aucun outil de génération vidéo disponible", creation_id: creation.id }, { status: 400 });
     }
 
-    const args = buildArgs({ prompt, imageUrl, videoUrl, model, duration, aspectRatio: aspect_ratio, resolution });
+    const args = buildArgs({ prompt, imageUrls, videoUrl, model, duration, aspectRatio: aspect_ratio, resolution });
 
     try {
       const result = await callTool(token, tool.name, args);

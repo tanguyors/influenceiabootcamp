@@ -12,7 +12,14 @@
     },
     "reference_image": {
       "type": "string",
-      "description": "file_uri de l'image de r\u00e9f\u00e9rence (stockage priv\u00e9)"
+      "description": "file_uri de la photo de r\u00e9f\u00e9rence principale (stockage priv\u00e9)"
+    },
+    "reference_images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "file_uris de toutes les photos de r\u00e9f\u00e9rence du personnage (stockage priv\u00e9)"
     }
   },
   "required": [
