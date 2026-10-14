@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Flame, Heart, Plus, Loader2, ExternalLink, Star, Filter, Search } from "lucide-react";
+import { Flame, Heart, Plus, Loader2, ExternalLink, Star, Filter, Search, RefreshCw } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -57,6 +57,37 @@ export default function ViralLibrary() {
   }
   useEffect(() => { load(); }, []);
 
+  const [syncing, setSyncing] = useState(false);
+
+  async function syncFromScraper() {
+    if (category === "all") {
+      toast({ title: "Choisissez une catégorie", description: "Les vidéos virales sont récupérées catégorie par catégorie.", variant: "destructive" });
+      return;
+    }
+    if (platform === "youtube") {
+      toast({ title: "YouTube non couvert", description: "Le scraper récupère TikTok et Instagram Reels.", variant: "destructive" });
+      return;
+    }
+    setSyncing(true);
+    try {
+      const res = await base44.functions.invoke("viralScraper", {
+        category,
+        platforms: platform === "all" ? ["tiktok", "instagram"] : [platform],
+      });
+      const data = res.data || {};
+      if (data.error) throw new Error(data.error);
+      await load();
+      toast({
+        title: `${data.created || 0} nouvelle(s) référence(s)`,
+        description: `${data.updated || 0} mise(s) à jour${data.errors && data.errors.length ? " — " + data.errors.join(" · ") : ""}`,
+      });
+    } catch (e) {
+      toast({ title: "Récupération impossible", description: e.message, variant: "destructive" });
+    } finally {
+      setSyncing(false);
+    }
+  }
+
   function toggleFav(id) {
     setFavorites((prev) => {
       const next = new Set(prev);
@@ -70,7 +101,7 @@ export default function ViralLibrary() {
   const onlyFav = false;
 
   const filtered = useMemo(() => {
-    const all = [...real, ...DEMO_VIDEOS];
+    const all = real.length ? real : DEMO_VIDEOS;
     const cutoff = Date.now() - periodToMs(period);
     return all.filter((v) => {
       if (category !== "all" && v.category !== category) return false;
@@ -132,11 +163,17 @@ export default function ViralLibrary() {
   return (
     <PageShell
       title="Vidéos virales"
-      subtitle="Bibliothèque de références ayant percé sur TikTok, Reels et Shorts. Importez vos propres références ou utilisez les exemples signalés pour démarrer."
+      subtitle="Bibliothèque de références ayant percé sur TikTok et Instagram Reels. Récupérez automatiquement les vidéos d'une catégorie, ou importez vos propres références."
       actions={
-        <Button onClick={() => setOpen(true)} className="bg-black text-white hover:bg-black/85">
-          <Plus className="mr-2 h-4 w-4" /> Importer une référence
-        </Button>
+        <>
+          <Button onClick={syncFromScraper} disabled={syncing} variant="outline">
+            {syncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+            {syncing ? "Récupération…" : "Récupérer les vidéos virales"}
+          </Button>
+          <Button onClick={() => setOpen(true)} className="bg-black text-white hover:bg-black/85">
+            <Plus className="mr-2 h-4 w-4" /> Importer une référence
+          </Button>
+        </>
       }
     >
       {/* Filters */}
