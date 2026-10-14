@@ -69,9 +69,9 @@ function mapInstagram(item, category) {
     published_date: item.timestamp || new Date().toISOString(),
     category,
     stats: {
-      views: item.videoViewCount ?? item.videoPlayCount ?? null,
+      views: item.videoPlayCount ?? item.videoViewCount ?? item.igPlayCount ?? null,
       likes: item.likesCount ?? null,
-      shares: null,
+      shares: item.sharesCount ?? null,
     },
     is_manual: false,
     is_demo: false,
@@ -120,7 +120,7 @@ export default async function(req) {
       }
       const items = await runActor(INSTAGRAM_ACTOR, {
         directUrls: hashtags.map((h) => `https://www.instagram.com/explore/tags/${h}/`),
-        resultsType: "posts",
+        resultsType: "reels",
         resultsLimit: limit,
         addParentData: false,
       }, token, limit);
