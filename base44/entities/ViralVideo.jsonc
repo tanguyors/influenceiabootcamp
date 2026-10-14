@@ -27,6 +27,10 @@
       "type": "string",
       "description": "file_uri (priv\u00e9) du fichier vid\u00e9o source \u2014 requis pour le transfert de mouvement"
     },
+    "duration": {
+      "type": "number",
+      "description": "Dur\u00e9e de la vid\u00e9o d'origine en secondes"
+    },
     "published_date": {
       "type": "string",
       "format": "date-time",

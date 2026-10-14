@@ -12,14 +12,6 @@ import { useToast } from "@/components/ui/use-toast";
 import SignedImage from "@/components/SignedImage";
 import { findDemoVideo } from "@/lib/demoVideos";
 
-const MODELS = [
-  { value: "auto", label: "Automatique (recommandé)" },
-  { value: "soul", label: "Soul (cohérence du personnage)" },
-  { value: "kling", label: "Kling" },
-  { value: "veo", label: "Veo" },
-  { value: "seedance", label: "Seedance" },
-];
-
 export default function Recreate() {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -33,8 +25,6 @@ export default function Recreate() {
   const [tools, setTools] = useState(null);
   const [connected, setConnected] = useState(null);
   const [form, setForm] = useState({
-    model: "auto",
-    duration: "6",
     aspect_ratio: "9:16",
     resolution: "1080p",
     wardrobe: "",
@@ -85,8 +75,6 @@ export default function Recreate() {
       await base44.functions.invoke("generateVideo", {
         influencer_id: selectedInfluencer.id,
         viral_video_id: video.id,
-        model: form.model,
-        duration: parseInt(form.duration, 10),
         aspect_ratio: form.aspect_ratio,
         resolution: form.resolution,
         wardrobe: form.wardrobe.trim(),
@@ -204,21 +192,10 @@ export default function Recreate() {
           {/* Params */}
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <h3 className="font-heading text-sm font-semibold tracking-tight">Direction visuelle</h3>
+            <p className="mt-1 text-[11px] text-black/45">
+              Le modèle et la durée sont gérés automatiquement : la durée est exactement celle de la vidéo d'origine.
+            </p>
             <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Modèle</Label>
-                <Select value={form.model} onValueChange={(v) => setForm((s) => ({ ...s, model: v }))}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Durée (s)</Label>
-                <Select value={form.duration} onValueChange={(v) => setForm((s) => ({ ...s, duration: v }))}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["4", "6", "8", "10", "15"].map((d) => <SelectItem key={d} value={d}>{d}s</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
               <div>
                 <Label className="text-xs">Format</Label>
                 <Select value={form.aspect_ratio} onValueChange={(v) => setForm((s) => ({ ...s, aspect_ratio: v }))}>
@@ -253,8 +230,8 @@ export default function Recreate() {
           {/* Summary + launch */}
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-black/55">
-              <span>Modèle : <strong>{MODELS.find((m) => m.value === form.model)?.label}</strong></span>
-              <span>Durée : <strong>{form.duration}s</strong></span>
+              <span>Modèle : <strong>automatique</strong></span>
+              <span>Durée : <strong>identique à la vidéo d'origine</strong></span>
               <span>Format : <strong>{form.aspect_ratio}</strong></span>
               <span>Résolution : <strong>{form.resolution}</strong></span>
             </div>

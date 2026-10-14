@@ -47,6 +47,7 @@ function mapTikTok(item, category) {
     platform: "tiktok",
     source_url: url,
     thumbnail_url: (item.covers && item.covers.default) || (item.videoMeta && item.videoMeta.coverUrl) || "",
+    duration: (item.videoMeta && item.videoMeta.duration) || null,
     published_date: item.createTimeISO || (item.createTime ? new Date(item.createTime * 1000).toISOString() : new Date().toISOString()),
     category,
     stats: {
@@ -74,6 +75,7 @@ function mapInstagram(item, category) {
     platform: "instagram",
     source_url: url,
     thumbnail_url: item.displayUrl || (item.images && item.images[0]) || "",
+    duration: item.videoDuration || null,
     published_date: item.timestamp || new Date().toISOString(),
     category,
     stats: {

@@ -105,6 +105,11 @@ export default async function(req) {
       viralVideo = (vp.items || [])[0];
     }
 
+    // Durée : toujours celle de la vidéo d'origine (jamais un choix manuel).
+    const sourceDuration = Number(viralVideo && viralVideo.duration) > 0
+      ? Number(viralVideo.duration)
+      : (Number(duration) > 0 ? Number(duration) : null);
+
     // Higgsfield télécharge lui-même les médias : URLs signées temporaires.
     // Toutes les photos de référence sont envoyées : le personnage est mieux reproduit.
     const imageUrls = (await Promise.all(photoUris.map(async (uri) => {
@@ -137,7 +142,10 @@ export default async function(req) {
     if (wardrobe) parts.push(`Tenue : ${wardrobe}.`);
     if (setting) parts.push(`Décor : ${setting}.`);
     if (instructions) parts.push(instructions);
-    parts.push(`Format ${aspect_ratio || "9:16"}, résolution ${resolution || "1080p"}, durée ${duration || 6} secondes.`);
+    parts.push(`Format ${aspect_ratio || "9:16"}, résolution ${resolution || "1080p"}.`);
+    parts.push(sourceDuration
+      ? `Durée stricte : ${sourceDuration} secondes, exactement comme la vidéo d'origine.`
+      : "Conserver exactement la durée de la vidéo d'origine.");
     const prompt = parts.join(" ");
 
     const creation = await base44.entities.Creation.create({
@@ -147,7 +155,7 @@ export default async function(req) {
       viral_video_title: viralVideo ? viralVideo.title : "",
       status: "processing",
       model: model || "auto",
-      duration: duration || 6,
+      duration: sourceDuration || undefined,
       aspect_ratio: aspect_ratio || "9:16",
       resolution: resolution || "1080p",
       prompt,
@@ -164,7 +172,7 @@ export default async function(req) {
       return Response.json({ error: "Aucun outil de génération vidéo disponible", creation_id: creation.id }, { status: 400 });
     }
 
-    const args = buildArgs({ prompt, imageUrls, videoUrl, model, duration, aspectRatio: aspect_ratio, resolution });
+    const args = buildArgs({ prompt, imageUrls, videoUrl, model, duration: sourceDuration, aspectRatio: aspect_ratio, resolution });
 
     try {
       const result = await callTool(token, tool.name, args);
