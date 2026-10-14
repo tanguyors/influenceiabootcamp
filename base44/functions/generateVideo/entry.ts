@@ -107,10 +107,27 @@ function referenceRank(model) {
   return i < 0 ? 0 : REFERENCE_MODELS.length - i;
 }
 
+// Certains modèles refusent les médias de référence tant que le mode de génération
+// n'est pas déclaré explicitement (le mode par défaut est « prompt seul »).
+const REFERENCE_MODE_NAMES = ["omni_reference", "reference_to_video", "r2v", "video_reference", "reference"];
+
+function referenceMode(model) {
+  const param = ((model && model.parameters) || []).find((p) => p.name === "mode");
+  const options = (param && param.options) || [];
+  return REFERENCE_MODE_NAMES.find((name) => options.includes(name)) || "";
+}
+
+function acceptsReferences(model) {
+  const param = ((model && model.parameters) || []).find((p) => p.name === "mode");
+  return !param || Boolean(referenceMode(model));
+}
+
 function pickReferenceModel(models, seconds) {
   const usable = models.filter((m) => {
     const roles = modelRoles(m);
-    return roles.includes("video_references") && (roles.includes("image_references") || roles.includes("image"));
+    return roles.includes("video_references")
+      && (roles.includes("image_references") || roles.includes("image"))
+      && acceptsReferences(m);
   }).sort((a, b) => referenceRank(b) - referenceRank(a));
   return usable.find((m) => supportsDuration(m, seconds)) || usable[0] || null;
 }
@@ -296,11 +313,13 @@ export default async function(req) {
         if (imageUrls[1]) {
           try { medias.push({ value: await importMedia(token, imageUrls[1], "image"), role: "image_references" }); } catch { /* une référence suffit */ }
         }
+        const refMode = referenceMode(referenceModel);
         result = await callTool(token, "generate_video", {
           params: {
             model: referenceModel.id,
             prompt,
             aspect_ratio: aspect_ratio || "9:16",
+            ...(refMode ? { mode: refMode } : {}),
             ...(sourceDuration ? { duration: sourceDuration } : {}),
             medias,
           },
