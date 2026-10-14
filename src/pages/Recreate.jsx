@@ -24,6 +24,7 @@ export default function Recreate() {
   const [launching, setLaunching] = useState(false);
   const [tools, setTools] = useState(null);
   const [connected, setConnected] = useState(null);
+  const [credits, setCredits] = useState(null);
   const [form, setForm] = useState({
     aspect_ratio: "9:16",
     resolution: "1080p",
@@ -50,6 +51,7 @@ export default function Recreate() {
       const data = res.data || {};
       setTools(data.tools || []);
       setConnected(Boolean(data.connected));
+      setCredits(data.balance ? Number(data.balance.credits) : null);
     } catch (e) {
       setTools([]);
       setConnected(false);
@@ -173,6 +175,16 @@ export default function Recreate() {
               <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-600" />
               <p className="text-xs leading-relaxed text-amber-900">
                 Compte Higgsfield non connecté. Connectez-le depuis <Link to="/connexion" className="underline">Connexion Higgsfield</Link> pour pouvoir générer.
+              </p>
+            </div>
+          )}
+
+          {/* Crédits Higgsfield */}
+          {connected && credits === 0 && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-600" />
+              <p className="text-xs leading-relaxed text-amber-900">
+                Votre compte Higgsfield n'a aucun crédit : la génération échouera. Rechargez votre compte Higgsfield, puis relancez.
               </p>
             </div>
           )}

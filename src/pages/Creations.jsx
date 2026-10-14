@@ -22,6 +22,14 @@ export default function Creations() {
     try {
       const page = await base44.entities.Creation.filter({}, { sort: "-created_date", limit: 100 });
       setItems(page.items || []);
+      // Interroge Higgsfield pour l'état réel des générations en cours.
+      if ((page.items || []).some((c) => c.status === "processing" && c.higgsfield_job_id)) {
+        const { checked } = (await base44.functions.invoke("generateVideo", { action: "refresh" })).data || {};
+        if (checked) {
+          const fresh = await base44.entities.Creation.filter({}, { sort: "-created_date", limit: 100 });
+          setItems(fresh.items || []);
+        }
+      }
     } catch (e) {
       setItems([]);
     }

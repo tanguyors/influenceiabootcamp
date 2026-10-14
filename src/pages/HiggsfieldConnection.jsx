@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Loader2, CheckCircle2, XCircle, RefreshCw, ShieldCheck, Wrench, Plug, Link2, Unlink } from "lucide-react";
+import { Loader2, CheckCircle2, XCircle, RefreshCw, ShieldCheck, Wrench, Plug, Link2, Unlink, AlertCircle } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
@@ -11,6 +11,7 @@ export default function HiggsfieldConnection() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [account, setAccount] = useState(null); // null | { connected, account, mcp_url }
   const [tools, setTools] = useState(null); // null | []
+  const [balance, setBalance] = useState(null); // { credits, plan }
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
@@ -30,6 +31,7 @@ export default function HiggsfieldConnection() {
       const data = res.data || {};
       setAccount((s) => ({ ...(s || {}), connected: Boolean(data.connected), mcp_url: data.mcp_url }));
       setTools(data.tools || []);
+      setBalance(data.balance || null);
       if (!data.connected && data.message) toast({ title: "Serveur MCP injoignable", description: data.message, variant: "destructive" });
     } catch (e) {
       setTools([]);
@@ -107,7 +109,21 @@ export default function HiggsfieldConnection() {
                 <p className="mt-2 text-xs text-black/60">Compte : <strong>{account.account}</strong></p>
               )}
               {account?.mcp_url && <p className="mt-2 break-all text-xs text-black/40">{account.mcp_url}</p>}
+              {balance && (
+                <p className={`mt-2 text-xs ${balance.credits > 0 ? "text-black/60" : "text-amber-700"}`}>
+                  Crédits Higgsfield : <strong>{balance.credits}</strong>{balance.plan ? ` (offre ${balance.plan})` : ""}
+                </p>
+              )}
             </div>
+
+            {account?.connected && balance && balance.credits === 0 && (
+              <div className="mt-3 flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
+                <AlertCircle className="mt-0.5 h-4 w-4 flex-none text-amber-600" />
+                <p className="text-xs leading-relaxed text-amber-900">
+                  Aucun crédit disponible : les générations vidéo échoueront. Rechargez votre compte Higgsfield, puis relancez une génération.
+                </p>
+              </div>
+            )}
 
             {account?.connected ? (
               <div className="mt-4 space-y-2">
