@@ -1,0 +1,104 @@
+{
+  "name": "ViralVideo",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Titre / description courte"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "tiktok",
+        "instagram",
+        "youtube"
+      ],
+      "description": "Plateforme d'origine"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "Lien vers la publication originale"
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "file_uri (priv\u00e9) ou URL publique de la vignette"
+    },
+    "published_date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date de publication"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "danse",
+        "lifestyle",
+        "humour",
+        "beaute",
+        "fitness",
+        "mode",
+        "food",
+        "voyage",
+        "tech"
+      ],
+      "description": "Cat\u00e9gorie de la vid\u00e9o"
+    },
+    "stats": {
+      "type": "object",
+      "description": "Statistiques disponibles: { views, likes, shares } \u2014 null si indisponible"
+    },
+    "is_manual": {
+      "type": "boolean",
+      "description": "true si import\u00e9e manuellement"
+    },
+    "is_demo": {
+      "type": "boolean",
+      "description": "true si donn\u00e9e de d\u00e9monstration"
+    }
+  },
+  "required": [
+    "title",
+    "platform",
+    "source_url",
+    "published_date"
+  ],
+  "rls": {
+    "read": {},
+    "create": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

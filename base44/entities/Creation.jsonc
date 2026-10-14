@@ -1,0 +1,115 @@
+{
+  "name": "Creation",
+  "type": "object",
+  "properties": {
+    "influencer_id": {
+      "type": "string",
+      "description": "ID de l'influenceur utilis\u00e9"
+    },
+    "influencer_name": {
+      "type": "string",
+      "description": "Nom de l'influenceur (d\u00e9normalis\u00e9)"
+    },
+    "viral_video_id": {
+      "type": "string",
+      "description": "ID de la vid\u00e9o virale de r\u00e9f\u00e9rence"
+    },
+    "viral_video_title": {
+      "type": "string",
+      "description": "Titre de la r\u00e9f\u00e9rence (d\u00e9normalis\u00e9)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "pending",
+        "processing",
+        "ready",
+        "failed"
+      ],
+      "description": "\u00c9tat de la g\u00e9n\u00e9ration"
+    },
+    "model": {
+      "type": "string",
+      "description": "Mod\u00e8le Higgsfield utilis\u00e9"
+    },
+    "duration": {
+      "type": "number",
+      "description": "Dur\u00e9e en secondes"
+    },
+    "aspect_ratio": {
+      "type": "string",
+      "description": "Format: 9:16, 1:1, etc."
+    },
+    "resolution": {
+      "type": "string",
+      "description": "R\u00e9solution cible: 1080p, 720p, 4k"
+    },
+    "is_upscaled": {
+      "type": "boolean",
+      "description": "true si le 1080p est obtenu par mise \u00e0 l'\u00e9chelle et non nativement"
+    },
+    "prompt": {
+      "type": "string",
+      "description": "Prompt de g\u00e9n\u00e9ration envoy\u00e9"
+    },
+    "result_video_url": {
+      "type": "string",
+      "description": "URL de la vid\u00e9o g\u00e9n\u00e9r\u00e9e"
+    },
+    "cost": {
+      "type": "string",
+      "description": "Co\u00fbt estim\u00e9 lorsqu'il est disponible"
+    },
+    "higgsfield_job_id": {
+      "type": "string",
+      "description": "ID de t\u00e2che Higgsfield pour le suivi"
+    },
+    "error": {
+      "type": "string",
+      "description": "Message d'erreur le cas \u00e9ch\u00e9ant"
+    }
+  },
+  "required": [
+    "influencer_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

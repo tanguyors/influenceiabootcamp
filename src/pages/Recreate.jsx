@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import SignedImage from "@/components/SignedImage";
+import { findDemoVideo } from "@/lib/demoVideos";
 
 const MODELS = [
   { value: "auto", label: "Automatique (recommandé)" },
@@ -49,6 +50,7 @@ export default function Recreate() {
       setInfluencers(infPage.items || []);
       const vid = (vidPage.items || [])[0];
       if (vid) setVideo(vid);
+      else if (videoId) setVideo(findDemoVideo(videoId));
     } catch (e) {
       /* entities may not exist yet */
     }
