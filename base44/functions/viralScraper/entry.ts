@@ -5,7 +5,7 @@ const TIKTOK_ACTOR = "clockworks~tiktok-scraper";
 const INSTAGRAM_ACTOR = "apify~instagram-scraper";
 
 // Seuil de viralit\u00e9 : seules les vid\u00e9os d\u00e9passant ce nombre de vues sont conserv\u00e9es.
-const MIN_VIEWS = 1000000;
+const MIN_VIEWS = { tiktok: 1000000, instagram: 100000 };
 
 // Hashtags de découverte par catégorie de la bibliothèque.
 const CATEGORY_HASHTAGS = {
@@ -60,9 +60,22 @@ function mapTikTok(item, category) {
   };
 }
 
-function isViral(video) {
+function isViral(video, minViews) {
   const views = video.stats && video.stats.views;
-  return typeof views === "number" && views >= MIN_VIEWS;
+  return typeof views === "number" && views >= minViews;
+}
+
+// « Toutes catégories » : on complète en priorité la catégorie la moins fournie, la
+// bibliothèque se remplit donc catégorie par catégorie à chaque récupération.
+async function leastFilledCategory(base44) {
+  const names = Object.keys(CATEGORY_HASHTAGS);
+  try {
+    const { rows } = await base44.entities.ViralVideo.aggregate({ groupBy: "category" });
+    const counts = new Map((rows || []).map((r) => [r.category, r.count]));
+    return names.reduce((best, n) => ((counts.get(n) || 0) < (counts.get(best) || 0) ? n : best), names[0]);
+  } catch {
+    return names[0];
+  }
 }
 
 /* ------------------- Fichier source (transfert de mouvement) ---------------- */
@@ -181,10 +194,11 @@ export default async function(req) {
       }
     }
 
-    const category = String(body.category || "");
+    const requestedCategory = String(body.category || "all");
+    const category = requestedCategory === "all" ? await leastFilledCategory(base44) : requestedCategory;
     const hashtags = CATEGORY_HASHTAGS[category];
     if (!hashtags) {
-      return Response.json({ error: "Catégorie inconnue ou non précisée." }, { status: 400 });
+      return Response.json({ error: "Catégorie inconnue." }, { status: 400 });
     }
 
     const requested = Array.isArray(body.platforms) ? body.platforms : ["tiktok", "instagram"];
@@ -208,7 +222,7 @@ export default async function(req) {
           excludePinnedPosts: false,
           proxyCountryCode: "None",
         }, token, fetchCount);
-        return items.map((i) => mapTikTok(i, category)).filter(Boolean).filter(isViral);
+        return items.map((i) => mapTikTok(i, category)).filter(Boolean).filter((v) => isViral(v, MIN_VIEWS.tiktok));
       }
       const items = await runActor(INSTAGRAM_ACTOR, {
         directUrls: hashtags.map((h) => `https://www.instagram.com/explore/tags/${h}/`),
@@ -216,7 +230,7 @@ export default async function(req) {
         resultsLimit: fetchCount,
         addParentData: false,
       }, token, fetchCount);
-      return items.map((i) => mapInstagram(i, category)).filter(Boolean).filter(isViral);
+      return items.map((i) => mapInstagram(i, category)).filter(Boolean).filter((v) => isViral(v, MIN_VIEWS.instagram));
     });
 
     const settled = await Promise.allSettled(jobs);
@@ -246,7 +260,7 @@ export default async function(req) {
       updated = (result && result.updated) || 0;
     }
 
-    return Response.json({ created, updated, total: selected.length, minViews: MIN_VIEWS, errors });
+    return Response.json({ created, updated, total: selected.length, category, errors });
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
   }

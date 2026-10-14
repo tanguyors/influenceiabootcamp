@@ -20,11 +20,13 @@ const PERIODS = [
   { value: "12h", label: "12 dernières heures" },
   { value: "24h", label: "24 dernières heures" },
   { value: "7j", label: "7 derniers jours" },
+  { value: "all", label: "Toutes périodes" },
 ];
 
 import { DEMO_VIDEOS } from "@/lib/demoVideos";
 
 function periodToMs(period) {
+  if (period === "all") return Number.POSITIVE_INFINITY;
   const h = { "6h": 6, "12h": 12, "24h": 24 }[period];
   if (h) return h * 3600 * 1000;
   return 7 * 24 * 3600 * 1000;
@@ -41,7 +43,7 @@ export default function ViralLibrary() {
   const [items, setItems] = useState(null);
   const [category, setCategory] = useState("all");
   const [platform, setPlatform] = useState("all");
-  const [period, setPeriod] = useState("7j");
+  const [period, setPeriod] = useState("all");
   const [q, setQ] = useState("");
   const [favorites, setFavorites] = useState(() => new Set(JSON.parse(localStorage.getItem("influenceia.favs") || "[]")));
   const [open, setOpen] = useState(false);
@@ -60,10 +62,6 @@ export default function ViralLibrary() {
   const [syncing, setSyncing] = useState(false);
 
   async function syncFromScraper() {
-    if (category === "all") {
-      toast({ title: "Choisissez une catégorie", description: "Les vidéos virales sont récupérées catégorie par catégorie.", variant: "destructive" });
-      return;
-    }
     if (platform === "youtube") {
       toast({ title: "YouTube non couvert", description: "Le scraper récupère TikTok et Instagram Reels.", variant: "destructive" });
       return;
@@ -79,7 +77,7 @@ export default function ViralLibrary() {
       await load();
       toast({
         title: `${data.created || 0} nouvelle(s) référence(s)`,
-        description: `${data.updated || 0} mise(s) à jour${data.errors && data.errors.length ? " — " + data.errors.join(" · ") : ""}`,
+        description: `Catégorie ${data.category || category} · ${data.updated || 0} mise(s) à jour${data.errors && data.errors.length ? " — " + data.errors.join(" · ") : ""}`,
       });
     } catch (e) {
       toast({ title: "Récupération impossible", description: e.message, variant: "destructive" });
@@ -163,7 +161,7 @@ export default function ViralLibrary() {
   return (
     <PageShell
       title="Vidéos virales"
-      subtitle="Bibliothèque de références ayant percé sur TikTok et Instagram Reels. Récupérez automatiquement les vidéos d'une catégorie, ou importez vos propres références."
+      subtitle="Bibliothèque de références ayant percé sur TikTok et Instagram Reels. Récupérez automatiquement les vidéos d'une catégorie, ou importez vos propres références. Seuil de viralité : TikTok 1M+ vues, Reels 100k+ vues."
       actions={
         <>
           <Button onClick={syncFromScraper} disabled={syncing} variant="outline">
