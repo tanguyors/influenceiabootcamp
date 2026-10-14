@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Loader2, ArrowLeft, Wand2, Info, Image as ImageIcon, Film, Sparkles } from "lucide-react";
+import { Loader2, ArrowLeft, Wand2, Info, Image as ImageIcon, Film, FileVideo, AlertTriangle } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,7 @@ import { useToast } from "@/components/ui/use-toast";
 import SignedImage from "@/components/SignedImage";
 import { findDemoVideo } from "@/lib/demoVideos";
 
-const MODELS = [
-  { value: "auto", label: "Automatique (recommandé)" },
-  { value: "soul", label: "Soul (cohérence du personnage)" },
-  { value: "kling", label: "Kling" },
-  { value: "veo", label: "Veo" },
-  { value: "seedance", label: "Seedance" },
-];
+const RESOLUTIONS = ["480p", "720p", "1080p"];
 
 export default function Recreate() {
   const navigate = useNavigate();
@@ -29,12 +23,9 @@ export default function Recreate() {
   const [video, setVideo] = useState(null);
   const [influencers, setInfluencers] = useState([]);
   const [activeId, setActiveId] = useState(() => localStorage.getItem("influenceia.activeInfluencer") || "");
+  const [connection, setConnection] = useState(null); // null | { connected, message }
   const [launching, setLaunching] = useState(false);
-  const [tools, setTools] = useState(null);
   const [form, setForm] = useState({
-    model: "auto",
-    duration: "6",
-    aspect_ratio: "9:16",
     resolution: "1080p",
     wardrobe: "",
     setting: "",
@@ -55,16 +46,16 @@ export default function Recreate() {
       /* entities may not exist yet */
     }
     try {
-      const res = await base44.functions.invoke("higgsfieldGateway", { action: "list_tools" });
-      setTools(res.data?.tools || []);
+      const res = await base44.functions.invoke("higgsfieldGateway", { action: "status" });
+      setConnection(res.data || {});
     } catch (e) {
-      setTools([]);
+      setConnection({ connected: false, message: "Vérification de la connexion Higgsfield impossible." });
     }
   }
   useEffect(() => { loadAll(); }, [videoId]);
 
   const selectedInfluencer = influencers.find((i) => i.id === activeId);
-  const hasReferenceTransfer = tools?.some((t) => /reference|motion|transfer|control/i.test(t.name + " " + (t.description || "")));
+  const hasSourceVideo = Boolean(video?.video_file_uri);
 
   async function launch() {
     if (!selectedInfluencer) {
@@ -75,14 +66,15 @@ export default function Recreate() {
       toast({ title: "Vidéo de référence introuvable", variant: "destructive" });
       return;
     }
+    if (!hasSourceVideo) {
+      toast({ title: "Vidéo source manquante", description: "Ajoutez le fichier mp4 de la référence dans la bibliothèque.", variant: "destructive" });
+      return;
+    }
     setLaunching(true);
     try {
       await base44.functions.invoke("generateVideo", {
         influencer_id: selectedInfluencer.id,
         viral_video_id: video.id,
-        model: form.model,
-        duration: parseInt(form.duration, 10),
-        aspect_ratio: form.aspect_ratio,
         resolution: form.resolution,
         wardrobe: form.wardrobe.trim(),
         setting: form.setting.trim(),
@@ -114,11 +106,11 @@ export default function Recreate() {
   return (
     <PageShell
       title="Recréer avec mon influenceur"
-      subtitle="Reprenez la direction visuelle de la référence avec votre personnage. Le résultat est une adaptation, non une reproduction fidèle des mouvements, selon les capacités du modèle."
+      subtitle="Le mouvement, le cadrage et le rythme de la vidéo source sont conservés ; votre influenceur remplace le personnage."
       actions={<Link to="/videos" className="inline-flex items-center gap-1.5 text-sm text-black/60 hover:text-black"><ArrowLeft className="h-4 w-4" /> Retour</Link>}
     >
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Side by side */}
+        {/* Côte à côte */}
         <div className="grid grid-cols-2 gap-4">
           <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
             <div className="border-b border-black/10 px-3 py-2 text-xs font-medium text-black/60">Référence</div>
@@ -132,6 +124,11 @@ export default function Recreate() {
             <div className="p-3">
               <p className="line-clamp-2 text-xs font-medium">{video?.title}</p>
               <p className="mt-1 text-[11px] text-black/40">{video?.platform} · {video?.category}</p>
+              {hasSourceVideo ? (
+                <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-green-700"><FileVideo className="h-3 w-3" /> Vidéo source prête</p>
+              ) : (
+                <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-amber-700"><AlertTriangle className="h-3 w-3" /> Vidéo source manquante</p>
+              )}
             </div>
           </div>
           <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
@@ -149,9 +146,8 @@ export default function Recreate() {
           </div>
         </div>
 
-        {/* Controls */}
+        {/* Réglages */}
         <div className="space-y-5">
-          {/* Influencer picker */}
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <Label className="text-xs">Choisir un influenceur</Label>
             {influencers.length === 0 ? (
@@ -171,50 +167,43 @@ export default function Recreate() {
             )}
           </div>
 
-          {/* Capability notice */}
-          {tools !== null && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
-              <Info className="mt-0.5 h-4 w-4 flex-none text-blue-600" />
-              <p className="text-xs leading-relaxed text-blue-800">
-                {hasReferenceTransfer
-                  ? "Transfert de mouvement / référence vidéo détecté : la référence sera utilisée pour le cadrage et le rythme."
-                  : "Aucun outil de transfert de mouvement détecté. La génération se fera à partir de l'image et du texte : le résultat sera une adaptation, pas une reproduction des mouvements."}
+          {/* État de la connexion */}
+          {connection && (
+            <div className={`flex items-start gap-2.5 rounded-lg border p-3 ${connection.connected ? "border-blue-200 bg-blue-50/60" : "border-amber-200 bg-amber-50/70"}`}>
+              {connection.connected ? (
+                <Info className="mt-0.5 h-4 w-4 flex-none text-blue-600" />
+              ) : (
+                <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-600" />
+              )}
+              <p className={`text-xs leading-relaxed ${connection.connected ? "text-blue-800" : "text-amber-900"}`}>
+                {connection.connected ? (
+                  "Transfert de mouvement actif : la vidéo source sera utilisée pour le mouvement et le cadrage."
+                ) : (
+                  <>Higgsfield n'est pas encore connecté. Ajoutez vos identifiants API dans <Link to="/connexion" className="underline">Connexion Higgsfield</Link>.</>
+                )}
               </p>
             </div>
           )}
 
-          {/* Params */}
+          {/* Référence sans vidéo source */}
+          {video && !hasSourceVideo && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-red-200 bg-red-50/70 p-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-red-600" />
+              <p className="text-xs leading-relaxed text-red-800">
+                Cette référence ne contient que son lien de publication. Le transfert de mouvement a besoin du fichier vidéo (mp4, 4 à 30 s) : ajoutez-le depuis <Link to="/videos" className="underline">la bibliothèque</Link>.
+              </p>
+            </div>
+          )}
+
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <h3 className="font-heading text-sm font-semibold tracking-tight">Direction visuelle</h3>
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Modèle</Label>
-                <Select value={form.model} onValueChange={(v) => setForm((s) => ({ ...s, model: v }))}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{MODELS.map((m) => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Durée (s)</Label>
-                <Select value={form.duration} onValueChange={(v) => setForm((s) => ({ ...s, duration: v }))}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["4", "6", "8", "10", "15"].map((d) => <SelectItem key={d} value={d}>{d}s</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Format</Label>
-                <Select value={form.aspect_ratio} onValueChange={(v) => setForm((s) => ({ ...s, aspect_ratio: v }))}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["9:16", "1:1", "4:5", "16:9"].map((a) => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="text-xs">Résolution</Label>
-                <Select value={form.resolution} onValueChange={(v) => setForm((s) => ({ ...s, resolution: v }))}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["1080p", "720p", "4k"].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
-                </Select>
-              </div>
+            <div className="mt-3">
+              <Label className="text-xs">Résolution</Label>
+              <Select value={form.resolution} onValueChange={(v) => setForm((s) => ({ ...s, resolution: v }))}>
+                <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                <SelectContent>{RESOLUTIONS.map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+              </Select>
+              <p className="mt-1.5 text-[11px] text-black/45">La durée et le format suivent la vidéo source : ils ne se règlent pas séparément.</p>
             </div>
             <div className="mt-3 space-y-3">
               <div>
@@ -232,16 +221,18 @@ export default function Recreate() {
             </div>
           </div>
 
-          {/* Summary + launch */}
           <div className="rounded-xl border border-black/10 bg-white p-4">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-black/55">
-              <span>Modèle : <strong>{MODELS.find((m) => m.value === form.model)?.label}</strong></span>
-              <span>Durée : <strong>{form.duration}s</strong></span>
-              <span>Format : <strong>{form.aspect_ratio}</strong></span>
+              <span>Moteur : <strong>transfert de mouvement</strong></span>
               <span>Résolution : <strong>{form.resolution}</strong></span>
+              <span>Influenceur : <strong>{selectedInfluencer?.name || "à choisir"}</strong></span>
             </div>
-            <p className="mt-2 text-[11px] text-black/40">Le 1080p natif est privilégié ; une mise à l'échelle sera signalée si le modèle ne le permet pas. La musique originale n'est pas réutilisée automatiquement.</p>
-            <Button onClick={launch} disabled={launching || !selectedInfluencer} className="mt-4 w-full bg-black text-white hover:bg-black/85">
+            <p className="mt-2 text-[11px] text-black/40">Higgsfield facture à la seconde selon la résolution. La musique originale n'est pas réutilisée automatiquement.</p>
+            <Button
+              onClick={launch}
+              disabled={launching || !selectedInfluencer || !hasSourceVideo || !connection?.connected}
+              className="mt-4 w-full bg-black text-white hover:bg-black/85"
+            >
               {launching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
               {launching ? "Lancement…" : "Lancer la génération"}
             </Button>

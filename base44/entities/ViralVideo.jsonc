@@ -23,6 +23,10 @@
       "type": "string",
       "description": "file_uri (priv\u00e9) ou URL publique de la vignette"
     },
+    "video_file_uri": {
+      "type": "string",
+      "description": "file_uri (priv\u00e9) du fichier vid\u00e9o source \u2014 requis pour le transfert de mouvement"
+    },
     "published_date": {
       "type": "string",
       "format": "date-time",

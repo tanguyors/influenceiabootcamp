@@ -1,89 +1,97 @@
 import { secrets } from "base44:runtime";
 
-const DEFAULT_URL = "https://mcp.higgsfield.ai/mcp";
+// API développeur Higgsfield (distincte du MCP, qui exige un client desktop).
+const API_BASE = "https://api.higgsfield.ai";
 
-export function getConfig() {
-  const url = (secrets.get("HIGGSFIELD_MCP_URL") || DEFAULT_URL).replace(/\/$/, "");
-  const apiKey = secrets.get("HIGGSFIELD_API_KEY") || "";
-  return { url, apiKey };
+// Moteur utilisé : Genjutsu — transfert de mouvement (le mouvement de la vidéo source
+// est conservé, le personnage est remplacé par celui de l'influenceur).
+export const MOTION_TRANSFER_ENDPOINT = "higgsfield/genjutsu/motion-transfer/v1.0";
+export const ENGINE_LABEL = "Genjutsu — transfert de mouvement";
+
+export function getCredentials() {
+  const keyId = secrets.get("HIGGSFIELD_API_KEY_ID") || "";
+  const keySecret = secrets.get("HIGGSFIELD_API_KEY_SECRET") || "";
+  return { keyId, keySecret, configured: Boolean(keyId && keySecret) };
 }
 
-export function isConfigured() {
-  return !!secrets.get("HIGGSFIELD_API_KEY");
+function authHeaders(keyId, keySecret) {
+  return { Authorization: `Key ${keyId}:${keySecret}` };
 }
 
-function parseBody(text, contentType) {
-  if (!text) return [];
-  if (contentType && contentType.includes("text/event-stream")) {
-    const messages = [];
-    for (const line of text.split("\n")) {
-      const m = line.match(/^data:\s*(.*)$/);
-      if (m && m[1].trim()) {
-        try { messages.push(JSON.parse(m[1])); } catch {}
-      }
-    }
-    return messages;
+async function readJson(res) {
+  try {
+    return await res.json();
+  } catch {
+    return {};
   }
-  try { return [JSON.parse(text)]; } catch { return []; }
 }
 
-async function post(url, apiKey, body, sessionId, timeoutMs) {
-  const headers = {
-    "Content-Type": "application/json",
-    "Accept": "application/json, text/event-stream",
-  };
-  if (apiKey) headers["Authorization"] = `Bearer ${apiKey}`;
-  if (sessionId) headers["Mcp-Session-Id"] = sessionId;
-  const res = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs || 60000),
+// Vérifie les identifiants sans dépenser de crédits : un identifiant de requête
+// inconnu renvoie 401 si les identifiants sont refusés, 404 s'ils sont valides.
+export async function checkCredentials() {
+  const { keyId, keySecret } = getCredentials();
+  const res = await fetch(`${API_BASE}/requests/${crypto.randomUUID()}/status`, {
+    headers: authHeaders(keyId, keySecret),
+    signal: AbortSignal.timeout(15000),
   });
-  const text = await res.text();
-  const newSession = res.headers.get("Mcp-Session-Id") || sessionId;
-  if (!res.ok && !text) {
-    throw new Error(`MCP HTTP ${res.status}`);
+  if (res.status === 401) {
+    return { ok: false, message: "Identifiants refusés par Higgsfield : vérifiez la clé ID et le secret." };
   }
-  const messages = parseBody(text, res.headers.get("content-type"));
-  return { messages, sessionId: newSession, status: res.status, raw: text };
+  if (res.ok || res.status === 404) {
+    return { ok: true, message: "Identifiants Higgsfield acceptés." };
+  }
+  return { ok: false, message: `Réponse inattendue de l'API Higgsfield (HTTP ${res.status}).` };
 }
 
-async function handshake(url, apiKey) {
-  const init = await post(url, apiKey, {
-    jsonrpc: "2.0", id: 1, method: "initialize",
-    params: {
-      protocolVersion: "2025-06-18",
-      capabilities: {},
-      clientInfo: { name: "influenceia", version: "1.0" },
+export async function submitMotionTransfer({ videoUrl, imageUrls, prompt, resolution }) {
+  const { keyId, keySecret } = getCredentials();
+  const payload = { video_url: videoUrl, image_urls: imageUrls };
+  if (prompt) payload.prompt = prompt;
+  if (resolution) payload.resolution = resolution;
+
+  const res = await fetch(`${API_BASE}/${MOTION_TRANSFER_ENDPOINT}`, {
+    method: "POST",
+    headers: {
+      ...authHeaders(keyId, keySecret),
+      "Content-Type": "application/json",
+      "Idempotency-Key": crypto.randomUUID(),
     },
-  }, null, 30000);
-  const sid = init.sessionId;
-  // notify initialized (no response expected)
-  await post(url, apiKey, { jsonrpc: "2.0", method: "notifications/initialized" }, sid, 10000).catch(() => {});
-  return sid;
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(60000),
+  });
+  const data = await readJson(res);
+  if (!res.ok) throw new Error(data.detail || `Higgsfield a refusé la requête (HTTP ${res.status}).`);
+  return data;
 }
 
-function lastResult(messages, id) {
-  const msg = messages.find((m) => m.id === id) || messages[messages.length - 1];
-  if (msg && msg.error) throw new Error(msg.error.message || "Erreur MCP");
-  return msg ? msg.result : null;
+export async function getRequestStatus(requestId) {
+  const { keyId, keySecret } = getCredentials();
+  const res = await fetch(`${API_BASE}/requests/${requestId}/status`, {
+    headers: authHeaders(keyId, keySecret),
+    signal: AbortSignal.timeout(20000),
+  });
+  const data = await readJson(res);
+  if (!res.ok) throw new Error(data.detail || `Higgsfield HTTP ${res.status}`);
+  return data;
 }
 
-export async function listTools() {
-  const { url, apiKey } = getConfig();
-  const sid = await handshake(url, apiKey);
-  const res = await post(url, apiKey, { jsonrpc: "2.0", id: 2, method: "tools/list" }, sid, 30000);
-  const result = lastResult(res.messages, 2);
-  return (result && result.tools) || [];
-}
-
-export async function callTool(name, args) {
-  const { url, apiKey } = getConfig();
-  const sid = await handshake(url, apiKey);
-  const res = await post(url, apiKey, {
-    jsonrpc: "2.0", id: 2, method: "tools/call",
-    params: { name, arguments: args || {} },
-  }, sid, 120000);
-  return lastResult(res.messages, 2);
+// Traduit l'état Higgsfield vers les statuts de l'application.
+export function mapRequestState(request) {
+  const state = request ? request.status : "";
+  if (state === "completed") {
+    return { status: "ready", videoUrl: (request.video && request.video.url) || "", error: "" };
+  }
+  if (state === "failed") {
+    return { status: "failed", videoUrl: "", error: request.error || "La génération a échoué." };
+  }
+  if (state === "nsfw") {
+    return { status: "failed", videoUrl: "", error: "Contenu rejeté par la modération de Higgsfield." };
+  }
+  if (state === "canceled") {
+    return { status: "failed", videoUrl: "", error: "Requête annulée avant traitement." };
+  }
+  if (state === "in_progress") {
+    return { status: "processing", videoUrl: "", error: "" };
+  }
+  return { status: "pending", videoUrl: "", error: "" };
 }

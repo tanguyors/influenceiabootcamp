@@ -8,7 +8,7 @@ import { useToast } from "@/components/ui/use-toast";
 
 const STATUS = {
   draft: { label: "Brouillon", icon: Clock, cls: "text-black/50 bg-black/5" },
-  pending: { label: "En attente", icon: Clock, cls: "text-amber-700 bg-amber-100" },
+  pending: { label: "En file d'attente", icon: Clock, cls: "text-amber-700 bg-amber-100" },
   processing: { label: "Génération…", icon: Loader2, cls: "text-blue-700 bg-blue-100", spin: true },
   ready: { label: "Prête", icon: CheckCircle2, cls: "text-green-700 bg-green-100" },
   failed: { label: "Échec", icon: XCircle, cls: "text-red-700 bg-red-100" },
@@ -26,9 +26,22 @@ export default function Creations() {
       setItems([]);
     }
   }
+  async function syncActive() {
+    try {
+      const page = await base44.entities.Creation.filter({ status: { $in: ["pending", "processing"] } }, { limit: 20 });
+      const active = (page.items || []).filter((c) => c.higgsfield_job_id);
+      if (!active.length) return;
+      await Promise.allSettled(
+        active.map((c) => base44.functions.invoke("higgsfieldGateway", { action: "sync_creation", creation_id: c.id }))
+      );
+    } catch (e) {
+      /* le rafraîchissement réessaiera au prochain cycle */
+    }
+  }
+
   useEffect(() => {
-    load();
-    const t = setInterval(load, 8000);
+    (async () => { await syncActive(); await load(); })();
+    const t = setInterval(async () => { await syncActive(); await load(); }, 8000);
     return () => clearInterval(t);
   }, []);
 

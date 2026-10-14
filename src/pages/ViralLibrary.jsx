@@ -45,7 +45,7 @@ export default function ViralLibrary() {
   const [q, setQ] = useState("");
   const [favorites, setFavorites] = useState(() => new Set(JSON.parse(localStorage.getItem("influenceia.favs") || "[]")));
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ title: "", platform: "tiktok", source_url: "", category: "lifestyle", thumbnailFile: null, thumbnailPreview: "" });
+  const [form, setForm] = useState({ title: "", platform: "tiktok", source_url: "", category: "lifestyle", thumbnailFile: null, thumbnailPreview: "", videoFile: null });
 
   async function load() {
     try {
@@ -87,6 +87,12 @@ export default function ViralLibrary() {
     setForm((s) => ({ ...s, thumbnailFile: f, thumbnailPreview: URL.createObjectURL(f) }));
   }
 
+  function onVideo(e) {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setForm((s) => ({ ...s, videoFile: f }));
+  }
+
   async function saveManual() {
     if (!form.title.trim() || !form.source_url.trim()) {
       toast({ title: "Titre et lien requis", variant: "destructive" });
@@ -98,19 +104,25 @@ export default function ViralLibrary() {
         const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: form.thumbnailFile });
         thumb = file_uri;
       }
+      let videoUri = "";
+      if (form.videoFile) {
+        const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: form.videoFile });
+        videoUri = file_uri;
+      }
       const created = await base44.entities.ViralVideo.create({
         title: form.title.trim(),
         platform: form.platform,
         source_url: form.source_url.trim(),
         category: form.category,
         thumbnail_url: thumb,
+        video_file_uri: videoUri,
         published_date: new Date().toISOString(),
         is_manual: true,
         is_demo: false,
       });
       setItems((s) => [created, ...(s || [])]);
       setOpen(false);
-      setForm({ title: "", platform: "tiktok", source_url: "", category: "lifestyle", thumbnailFile: null, thumbnailPreview: "" });
+      setForm({ title: "", platform: "tiktok", source_url: "", category: "lifestyle", thumbnailFile: null, thumbnailPreview: "", videoFile: null });
       toast({ title: "Référence ajoutée" });
     } catch (e) {
       toast({ title: "Ajout impossible", description: e.message, variant: "destructive" });
@@ -184,6 +196,9 @@ export default function ViralLibrary() {
                 <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-black/45">
                   <span>{new Date(v.published_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
                   <span className="rounded bg-black/5 px-1.5 py-0.5">{v.category}</span>
+                  <span className={`rounded px-1.5 py-0.5 ${v.video_file_uri ? "bg-green-100 text-green-800" : "bg-black/5 text-black/45"}`}>
+                    {v.video_file_uri ? "Vidéo source" : "Lien seul"}
+                  </span>
                   {v.stats?.views != null && <span>{v.stats.views} vues</span>}
                 </div>
                 <div className="mt-auto flex items-center gap-2 pt-4">
@@ -235,6 +250,14 @@ export default function ViralLibrary() {
                 <Input type="file" accept="image/*" onChange={onThumb} />
               </div>
               <p className="mt-1 text-xs text-black/45">La vignette est stockée de façon privée (stored privately).</p>
+            </div>
+            <div>
+              <Label>Vidéo source mp4 (requise pour recréer)</Label>
+              <div className="flex items-center gap-3">
+                <Input type="file" accept="video/mp4" onChange={onVideo} />
+                {form.videoFile && <span className="text-xs font-medium text-green-700">{form.videoFile.name}</span>}
+              </div>
+              <p className="mt-1 text-xs text-black/45">Le transfert de mouvement reprend le mouvement de ce fichier (4 à 30 s). Il est stocké de façon privée (stored privately).</p>
             </div>
           </div>
           <DialogFooter>
