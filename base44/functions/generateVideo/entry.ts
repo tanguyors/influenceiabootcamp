@@ -34,6 +34,20 @@ function mapStatus(raw) {
   return s ? "processing" : "";
 }
 
+// Higgsfield bloque certaines générations pour contenu protégé (personne réelle,
+// contenu sous droits) : ces états ne progressent jamais.
+const MODERATION_STATUSES = [
+  "ip_detected", "ip_detection", "moderated", "moderation", "blocked", "policy_violation",
+  "nsfw", "flagged", "content_blocked", "copyright", "copyrighted",
+];
+
+function moderationMessage(raw) {
+  if (String(raw).toLowerCase().startsWith("ip_detect")) {
+    return "Higgsfield a détecté du contenu protégé (personne réelle ou contenu sous droits) dans la vidéo de référence : la génération a été bloquée. Choisissez une autre vidéo de référence.";
+  }
+  return `Génération refusée par Higgsfield (${raw}).`;
+}
+
 // Lit un résultat MCP (soumission ou état de tâche) quelle que soit sa forme.
 // Higgsfield imbrique l'état réel dans structuredContent.generation.
 function readJob(res) {
@@ -57,11 +71,16 @@ function readJob(res) {
     if (m) jobId = m[0];
   }
 
-  const error = (res && res.isError)
+  let error = (res && res.isError)
     ? (text || "Appel refusé par Higgsfield").slice(0, 500)
     : String(failure || "").slice(0, 500);
 
-  const mapped = mapStatus(status);
+  // Un état de modération doit être traité comme un échec, sinon la génération
+  // resterait « en cours » indéfiniment dans l'interface.
+  const blocked = MODERATION_STATUSES.includes(String(status || "").toLowerCase());
+  if (blocked) error = moderationMessage(status);
+
+  const mapped = blocked ? "failed" : mapStatus(status);
   // Une URL n'est retenue que si la tâche est terminée : tant qu'elle tourne, les seules
   // vidéos présentes sont celles des médias d'entrée.
   return { status: mapped, videoUrl: mapped === "ready" ? found : "", jobId, error };
@@ -159,10 +178,10 @@ function pickImageModel(models, seconds) {
 // Rafraîchit l'état des générations en cours auprès de Higgsfield.
 async function refreshProcessing(base44, token) {
   const page = await base44.entities.Creation.filter({ status: "processing" }, { sort: "-created_date", limit: 20 });
+  const age = (c) => Date.now() - new Date(c.created_date).getTime();
   const pending = (page.items || []).filter((c) => c.higgsfield_job_id);
   // Générations lancées sans tâche suivie : elles ne peuvent plus aboutir.
-  const untracked = (page.items || []).filter((c) => !c.higgsfield_job_id
-    && Date.now() - new Date(c.created_date).getTime() > 120000);
+  const untracked = (page.items || []).filter((c) => !c.higgsfield_job_id && age(c) > 120000);
   let updated = 0;
   for (const creation of untracked) {
     try {
@@ -180,6 +199,11 @@ async function refreshProcessing(base44, token) {
       const patch = {};
       if (job.error) { patch.status = "failed"; patch.error = job.error; }
       else if (job.videoUrl) { patch.status = "ready"; patch.result_video_url = job.videoUrl; }
+      // Tâche sans réponse depuis 45 minutes : on libère la liste au lieu d'attendre sans fin.
+      else if (age(creation) > 2700000) {
+        patch.status = "failed";
+        patch.error = "Aucune réponse de Higgsfield après 45 minutes : relancez la génération.";
+      }
       // Tâche terminée mais résultat illisible : on garde le suivi en cours pour la relire.
       else if (job.status === "processing") patch.status = "processing";
       if (Object.keys(patch).length) {
