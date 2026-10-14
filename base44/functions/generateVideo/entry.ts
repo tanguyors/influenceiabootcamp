@@ -1,16 +1,71 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { getCredentials, submitMotionTransfer, ENGINE_LABEL } from "../../shared/higgsfield.ts";
+import { getAccessToken, listTools, callTool } from "../../shared/higgsfield.ts";
 
-function buildPrompt({ influencer, viralVideo, wardrobe, setting, instructions }) {
-  const parts = [];
-  parts.push("Conserver exactement le mouvement, le cadrage et le rythme de la vidéo source.");
-  parts.push(`Personnage principal : ${influencer.name}. Conserver son visage et son apparence.`);
-  if (viralVideo.category) parts.push(`Style de contenu : ${viralVideo.category}.`);
-  if (influencer.notes) parts.push(`Notes du personnage : ${influencer.notes}`);
-  if (wardrobe) parts.push(`Tenue : ${wardrobe}.`);
-  if (setting) parts.push(`Décor : ${setting}.`);
-  if (instructions) parts.push(instructions);
-  return parts.join(" ").slice(0, 10000);
+// Sélectionne l'outil MCP le plus probable pour générer une vidéo.
+function pickVideoTool(tools) {
+  if (!tools || !tools.length) return null;
+  const score = (t) => {
+    const s = `${t.name} ${t.description || ""}`.toLowerCase();
+    let n = 0;
+    if (/video/.test(s)) n += 5;
+    if (/motion|transfer|reference|character/.test(s)) n += 4;
+    if (/generat|create|make|animate/.test(s)) n += 2;
+    if (/image|photo/.test(s) && !/video/.test(s)) n -= 3;
+    return n;
+  };
+  const sorted = [...tools].sort((a, b) => score(b) - score(a));
+  return sorted[0];
+}
+
+// Construit les arguments de l'outil à partir du contexte de génération.
+function buildArgs(ctx) {
+  const args = { prompt: ctx.prompt };
+  if (ctx.imageUrl) {
+    args.image = ctx.imageUrl;
+    args.image_url = ctx.imageUrl;
+    args.reference_image = ctx.imageUrl;
+  }
+  if (ctx.videoUrl) {
+    args.video = ctx.videoUrl;
+    args.video_url = ctx.videoUrl;
+    args.reference_video = ctx.videoUrl;
+  }
+  if (ctx.duration) args.duration = ctx.duration;
+  if (ctx.aspectRatio) args.aspect_ratio = ctx.aspectRatio;
+  if (ctx.resolution) args.resolution = ctx.resolution;
+  if (ctx.model && ctx.model !== "auto") args.model = ctx.model;
+  return args;
+}
+
+// Extrait l'URL vidéo, l'identifiant de tâche et le coût d'un résultat MCP.
+function parseResult(result) {
+  const out = { status: "processing", videoUrl: "", jobId: "", cost: "", upscaled: false, error: "" };
+  if (!result) return out;
+  let text = "";
+  if (typeof result === "string") text = result;
+  else if (result.content && Array.isArray(result.content)) {
+    text = result.content.map((c) => (c.type === "text" ? c.text : "")).join(" ");
+  } else if (result.text) {
+    text = result.text;
+  }
+  const urlMatch = text.match(/https?:\/\/[^\s"'<>]+\.(mp4|mov|webm|gif|png|jpg|jpeg|webp)[^\s"'<>]*/i);
+  if (urlMatch) out.videoUrl = urlMatch[0];
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    try {
+      const obj = JSON.parse(jsonMatch[0]);
+      out.videoUrl = out.videoUrl || obj.video_url || obj.url || obj.output_url || obj.result_url || "";
+      out.jobId = obj.job_id || obj.id || obj.task_id || obj.request_id || "";
+      out.cost = obj.cost != null ? String(obj.cost) : (obj.credits != null ? String(obj.credits) : "");
+      if (obj.upscaled === true || obj.is_upscaled === true) out.upscaled = true;
+    } catch { /* résultat non JSON */ }
+  }
+  if (out.videoUrl) out.status = "ready";
+  else if (result.isError) {
+    out.status = "failed";
+    out.error = text.slice(0, 500);
+  }
+  return out;
 }
 
 export default async function(req) {
@@ -20,13 +75,13 @@ export default async function(req) {
     if (!user) return Response.json({ error: "Non authentifié" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const { influencer_id, viral_video_id, resolution, wardrobe, setting, instructions } = body;
+    const { influencer_id, viral_video_id, model, duration, aspect_ratio, resolution, wardrobe, setting, instructions } = body;
     if (!influencer_id) return Response.json({ error: "influencer_id requis" }, { status: 400 });
-    if (!viral_video_id) return Response.json({ error: "viral_video_id requis" }, { status: 400 });
 
-    if (!getCredentials().configured) {
+    const token = await getAccessToken(base44);
+    if (!token) {
       return Response.json({
-        error: "Identifiants Higgsfield non configurés. Ajoutez HIGGSFIELD_API_KEY_ID et HIGGSFIELD_API_KEY_SECRET dans la page Secrets de l'application.",
+        error: "Compte Higgsfield non connecté. Connectez-le depuis la page Connexion Higgsfield.",
       }, { status: 400 });
     }
 
@@ -37,47 +92,81 @@ export default async function(req) {
       return Response.json({ error: "Cet influenceur n'a pas d'image de référence." }, { status: 400 });
     }
 
-    const vp = await base44.entities.ViralVideo.filter({ id: viral_video_id }, { limit: 1 });
-    const viralVideo = (vp.items || [])[0];
-    if (!viralVideo) return Response.json({ error: "Vidéo de référence introuvable" }, { status: 404 });
-    if (!viralVideo.video_file_uri) {
-      return Response.json({
-        error: "Cette référence n'a pas de vidéo source. Ajoutez le fichier mp4 dans la bibliothèque (4 à 30 s) pour permettre le transfert de mouvement.",
-      }, { status: 400 });
+    let viralVideo = null;
+    if (viral_video_id) {
+      const vp = await base44.entities.ViralVideo.filter({ id: viral_video_id }, { limit: 1 });
+      viralVideo = (vp.items || [])[0];
     }
 
-    // Higgsfield télécharge lui-même les médias : on lui fournit des URLs signées temporaires.
-    const [videoSigned, imageSigned] = await Promise.all([
-      base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: viralVideo.video_file_uri, expires_in: 7200 }),
-      base44.asServiceRole.integrations.Core.CreateFileSignedUrl({ file_uri: influencer.reference_image, expires_in: 7200 }),
-    ]);
+    // Higgsfield télécharge lui-même les médias : URLs signées temporaires.
+    let imageUrl = "";
+    try {
+      const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+        file_uri: influencer.reference_image, expires_in: 7200,
+      });
+      imageUrl = signed_url;
+    } catch { /* on continue sans image */ }
 
-    const targetResolution = resolution || "1080p";
-    const prompt = buildPrompt({ influencer, viralVideo, wardrobe, setting, instructions });
+    let videoUrl = "";
+    if (viralVideo && viralVideo.video_file_uri) {
+      try {
+        const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+          file_uri: viralVideo.video_file_uri, expires_in: 7200,
+        });
+        videoUrl = signed_url;
+      } catch { /* on continue sans vidéo source */ }
+    }
+
+    const parts = [];
+    if (videoUrl) parts.push("Reprendre le mouvement, le cadrage et le rythme de la vidéo de référence.");
+    else if (viralVideo) parts.push(`Reprendre la direction visuelle (cadrage, mise en scène, rythme) de la vidéo de référence « ${viralVideo.title} » (${viralVideo.platform}, ${viralVideo.category}).`);
+    parts.push(`Personnage principal : ${influencer.name}, conserver son visage et son apparence.`);
+    if (influencer.notes) parts.push(`Notes du personnage : ${influencer.notes}`);
+    if (wardrobe) parts.push(`Tenue : ${wardrobe}.`);
+    if (setting) parts.push(`Décor : ${setting}.`);
+    if (instructions) parts.push(instructions);
+    parts.push(`Format ${aspect_ratio || "9:16"}, résolution ${resolution || "1080p"}, durée ${duration || 6} secondes.`);
+    const prompt = parts.join(" ");
 
     const creation = await base44.entities.Creation.create({
       influencer_id,
       influencer_name: influencer.name,
-      viral_video_id,
-      viral_video_title: viralVideo.title,
-      status: "pending",
-      model: ENGINE_LABEL,
-      resolution: targetResolution,
+      viral_video_id: viral_video_id || "",
+      viral_video_title: viralVideo ? viralVideo.title : "",
+      status: "processing",
+      model: model || "auto",
+      duration: duration || 6,
+      aspect_ratio: aspect_ratio || "9:16",
+      resolution: resolution || "1080p",
       prompt,
     });
 
-    try {
-      const request = await submitMotionTransfer({
-        videoUrl: videoSigned.signed_url,
-        imageUrls: [imageSigned.signed_url],
-        prompt,
-        resolution: targetResolution,
-      });
+    let tools = [];
+    try { tools = await listTools(token); } catch (e) { tools = []; }
+    const tool = pickVideoTool(tools);
+    if (!tool) {
       await base44.entities.Creation.update(creation.id, {
-        status: "processing",
-        higgsfield_job_id: request.request_id || "",
+        status: "failed",
+        error: "Aucun outil de génération vidéo disponible sur votre compte Higgsfield. Outils détectés : " + (tools.map((t) => t.name).join(", ") || "aucun"),
       });
-      return Response.json({ creation_id: creation.id, status: "processing", request_id: request.request_id });
+      return Response.json({ error: "Aucun outil de génération vidéo disponible", creation_id: creation.id }, { status: 400 });
+    }
+
+    const args = buildArgs({ prompt, imageUrl, videoUrl, model, duration, aspectRatio: aspect_ratio, resolution });
+
+    try {
+      const result = await callTool(token, tool.name, args);
+      const parsed = parseResult(result);
+      await base44.entities.Creation.update(creation.id, {
+        status: parsed.status,
+        result_video_url: parsed.videoUrl,
+        higgsfield_job_id: parsed.jobId,
+        cost: parsed.cost,
+        is_upscaled: parsed.upscaled,
+        error: parsed.error,
+        model: tool.name,
+      });
+      return Response.json({ creation_id: creation.id, status: parsed.status, tool: tool.name });
     } catch (e) {
       await base44.entities.Creation.update(creation.id, { status: "failed", error: e.message });
       return Response.json({ error: e.message, creation_id: creation.id }, { status: 500 });

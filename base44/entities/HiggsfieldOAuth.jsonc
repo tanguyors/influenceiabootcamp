@@ -1,0 +1,48 @@
+{
+  "name": "HiggsfieldOAuth",
+  "type": "object",
+  "properties": {
+    "state": {
+      "type": "string",
+      "description": "Valeur al\u00e9atoire anti-CSRF de la demande d'autorisation en cours"
+    },
+    "code_verifier": {
+      "type": "string",
+      "description": "V\u00e9rificateur PKCE associ\u00e9 \u00e0 cette autorisation"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client OAuth utilis\u00e9 pour cette autorisation"
+    },
+    "redirect_uri": {
+      "type": "string",
+      "description": "URL de retour enregistr\u00e9e aupr\u00e8s de Higgsfield"
+    }
+  },
+  "required": [
+    "state",
+    "code_verifier"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

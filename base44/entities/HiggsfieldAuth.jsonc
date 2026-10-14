@@ -1,0 +1,59 @@
+{
+  "name": "HiggsfieldAuth",
+  "type": "object",
+  "properties": {
+    "access_token": {
+      "type": "string",
+      "description": "Jeton OAuth Higgsfield \u2014 usage serveur uniquement, jamais expos\u00e9 au navigateur"
+    },
+    "refresh_token": {
+      "type": "string",
+      "description": "Jeton de rafra\u00eechissement OAuth"
+    },
+    "expires_at": {
+      "type": "number",
+      "description": "Expiration du jeton d'acc\u00e8s (epoch ms)"
+    },
+    "client_id": {
+      "type": "string",
+      "description": "Client OAuth enregistr\u00e9 aupr\u00e8s de Higgsfield pour cette application"
+    },
+    "account": {
+      "type": "string",
+      "description": "Compte Higgsfield connect\u00e9"
+    },
+    "scopes": {
+      "type": "string",
+      "description": "Port\u00e9es accord\u00e9es"
+    },
+    "connected_by": {
+      "type": "string",
+      "description": "Utilisateur ayant autoris\u00e9 la connexion"
+    }
+  },
+  "required": [
+    "access_token"
+  ],
+  "rls": {
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

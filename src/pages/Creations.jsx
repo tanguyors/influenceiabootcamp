@@ -26,22 +26,9 @@ export default function Creations() {
       setItems([]);
     }
   }
-  async function syncActive() {
-    try {
-      const page = await base44.entities.Creation.filter({ status: { $in: ["pending", "processing"] } }, { limit: 20 });
-      const active = (page.items || []).filter((c) => c.higgsfield_job_id);
-      if (!active.length) return;
-      await Promise.allSettled(
-        active.map((c) => base44.functions.invoke("higgsfieldGateway", { action: "sync_creation", creation_id: c.id }))
-      );
-    } catch (e) {
-      /* le rafraîchissement réessaiera au prochain cycle */
-    }
-  }
-
   useEffect(() => {
-    (async () => { await syncActive(); await load(); })();
-    const t = setInterval(async () => { await syncActive(); await load(); }, 8000);
+    load();
+    const t = setInterval(load, 8000);
     return () => clearInterval(t);
   }, []);
 
