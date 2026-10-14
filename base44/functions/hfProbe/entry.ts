@@ -64,6 +64,13 @@ export default async function(req) {
     return Response.json({ at, slice: at < 0 ? "absent" : json.slice(at, at + (Number(body.len) || 1600)) });
   }
 
+  if (body.kind === "model") {
+    const res = await callTool(token, "models_explore", { action: "list", type: "video", limit: 60 });
+    const items = ((res && res.structuredContent) || {}).items || [];
+    const m = items.find((x) => x.id === body.id);
+    return Response.json({ json: m ? JSON.stringify(m).slice(0, Number(body.max) || 3500) : "absent" });
+  }
+
   if (body.kind === "call") {
     const res = await callTool(token, body.name, body.args || {});
     return Response.json({ text: JSON.stringify(res).slice(0, Number(body.max) || 1500) });
