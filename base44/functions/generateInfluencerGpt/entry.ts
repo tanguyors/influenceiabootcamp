@@ -30,17 +30,18 @@ const REALISM = [
 ];
 
 // Pistes de structure du visage réparties sur les neuf propositions : sans elles, le moteur
-// décline neuf fois le même visage et le choix devient impossible.
+// décline neuf fois le même visage et le choix devient impossible. Elles restent dans la gamme
+// des visages crédibles : élargies, elles produisent des canons de beauté et des caricatures.
 const VARIATION_AXES = [
-  "visage anguleux, pommettes hautes, sourcils fins",
-  "visage rond, joues pleines, mâchoire large",
-  "front haut, sourcils épais, nez droit",
-  "traits fins et longs, lèvres minces, menton discret",
-  "joues hautes, nez court, menton large",
-  "pommettes marquées, nez aquilin, regard profond",
-  "visage allongé, menton saillant, arcades marquées",
+  "visage ovale, pommettes moyennes, mâchoire douce",
+  "visage légèrement rond, joues pleines, mâchoire large",
+  "front haut, sourcils d'épaisseur moyenne, nez droit",
+  "traits fins, lèvres moyennes, menton discret",
+  "joues hautes, nez court, menton bien dessiné",
+  "pommettes marquées, nez légèrement aquilin, regard profond",
+  "visage allongé, menton net, arcades sourcilières marquées",
   "traits doux, yeux légèrement tombants, bouche pleine",
-  "traits massifs, cou épais, arcade sourcilière lourde",
+  "structure de visage solide, cou dans la moyenne, arcade sourcilière marquée",
 ];
 
 // Une seule identité et une seule photographie par appel : aucune instruction de série
@@ -53,8 +54,9 @@ function optionsPrompt(brief, details, variant) {
     details.length
       ? `Mandatory signature features, rendered exactly and unmistakably on this single person: ${details.join("; ")}. Never idealise, beautify, soften or omit them.`
       : "",
-    `Direction de structure faciale pour cette personne uniquement : ${VARIATION_AXES[variant]}. Elle s'applique seulement aux caractéristiques non définies par les choix utilisateur. Les attributs choisis et les traits interdits ont toujours priorité : ne modifiez jamais l'âge, le genre, l'origine, la morphologie, les yeux, les cheveux, la pilosité ou un autre trait explicitement fixé.`,
-    "Créez une identité individuelle originale, sans copier de célébrité. Conservez une texture de peau réaliste et une expression naturelle, sans caricature.",
+    `Direction de structure faciale pour les traits que le brief ne fixe pas : ${VARIATION_AXES[variant]}. Elle ne contredit jamais un choix de l'utilisateur : l'âge, le genre, l'origine, la morphologie, les yeux, les cheveux, la pilosité et tout trait explicitement fixé restent exactement ceux du brief.`,
+    "Cette personne est un être humain ordinaire et crédible, tel que décrit : pas de version embellie en mannequin de beauté, pas de version exagérée, caricaturale ou difforme. Aucun trait spectaculaire ajouté, aucune déformation du visage, aucune expression outrée, aucun détail loufoque. Identité originale, sans copier de célébrité.",
+    "Les traits de signature demandés sont rendus exactement comme décrit, dans leur intensité réelle, ni atténués ni exagérés.",
     `Une seule personne de face, regard vers l'objectif, tête entière avec marge au-dessus, épaules et torse bien visibles jusqu'au bas de la poitrine. Une seule tenue dans le style choisi, un seul fond uni ${backgrounds[variant % backgrounds.length]}.`,
     REALISM.join(" "),
     "Livrez une photographie unique de cette seule personne, jamais une planche de propositions. N'ajoutez aucun détail, bijou, marque ou trait exclu du brief.",
