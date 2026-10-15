@@ -4,16 +4,14 @@ import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
-import { CATEGORIES, PLATFORMS, platformLabel } from "@/lib/referenceOptions";
+import { readVideoDuration } from "@/lib/videoDuration";
 
 const EMPTY = {
   title: "",
-  platform: "tiktok",
-  category: "lifestyle",
-  duration: "",
+  duration: null,
+  reading: false,
   thumbnailFile: null,
   thumbnailPreview: "",
   videoFile: null,
@@ -27,6 +25,15 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
   function onThumbnail(e) {
     const file = e.target.files?.[0];
     if (file) setForm((s) => ({ ...s, thumbnailFile: file, thumbnailPreview: URL.createObjectURL(file) }));
+  }
+
+  // La durée n'est jamais saisie : elle est lue directement dans le fichier mp4.
+  async function onVideo(e) {
+    const file = e.target.files?.[0] || null;
+    setForm((s) => ({ ...s, videoFile: file, duration: null, reading: Boolean(file) }));
+    if (!file) return;
+    const duration = await readVideoDuration(file);
+    setForm((s) => (s.videoFile === file ? { ...s, duration, reading: false } : s));
   }
 
   async function save() {
@@ -48,9 +55,7 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
       }
       const created = await base44.entities.ViralVideo.create({
         title: form.title.trim(),
-        platform: form.platform,
-        category: form.category,
-        duration: form.duration ? Number(form.duration) : undefined,
+        duration: form.duration || undefined,
         thumbnail_url,
         video_file_uri,
         published_date: new Date().toISOString(),
@@ -77,34 +82,6 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
             <Label htmlFor="rtitle">Titre</Label>
             <Input id="rtitle" value={form.title} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} placeholder="Description courte" />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <Label>Plateforme</Label>
-              <Select value={form.platform} onValueChange={(v) => setForm((s) => ({ ...s, platform: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{PLATFORMS.map((p) => <SelectItem key={p} value={p}>{platformLabel(p)}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Catégorie</Label>
-              <Select value={form.category} onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="rduration">Durée de la vidéo (secondes)</Label>
-            <Input
-              id="rduration"
-              type="number"
-              min="1"
-              value={form.duration}
-              onChange={(e) => setForm((s) => ({ ...s, duration: e.target.value }))}
-              placeholder="Ex. 12"
-            />
-            <p className="mt-1 text-xs text-black/45">La génération reprendra exactement cette durée.</p>
-          </div>
           <div>
             <Label>Vignette (optionnel)</Label>
             <div className="flex items-center gap-3">
@@ -114,12 +91,19 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
             <p className="mt-1 text-xs text-black/45">La vignette est stockée de façon privée (stored privately).</p>
           </div>
           <div>
-            <Label>Vidéo source mp4 (requise pour recréer)</Label>
+            <Label>Vidéo mp4</Label>
             <div className="flex items-center gap-3">
-              <Input type="file" accept="video/mp4" onChange={(e) => setForm((s) => ({ ...s, videoFile: e.target.files?.[0] || null }))} />
+              <Input type="file" accept="video/mp4" onChange={onVideo} />
               {form.videoFile && <span className="text-xs font-medium text-green-700">{form.videoFile.name}</span>}
             </div>
             <p className="mt-1 text-xs text-black/45">Le transfert de mouvement reprend le mouvement de ce fichier (4 à 30 s). Il est stocké de façon privée (stored privately).</p>
+            <p className="mt-1 text-xs font-medium text-black/60">
+              {form.reading
+                ? "Lecture de la durée…"
+                : form.duration
+                  ? `Durée détectée : ${form.duration} s — la génération reprendra exactement cette durée.`
+                  : "La durée sera lue automatiquement dans le fichier."}
+            </p>
           </div>
         </div>
         <DialogFooter>

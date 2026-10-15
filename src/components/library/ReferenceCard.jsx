@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import SignedImage from "@/components/SignedImage";
 import { platformLabel } from "@/lib/referenceOptions";
 
+
 export default function ReferenceCard({ video, favorite, onToggleFavorite, onRecreate, onAttachSource, attaching }) {
   const fileRef = useRef(null);
 
@@ -24,7 +25,7 @@ export default function ReferenceCard({ video, favorite, onToggleFavorite, onRec
           </div>
         )}
         <div className="absolute left-2 top-2 flex gap-1.5">
-          <span className="rounded-md bg-black/80 px-2 py-0.5 text-[11px] font-medium text-white">{platformLabel(video.platform)}</span>
+          {video.platform ? <span className="rounded-md bg-black/80 px-2 py-0.5 text-[11px] font-medium text-white">{platformLabel(video.platform)}</span> : null}
           {video.duration ? <span className="rounded-md bg-black/60 px-2 py-0.5 text-[11px] font-medium text-white">{video.duration} s</span> : null}
         </div>
         <button onClick={() => onToggleFavorite(video.id)} className="absolute right-2 top-2 rounded-md bg-white/80 p-1.5 text-black/50 hover:text-red-500">
@@ -36,7 +37,7 @@ export default function ReferenceCard({ video, favorite, onToggleFavorite, onRec
         <h3 className="line-clamp-2 font-heading text-sm font-semibold tracking-tight">{video.title}</h3>
         <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-black/45">
           <span>{new Date(video.published_date).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
-          <span className="rounded bg-black/5 px-1.5 py-0.5">{video.category}</span>
+          {video.category ? <span className="rounded bg-black/5 px-1.5 py-0.5">{video.category}</span> : null}
           <span className={`rounded px-1.5 py-0.5 ${video.video_file_uri ? "bg-green-100 text-green-800" : "bg-black/5 text-black/45"}`}>
             {video.video_file_uri ? "Vidéo source" : "Lien seul"}
           </span>

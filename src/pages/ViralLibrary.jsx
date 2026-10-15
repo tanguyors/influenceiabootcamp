@@ -10,7 +10,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import ReferenceCard from "@/components/library/ReferenceCard";
 import ReferenceFormDialog from "@/components/library/ReferenceFormDialog";
-import { CATEGORIES, PLATFORMS, platformLabel } from "@/lib/referenceOptions";
 
 const PERIODS = [
   { value: "6h", label: "6 dernières heures" },
@@ -31,8 +30,6 @@ export default function ViralLibrary() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [items, setItems] = useState(null);
-  const [category, setCategory] = useState("all");
-  const [platform, setPlatform] = useState("all");
   const [period, setPeriod] = useState("all");
   const [q, setQ] = useState("");
   const [favorites, setFavorites] = useState(() => new Set(JSON.parse(localStorage.getItem("influenceia.favs") || "[]")));
@@ -76,13 +73,11 @@ export default function ViralLibrary() {
   const filtered = useMemo(() => {
     const cutoff = Date.now() - periodToMs(period);
     return (items || []).filter((v) => {
-      if (category !== "all" && v.category !== category) return false;
-      if (platform !== "all" && v.platform !== platform) return false;
       if (q && !(v.title || "").toLowerCase().includes(q.toLowerCase())) return false;
       if (new Date(v.published_date).getTime() < cutoff) return false;
       return true;
     });
-  }, [items, category, platform, period, q]);
+  }, [items, period, q]);
 
   const addButton = (
     <Button onClick={() => setOpen(true)} className="bg-black text-white hover:bg-black/85">
@@ -102,20 +97,6 @@ export default function ViralLibrary() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/30" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="pl-9" />
         </div>
-        <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger className="w-[160px]"><SelectValue placeholder="Catégorie" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes catégories</SelectItem>
-            {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={platform} onValueChange={setPlatform}>
-          <SelectTrigger className="w-[150px]"><SelectValue placeholder="Plateforme" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Toutes plateformes</SelectItem>
-            {PLATFORMS.map((p) => <SelectItem key={p} value={p}>{platformLabel(p)}</SelectItem>)}
-          </SelectContent>
-        </Select>
         <Select value={period} onValueChange={setPeriod}>
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
