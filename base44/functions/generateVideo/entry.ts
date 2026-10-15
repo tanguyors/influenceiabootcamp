@@ -227,11 +227,20 @@ async function refreshProcessing(base44, token) {
     try {
       const res = await callTool(token, "job_status", { jobId: creation.higgsfield_job_id });
       const job = readJob(res);
-      // Blocage Higgsfield en mode référence : on relance en transfert de mouvement.
-      if (job.blocked && await relaunchWithMotionControl(base44, token, creation)) { updated++; continue; }
+      // Refus ou interruption côté Higgsfield : on relance aussitôt en transfert de mouvement
+      // (au lieu d'attendre que la tâche abandonnée expire).
+      if ((job.blocked || job.status === "failed") && await relaunchWithMotionControl(base44, token, creation)) {
+        updated++;
+        continue;
+      }
       const patch = {};
       if (job.error) { patch.status = "failed"; patch.error = job.error; }
       else if (job.videoUrl) { patch.status = "ready"; patch.result_video_url = job.videoUrl; }
+      // Tâche interrompue sans message : l'utilisateur doit le voir tout de suite.
+      else if (job.status === "failed") {
+        patch.status = "failed";
+        patch.error = "Higgsfield a interrompu cette génération : relancez-la.";
+      }
       // Tâche sans réponse depuis 45 minutes : on libère la liste au lieu d'attendre sans fin.
       else if (age(creation) > 2700000) {
         patch.status = "failed";
@@ -408,7 +417,9 @@ export default async function(req) {
       }
 
       const job = readJob(result);
-      if (job.blocked && await relaunchWithMotionControl(base44, token, creation)) {
+      // Refus du mode référence (personne réelle détectée, paramètres non supportés…) :
+      // repli immédiat en transfert de mouvement.
+      if ((job.blocked || job.error) && await relaunchWithMotionControl(base44, token, creation)) {
         return Response.json({ creation_id: creation.id, status: "processing", tool: "motion_control" });
       }
       if (job.error) {
