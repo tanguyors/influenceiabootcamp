@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import SetupStepCard from "@/components/higgsfield/SetupStepCard";
 
 // Étape 2 : connexion du compte Higgsfield (OAuth) et suivi de l'état.
-export default function ConnectionStep({ account, balance, loading, connecting, onConnect, onDisconnect, onRefresh }) {
+export default function ConnectionStep({ account, balance, loading, connecting, locked, onConnect, onDisconnect, onRefresh }) {
   const connected = Boolean(account?.connected);
 
   return (
@@ -11,7 +11,7 @@ export default function ConnectionStep({ account, balance, loading, connecting, 
       num={2}
       done={connected}
       title="Connecter votre compte"
-      text="Autorisez l'accès une fois : l'application travaille ensuite avec votre compte Higgsfield, sans clé API, et les identifiants restent côté serveur."
+      text="Étape réservée aux comptes Higgsfield existants. Autorisez l'accès une fois : l'application travaille ensuite avec votre compte Higgsfield, sans clé API, et les identifiants restent côté serveur."
     >
       {account === null ? (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -58,10 +58,15 @@ export default function ConnectionStep({ account, balance, loading, connecting, 
           <div className="flex items-center gap-2 text-sm font-medium text-red-400">
             <XCircle className="h-5 w-5" /> Non connecté
           </div>
-          <Button onClick={onConnect} disabled={connecting} className="mt-4 w-full font-semibold">
+          <Button onClick={onConnect} disabled={connecting || locked} className="mt-4 w-full font-semibold">
             {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
             {connecting ? "Redirection…" : "Connecter mon compte Higgsfield"}
           </Button>
+          {locked && (
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              Terminez d'abord l'étape 1 : créez votre compte Higgsfield pour débloquer la connexion.
+            </p>
+          )}
         </>
       )}
     </SetupStepCard>

@@ -18,6 +18,7 @@ export default function HiggsfieldConnection() {
   const [balance, setBalance] = useState(null); // { credits, plan }
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(null); // étape 1 : compte Higgsfield créé
 
   async function loadStatus() {
     try {
@@ -25,6 +26,27 @@ export default function HiggsfieldConnection() {
       setAccount(res.data || { connected: false });
     } catch (e) {
       setAccount({ connected: false });
+    }
+  }
+
+  // L'étape 1 est mémorisée sur le compte : la connexion reste bloquée tant qu'elle n'est pas faite.
+  async function loadAccountCreated() {
+    try {
+      const me = await base44.auth.me();
+      setAccountCreated(Boolean(me?.higgsfield_account_created));
+    } catch (e) {
+      setAccountCreated(false);
+    }
+  }
+
+  async function openAccountCreation() {
+    window.open(AFFILIATE_URL, "_blank", "noopener,noreferrer");
+    if (accountCreated) return;
+    setAccountCreated(true);
+    try {
+      await base44.auth.updateMe({ higgsfield_account_created: true });
+    } catch (e) {
+      // L'étape reste validée pour la session en cours.
     }
   }
 
@@ -57,11 +79,15 @@ export default function HiggsfieldConnection() {
       searchParams.delete("higgsfield_error");
       setSearchParams(searchParams, { replace: true });
     }
-    (async () => { await loadStatus(); await loadTools(); })();
+    (async () => { await loadAccountCreated(); await loadStatus(); await loadTools(); })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function connect() {
+    if (!accountCreated) {
+      toast({ title: "Créez d'abord votre compte", description: "L'étape 1 doit être validée avant de connecter Higgsfield.", variant: "destructive" });
+      return;
+    }
     setConnecting(true);
     try {
       const res = await base44.functions.invoke("higgsfieldConnect", { action: "start" });
@@ -97,12 +123,16 @@ export default function HiggsfieldConnection() {
         {/* Setup en deux étapes */}
         <div className="lg:col-span-1">
           <div className="space-y-4">
-            <AccountSetupStep url={AFFILIATE_URL} connected={Boolean(account?.connected)} />
+            <AccountSetupStep
+              done={Boolean(account?.connected) || Boolean(accountCreated)}
+              onOpen={openAccountCreation}
+            />
             <ConnectionStep
               account={account}
               balance={balance}
               loading={loading}
               connecting={connecting}
+              locked={accountCreated === null || !accountCreated}
               onConnect={connect}
               onDisconnect={disconnect}
               onRefresh={loadTools}
