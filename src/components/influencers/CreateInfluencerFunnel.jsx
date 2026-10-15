@@ -77,7 +77,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
         brief: influencerBrief(choices, brief, brands, fullName),
         details: traitDetailsEn(choices),
       });
-      setOptions(data.images);
+      setOptions(data.options);
       setError(data.error);
     } catch (e) {
       setError(errorText(e));

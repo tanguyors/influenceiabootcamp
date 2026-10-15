@@ -25,39 +25,85 @@ const REALISM = [
   "Rendu photographique de très haute fidélité, peau réelle et jamais lissée.",
   "Grain de peau visible partout (pores, duvet, rides fines, taches, rougeurs légères, éventuelles cicatrices), aspérités et irrégularités naturelles, léger brillant du naturel, asymétrie discrète du visage.",
   "Aucune retouche beauté : ni peau de porcelaine, ni lissage, ni flou artistique, ni effet plastique, ni rendu 3D ou illustration, ni aspect « image générée par IA ».",
-  "Les traits de signature gardent un aspect naturel : un regard coloré reste un vrai iris photographié (fibres, reflets, cils), jamais un œil qui brille ou une couleur d'effet spécial, et aucun trait n'est maquillé, idéalisé ou embelli.",
+  "Les traits de signature gardent un aspect naturel : un regard coloré reste un vrai iris photographié (fibres, reflets, cils), jamais un œil qui brille ou une couleur d'effet spécial.",
   "Photo de studio : objectif 85 mm, lumière naturelle douce, netteté sur les yeux et la peau, aucune écriture, aucun logo, aucun cadre ni légende.",
 ];
 
-// Pistes de structure du visage réparties sur les neuf propositions : sans elles, le moteur
-// décline neuf fois le même visage et le choix devient impossible. Elles restent dans la gamme
-// des visages crédibles : élargies, elles produisent des canons de beauté et des caricatures.
-const VARIATION_AXES = [
-  "visage ovale, pommettes moyennes, mâchoire douce",
-  "visage légèrement rond, joues pleines, mâchoire large",
-  "front haut, sourcils d'épaisseur moyenne, nez droit",
-  "traits fins, lèvres moyennes, menton discret",
-  "joues hautes, nez court, menton bien dessiné",
-  "pommettes marquées, nez légèrement aquilin, regard profond",
-  "visage allongé, menton net, arcades sourcilières marquées",
-  "traits doux, yeux légèrement tombants, bouche pleine",
-  "structure de visage solide, cou dans la moyenne, arcade sourcilière marquée",
+// Les neuf propositions se répartissent en trois familles de trois, dans cet ordre : trois fidèles
+// au brief, trois version glamour, trois version déjantée. Elles changent la mise en scène, jamais
+// les choix du parcours : le brief reste prioritaire dans les trois familles.
+const VARIATION_STYLES = [
+  {
+    label: "Fidèle au brief",
+    look: "structure faciale neutre : visage ovale, pommettes moyennes, mâchoire douce",
+    tone: "Rendez ce personnage exactement tel que décrit, sans l'embellir ni l'exagérer : un être humain ordinaire et crédible.",
+    background: "gris clair",
+  },
+  {
+    label: "Fidèle au brief",
+    look: "structure faciale neutre : visage légèrement rond, joues pleines, mâchoire large",
+    tone: "Rendez ce personnage exactement tel que décrit, sans l'embellir ni l'exagérer : un être humain ordinaire et crédible.",
+    background: "gris clair",
+  },
+  {
+    label: "Fidèle au brief",
+    look: "structure faciale neutre : front haut, sourcils d'épaisseur moyenne, nez droit",
+    tone: "Rendez ce personnage exactement tel que décrit, sans l'embellir ni l'exagérer : un être humain ordinaire et crédible.",
+    background: "gris clair",
+  },
+  {
+    label: "Glam",
+    look: "version glamour assumée : pommettes hautes sculptées, mâchoire nette, regard magnétique, pose de mannequin, lumière flatteuse de studio de mode",
+    tone: "Assumez franchement cette version embellie : elle est voulue. La personne reste réelle, jamais un masque de synthèse, avec sa texture de peau et ses aspérités.",
+    background: "beige clair",
+  },
+  {
+    label: "Glam",
+    look: "version glamour assumée : beauté solaire irréprochable, sourire éclatant, cou long, finition de magazine de mode",
+    tone: "Assumez franchement cette version embellie : elle est voulue. La personne reste réelle, jamais un masque de synthèse, avec sa texture de peau et ses aspérités.",
+    background: "beige clair",
+  },
+  {
+    label: "Glam",
+    look: "version glamour assumée : traits fins et réguliers, lèvres bien dessinées, sourcils nets, allure haute couture",
+    tone: "Assumez franchement cette version embellie : elle est voulue. La personne reste réelle, jamais un masque de synthèse, avec sa texture de peau et ses aspérités.",
+    background: "beige clair",
+  },
+  {
+    label: "Déjanté",
+    look: "version déjantée assumée : coiffure démesurée, expression théâtrale, tenue improbable et accessoires extravagants",
+    tone: "Assumez franchement cette version loufoque : l'exagération, l'humour et les détails too much sont voulus. Le visage reste photographique et crédible, jamais difforme ni monstrueux.",
+    background: "bleu très pâle",
+  },
+  {
+    label: "Déjanté",
+    look: "version déjantée assumée : couleurs criardes, grimace joyeuse, pose absurde, énergie de clown de mode",
+    tone: "Assumez franchement cette version loufoque : l'exagération, l'humour et les détails too much sont voulus. Le visage reste photographique et crédible, jamais difforme ni monstrueux.",
+    background: "bleu très pâle",
+  },
+  {
+    label: "Déjanté",
+    look: "version déjantée assumée : style punk-fantaisie, détails volontairement exagérés, regard intense, silhouette improbable",
+    tone: "Assumez franchement cette version loufoque : l'exagération, l'humour et les détails too much sont voulus. Le visage reste photographique et crédible, jamais difforme ni monstrueux.",
+    background: "bleu très pâle",
+  },
 ];
 
 // Une seule identité et une seule photographie par appel : aucune instruction de série
 // dans le prompt, sinon le moteur dessine la série entière à l'intérieur de chaque image.
 function optionsPrompt(brief, details, variant) {
-  const backgrounds = ["gris clair", "beige clair", "blanc cassé", "bleu très pâle"];
+  const style = VARIATION_STYLES[variant];
   return [
     "EXACTLY ONE PHOTOGRAPH OF ONE PERSON. One uninterrupted photographic scene, one head and one body. No collage, no grid, no contact sheet, no character sheet, no panels, no montage, no inset photographs, no multiple views, no other people, no reflections of people.",
     `Attributs du personnage à respecter : ${brief}`,
     details.length
-      ? `Mandatory signature features, rendered exactly and unmistakably on this single person: ${details.join("; ")}. Never idealise, beautify, soften or omit them.`
+      ? `Mandatory signature features, rendered exactly and unmistakably on this single person: ${details.join("; ")}. Never soften or omit them, and never replace them with a different feature.`
       : "",
-    `Direction de structure faciale pour les traits que le brief ne fixe pas : ${VARIATION_AXES[variant]}. Elle ne contredit jamais un choix de l'utilisateur : l'âge, le genre, l'origine, la morphologie, les yeux, les cheveux, la pilosité et tout trait explicitement fixé restent exactement ceux du brief.`,
-    "Cette personne est un être humain ordinaire et crédible, tel que décrit : pas de version embellie en mannequin de beauté, pas de version exagérée, caricaturale ou difforme. Aucun trait spectaculaire ajouté, aucune déformation du visage, aucune expression outrée, aucun détail loufoque. Identité originale, sans copier de célébrité.",
-    "Les traits de signature demandés sont rendus exactement comme décrit, dans leur intensité réelle, ni atténués ni exagérés.",
-    `Une seule personne de face, regard vers l'objectif, tête entière avec marge au-dessus, épaules et torse bien visibles jusqu'au bas de la poitrine. Une seule tenue dans le style choisi, un seul fond uni ${backgrounds[variant % backgrounds.length]}.`,
+    `Famille de cette proposition : « ${style.label} ». ${style.look}.`,
+    `Le brief reste prioritaire sur cette direction : l'âge, le genre, l'origine, la morphologie, les yeux, les cheveux, la pilosité et tout trait explicitement fixé sont conservés à l'identique.`,
+    style.tone,
+    "Identité originale, sans copier de célébrité.",
+    `Une seule personne de face, regard vers l'objectif, tête entière avec marge au-dessus, épaules et torse bien visibles jusqu'au bas de la poitrine. Une seule tenue cohérente avec la famille de la proposition, un seul fond uni ${style.background}.`,
     REALISM.join(" "),
     "Livrez une photographie unique de cette seule personne, jamais une planche de propositions. N'ajoutez aucun détail, bijou, marque ou trait exclu du brief.",
   ].filter(Boolean).join("\n\n");
@@ -121,6 +167,9 @@ export default async function (req: any) {
       .filter(Boolean)
       .slice(0, 24);
 
+    // Famille de la proposition, renvoyée pour l'étiquette affichée sous le portrait.
+    let styleLabel = "";
+
     const key = secrets.get("OPENAI_API_KEY");
     if (!key) {
       return Response.json({ error: "Clé OpenAI manquante : ajoutez le secret OPENAI_API_KEY." }, { status: 400 });
@@ -165,6 +214,7 @@ export default async function (req: any) {
       if (!Number.isInteger(variant) || variant < 0 || variant >= OPTION_COUNT) {
         return Response.json({ error: "Proposition de personnage invalide." }, { status: 400 });
       }
+      styleLabel = VARIATION_STYLES[variant].label;
       res = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
@@ -200,7 +250,7 @@ export default async function (req: any) {
     const payload = await res.json();
     const images = await storeImages(base44, payload);
     if (!images.length) return Response.json({ error: "OpenAI n'a renvoyé aucune image." }, { status: 502 });
-    return Response.json({ images });
+    return Response.json(styleLabel ? { images, style: styleLabel } : { images });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
