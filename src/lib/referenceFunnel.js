@@ -470,6 +470,21 @@ export function higgsfieldBrief(choices, brief) {
   ].filter(Boolean).join("\n").slice(0, 4000);
 }
 
+// Brief transmis au moteur de génération : l'univers saisi par l'utilisateur, puis
+// TOUS les choix du parcours (aucun n'est écarté) et les marques ajoutées à la main.
+export function influencerBrief(choices, brief, brands = []) {
+  const lines = REFERENCE_STEPS
+    .map((step) => [step.title, picked(step, choices).map((o) => o.label).join(", ")])
+    .filter(([, values]) => values)
+    .map(([title, values]) => `${title} : ${values}`);
+  if (brands.length) lines.push(`Marques souhaitées : ${brands.join(", ")}`);
+
+  return [
+    String(brief || "").trim(),
+    lines.length ? `Choix à respecter :\n- ${lines.join("\n- ")}` : "",
+  ].filter(Boolean).join("\n\n").slice(0, 4000);
+}
+
 // Traits retenus, affichés sur le récapitulatif.
 export function referenceTraits(choices) {
   return REFERENCE_STEPS.map((step) => ({

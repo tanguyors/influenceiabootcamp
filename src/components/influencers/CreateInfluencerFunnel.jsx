@@ -11,7 +11,7 @@ import FunnelRecapStep from "@/components/influencers/funnel/FunnelRecapStep";
 import FunnelResult from "@/components/influencers/funnel/FunnelResult";
 import {
   funnelSteps,
-  higgsfieldBrief,
+  influencerBrief,
   referenceNotes,
   referenceTraits,
   stepGender,
@@ -69,7 +69,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     setError("");
     try {
       const res = await base44.functions.invoke("generateInfluencerGpt", {
-        brief: higgsfieldBrief(choices, brief),
+        brief: influencerBrief(choices, brief, brands),
         count: sheets,
       });
       const data = res.data || {};
