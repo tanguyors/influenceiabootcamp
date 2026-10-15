@@ -83,7 +83,7 @@ function readJob(res) {
   const mapped = blocked ? "failed" : mapStatus(status);
   // Une URL n'est retenue que si la tâche est terminée : tant qu'elle tourne, les seules
   // vidéos présentes sont celles des médias d'entrée.
-  return { status: mapped, videoUrl: mapped === "ready" ? found : "", jobId, error };
+  return { status: mapped, videoUrl: mapped === "ready" ? found : "", jobId, error, blocked };
 }
 
 // Importe un média (URL signée) dans Higgsfield : les outils de génération n'acceptent que des media_id confirmés.
@@ -175,6 +175,60 @@ function pickImageModel(models, seconds) {
   return usable.find((m) => supportsDuration(m, seconds)) || usable[0] || null;
 }
 
+// Repli automatique : quand Higgsfield refuse la génération en mode référence (une personne
+// réelle est détectée dans la vidéo source), la même création est relancée en transfert de
+// mouvement — décor, cadrage et mouvement de la vidéo conservés, seule la personne change.
+async function relaunchWithMotionControl(base44, token, creation) {
+  if (creation.model === "motion_control") return false;
+  try {
+    const vp = await base44.entities.ViralVideo.filter({ id: creation.viral_video_id }, { limit: 1 });
+    const viralVideo = (vp.items || [])[0];
+    if (!viralVideo || !viralVideo.video_file_uri) return false;
+
+    const ip = await base44.entities.Influencer.filter({ id: creation.influencer_id }, { limit: 1 });
+    const influencer = (ip.items || [])[0];
+    if (!influencer) return false;
+    const photos = (Array.isArray(influencer.reference_images) && influencer.reference_images.length
+      ? influencer.reference_images
+      : [influencer.reference_image]).filter(Boolean);
+    if (!photos.length) return false;
+
+    const sign = async (uri) => {
+      try {
+        const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+          file_uri: uri, expires_in: 3600,
+        });
+        return signed_url;
+      } catch { return ""; }
+    };
+    const imageUrl = await sign(photos[0]);
+    const videoUrl = await sign(viralVideo.video_file_uri);
+    if (!imageUrl || !videoUrl) return false;
+
+    const result = await callTool(token, "motion_control", {
+      params: {
+        image_id: await importMedia(token, imageUrl, "image"),
+        motion_video_id: await importMedia(token, videoUrl, "video"),
+        resolution: creation.resolution === "720p" ? "720p" : "1080p",
+        scene_control: "video",
+      },
+    });
+    const job = readJob(result);
+    if (job.error || !job.jobId) return false;
+
+    await base44.entities.Creation.update(creation.id, {
+      status: job.videoUrl ? "ready" : "processing",
+      result_video_url: job.videoUrl,
+      higgsfield_job_id: job.jobId,
+      model: "motion_control",
+      error: "",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 // Rafraîchit l'état des générations en cours auprès de Higgsfield.
 async function refreshProcessing(base44, token) {
   const page = await base44.entities.Creation.filter({ status: "processing" }, { sort: "-created_date", limit: 20 });
@@ -196,6 +250,8 @@ async function refreshProcessing(base44, token) {
     try {
       const res = await callTool(token, "job_status", { jobId: creation.higgsfield_job_id });
       const job = readJob(res);
+      // Blocage Higgsfield en mode référence : on relance en transfert de mouvement.
+      if (job.blocked && await relaunchWithMotionControl(base44, token, creation)) { updated++; continue; }
       const patch = {};
       if (job.error) { patch.status = "failed"; patch.error = job.error; }
       else if (job.videoUrl) { patch.status = "ready"; patch.result_video_url = job.videoUrl; }
@@ -375,6 +431,9 @@ export default async function(req) {
       }
 
       const job = readJob(result);
+      if (job.blocked && await relaunchWithMotionControl(base44, token, creation)) {
+        return Response.json({ creation_id: creation.id, status: "processing", tool: "motion_control" });
+      }
       if (job.error) {
         await base44.entities.Creation.update(creation.id, { status: "failed", error: job.error, model: toolName });
         return Response.json({ error: job.error, creation_id: creation.id }, { status: 400 });
