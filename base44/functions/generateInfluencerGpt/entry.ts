@@ -2,7 +2,8 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { secrets } from "base44:runtime";
 
 const MODEL = "gpt-image-1";
-const MAX_IMAGES = 4;
+const MAX_SHEETS = 4;
+const OPTION_COUNT = 9;
 
 // Les 9 vues de la planche de référence (grille 3x3, du visage au plan large).
 const VIEWS = [
@@ -17,12 +18,26 @@ const VIEWS = [
   "plan pied entier de face",
 ];
 
-// Le brief du funnel décrit déjà le personnage. On y ajoute la composition de la planche
-// et, surtout, les traits de signature en anglais : sans cette insistance, le moteur lisse
-// le visage et laisse tomber les détails fins (dents du bonheur, paupières lourdes, grill…).
-function promptFrom(brief: string, details: string[]) {
+// Étape 1 : neuf interprétations du personnage décrit, une par image, pour laisser le choix.
+function optionsPrompt(brief: string, details: string[]) {
   return [
-    `Planche de référence de personnage (character sheet) : une seule image composée d'une grille de 3 lignes sur 3 colonnes, 9 cases de taille égale, chacune montrant exactement la même personne sous un angle différent : ${VIEWS.join(", ")}.`,
+    "Neuf propositions de personnage, une par image : même archétype et mêmes traits de signature pour les neuf, mais chacune interprète le visage, le regard et la coiffure à sa façon, afin que l'utilisateur puisse choisir celle qu'il préfère.",
+    `Personnage : ${brief}`,
+    details.length
+      ? `Signature features of this person, to render exactly and unmistakably on every proposal: ${details.join("; ")}. These features are the point of the character: never idealise, beautify, soften or omit them.`
+      : "",
+    "Chaque image : un seul personnage, plan poitrine de face, regard vers l'objectif, même lumière naturelle et même fond uni gris clair pour les neuf, photo réaliste, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende.",
+    "Le personnage correspond exactement à la description : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
+  ].filter(Boolean).join("\n\n");
+}
+
+// Étape 2 : la planche définitive, composée à partir du personnage retenu qui sert de modèle.
+// Sans l'insistance sur les détails fins (dents du bonheur, paupières lourdes, grill…), le
+// moteur lisse le visage et laisse tomber la signature du personnage.
+function sheetPrompt(brief: string, details: string[]) {
+  return [
+    "Conservez exactement le visage, la coiffure et la morphologie du personnage de l'image de référence : la même personne, au détail près.",
+    `Planche de référence de personnage (character sheet) : une seule image composée d'une grille de 3 lignes sur 3 colonnes, 9 cases de taille égale, chacune montrant ce personnage sous un angle différent : ${VIEWS.join(", ")}.`,
     `Personnage : ${brief}`,
     details.length
       ? `Signature features of this person, to render exactly and unmistakably in every view where they can be seen: ${details.join("; ")}. These features are the point of the character: never idealise, beautify, soften or omit them, and never replace the face with a generic attractive person.`
@@ -32,6 +47,28 @@ function promptFrom(brief: string, details: string[]) {
   ].filter(Boolean).join("\n\n");
 }
 
+// Les images reviennent en base64 : on les dépose dans le stockage privé par lots de six.
+async function storeImages(base44: any, payload: any) {
+  const parts: string[] = (payload?.data || [])
+    .map((item: any) => (item && item.b64_json) || "")
+    .filter(Boolean);
+  const images: string[] = [];
+  for (let start = 0; start < parts.length; start += 6) {
+    const batch = await Promise.allSettled(
+      parts.slice(start, start + 6).map(async (b64, offset) => {
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const file = new File([bytes], `influenceur-openai-${start + offset + 1}.png`, { type: "image/png" });
+        const upload = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
+        return upload && upload.file_uri ? upload.file_uri : "";
+      })
+    );
+    for (const result of batch) {
+      if (result.status === "fulfilled" && result.value) images.push(result.value);
+    }
+  }
+  return images;
+}
+
 export default async function (req: any) {
   try {
     const base44 = createClientFromRequest(req);
@@ -39,11 +76,11 @@ export default async function (req: any) {
     if (!user) return Response.json({ error: "Non authentifié" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
+    const mode = body.mode === "sheet" ? "sheet" : "options";
     const brief = String(body.brief || "").trim().slice(0, 6000);
     if (brief.length < 3) {
       return Response.json({ error: "Décrivez le personnage avant de générer." }, { status: 400 });
     }
-    const count = Math.min(Math.max(Number(body.count) || 1, 1), MAX_IMAGES);
 
     // Traits de signature déjà traduits en anglais par le funnel (liste courte, bornée).
     const details = (Array.isArray(body.details) ? body.details : [])
@@ -56,18 +93,55 @@ export default async function (req: any) {
       return Response.json({ error: "Clé OpenAI manquante : ajoutez le secret OPENAI_API_KEY." }, { status: 400 });
     }
 
-    const res = await fetch("https://api.openai.com/v1/images/generations", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: MODEL,
-        prompt: promptFrom(brief, details),
-        n: count,
-        size: "1024x1536",
-        quality: "medium",
-      }),
-      signal: AbortSignal.timeout(180000),
-    });
+    let res: Response;
+    if (mode === "sheet") {
+      const reference = String(body.reference_image || "").trim();
+      if (!reference) {
+        return Response.json({ error: "Choisissez d'abord un des personnages proposés." }, { status: 400 });
+      }
+      const count = Math.min(Math.max(Number(body.count) || 1, 1), MAX_SHEETS);
+
+      // Le personnage retenu est relu depuis le stockage privé puis envoyé comme référence :
+      // c'est ce qui garantit la fidélité du visage sur la planche.
+      const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
+        file_uri: reference,
+        expires_in: 600,
+      });
+      const fileRes = await fetch(signed.signed_url, { signal: AbortSignal.timeout(60000) });
+      if (!fileRes.ok) {
+        return Response.json({ error: "Personnage de référence introuvable : relancez la génération." }, { status: 400 });
+      }
+      const bytes = new Uint8Array(await fileRes.arrayBuffer());
+
+      const form = new FormData();
+      form.append("model", MODEL);
+      form.append("image", new Blob([bytes], { type: "image/png" }), "reference.png");
+      form.append("prompt", sheetPrompt(brief, details));
+      form.append("n", String(count));
+      form.append("size", "1024x1536");
+      form.append("quality", "medium");
+
+      res = await fetch("https://api.openai.com/v1/images/edits", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}` },
+        body: form,
+        signal: AbortSignal.timeout(240000),
+      });
+    } else {
+      const count = Math.min(Math.max(Number(body.count) || OPTION_COUNT, 1), OPTION_COUNT);
+      res = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+        body: JSON.stringify({
+          model: MODEL,
+          prompt: optionsPrompt(brief, details),
+          n: count,
+          size: "1024x1024",
+          quality: "medium",
+        }),
+        signal: AbortSignal.timeout(280000),
+      });
+    }
 
     if (!res.ok) {
       const detail = await res.text();
@@ -88,15 +162,7 @@ export default async function (req: any) {
     }
 
     const payload = await res.json();
-    const images: string[] = [];
-    for (const item of (payload.data || [])) {
-      if (!item || !item.b64_json) continue;
-      const bytes = Uint8Array.from(atob(item.b64_json), (c) => c.charCodeAt(0));
-      const file = new File([bytes], `influenceur-openai-${images.length + 1}.png`, { type: "image/png" });
-      const upload = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
-      if (upload && upload.file_uri) images.push(upload.file_uri);
-    }
-
+    const images = await storeImages(base44, payload);
     if (!images.length) return Response.json({ error: "OpenAI n'a renvoyé aucune image." }, { status: 502 });
     return Response.json({ images });
   } catch (error: any) {

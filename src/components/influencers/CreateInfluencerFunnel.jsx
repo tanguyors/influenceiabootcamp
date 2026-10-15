@@ -9,6 +9,7 @@ import FunnelPlatformGrid from "@/components/influencers/funnel/FunnelPlatformGr
 import FunnelNameStep from "@/components/influencers/funnel/FunnelNameStep";
 import FunnelRecapStep from "@/components/influencers/funnel/FunnelRecapStep";
 import FunnelResult from "@/components/influencers/funnel/FunnelResult";
+import FunnelCharacterPicker from "@/components/influencers/funnel/FunnelCharacterPicker";
 import {
   funnelSteps,
   influencerBrief,
@@ -33,20 +34,22 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   const [brief, setBrief] = useState("");
   const [sheets, setSheets] = useState(1);
   const [busy, setBusy] = useState("");
-  const [images, setImages] = useState([]);
+  const [options, setOptions] = useState([]); // les 9 personnages proposés
+  const [chosen, setChosen] = useState(""); // le personnage retenu
+  const [images, setImages] = useState([]); // la planche finale
 
   // Chaque ouverture repart d'un parcours vierge.
   useEffect(() => {
     if (!open) return;
     setError(""); setIndex(0); setChoices({}); setBrands([]); setName({ first: "", last: "" });
-    setBrief(""); setSheets(1); setBusy(""); setImages([]);
+    setBrief(""); setSheets(1); setBusy(""); setOptions([]); setChosen(""); setImages([]);
   }, [open]);
 
   const steps = useMemo(() => funnelSteps(choices), [choices]);
   const step = steps[Math.min(index, steps.length - 1)] || null;
   const gender = stepGender(choices);
   const fullName = `${name.first || ""} ${name.last || ""}`.trim();
-  const running = busy === "start";
+  const generating = busy === "options" || busy === "sheet";
 
   function pick(stepId, optionId) {
     setChoices((s) => ({ ...s, [stepId]: optionId }));
@@ -64,19 +67,43 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     setIndex((i) => Math.min(i + 1, steps.length - 1));
   }
 
-  // Le personnage est généré par l'API OpenAI à partir de tous les choix du parcours.
-  async function generate() {
-    setBusy("start");
+  // 1) L'IA propose 9 personnages issus des choix du parcours : l'utilisateur retient le sien.
+  async function generateOptions() {
+    setBusy("options");
     setError("");
     try {
       const res = await base44.functions.invoke("generateInfluencerGpt", {
+        mode: "options",
+        brief: influencerBrief(choices, brief, brands, fullName),
+        details: traitDetailsEn(choices),
+      });
+      const data = res.data || {};
+      if (data.error) throw new Error(data.error);
+      if (!(data.images || []).length) throw new Error("Aucun personnage renvoyé par OpenAI.");
+      setOptions(data.images);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy("");
+    }
+  }
+
+  // 2) La planche de 9 vues est composée à partir du personnage retenu, qui sert de modèle.
+  async function generateSheet() {
+    if (!chosen) return;
+    setBusy("sheet");
+    setError("");
+    try {
+      const res = await base44.functions.invoke("generateInfluencerGpt", {
+        mode: "sheet",
+        reference_image: chosen,
         brief: influencerBrief(choices, brief, brands, fullName),
         details: traitDetailsEn(choices),
         count: sheets,
       });
       const data = res.data || {};
       if (data.error) throw new Error(data.error);
-      if (!(data.images || []).length) throw new Error("Aucune image renvoyée par OpenAI.");
+      if (!(data.images || []).length) throw new Error("Aucune planche renvoyée par OpenAI.");
       setImages(data.images);
     } catch (e) {
       setError(errorText(e));
@@ -111,8 +138,8 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   if (!open) return null;
 
   const total = steps.length || 1;
-  const progress = images.length || running ? 100 : Math.round(((index + 1) / total) * 100);
-  const canGoBack = index > 0 && !running && !images.length;
+  const progress = images.length || generating ? 100 : options.length ? 80 : Math.round(((index + 1) / total) * 100);
+  const canGoBack = index > 0 && !generating && !options.length && !images.length;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-background text-foreground">
@@ -129,8 +156,8 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
 
         <div className="flex-1">
           <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-primary">
-            <span>{running || images.length ? "Génération" : ""}</span>
-            {onImportPhotos && !running && !images.length && (
+            <span>{generating || options.length || images.length ? "Génération" : ""}</span>
+            {onImportPhotos && !generating && !options.length && !images.length && (
               <button type="button" onClick={onImportPhotos} className="normal-case tracking-normal text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                 Importer mes photos
               </button>
@@ -157,8 +184,22 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
             <div className="flex items-center gap-3 py-24 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Préparation du parcours…
             </div>
-          ) : running || images.length ? (
-            <FunnelResult images={images} name={fullName} saving={busy === "save"} onSave={save} />
+          ) : generating || images.length ? (
+            <FunnelResult
+              images={images}
+              name={fullName}
+              phase={busy === "sheet" || images.length ? "sheet" : "options"}
+              saving={busy === "save"}
+              onSave={save}
+            />
+          ) : options.length ? (
+            <FunnelCharacterPicker
+              options={options}
+              value={chosen}
+              onChange={setChosen}
+              busy={busy === "sheet"}
+              onConfirm={generateSheet}
+            />
           ) : (
             <>
               <FunnelStepHead index={index} total={total} step={step} />
@@ -219,7 +260,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
                     if (patch.brief !== undefined) setBrief(patch.brief);
                     if (patch.sheets !== undefined) setSheets(patch.sheets);
                   }}
-                  onGenerate={generate}
+                  onGenerate={generateOptions}
                 />
               )}
 

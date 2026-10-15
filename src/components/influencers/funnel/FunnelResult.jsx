@@ -2,16 +2,19 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SignedImage from "@/components/SignedImage";
 
-export default function FunnelResult({ images, name, saving, onSave }) {
+export default function FunnelResult({ images, name, phase = "sheet", saving, onSave }) {
   if (!images.length) {
+    const proposing = phase === "options";
     return (
       <div className="py-24 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
         <h2 className="mt-6 font-heading text-2xl font-semibold tracking-tight">
-          Higgsfield compose {name || "votre star"}…
+          {proposing ? "OpenAI imagine 9 personnages" : `OpenAI compose la planche de ${name || "votre star"}`}…
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Une à deux minutes. Cette page se met à jour toute seule.
+          {proposing
+            ? "Vous choisirez celui qui vous plaît avant la planche finale."
+            : "Une à deux minutes. Cette page se met à jour toute seule."}
         </p>
       </div>
     );

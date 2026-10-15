@@ -54,10 +54,10 @@ export default function FunnelRecapStep({ traits, busy, brief, sheets, onChange,
 
       <div className="mt-8 flex flex-wrap items-center gap-5">
         <Button onClick={onGenerate} disabled={busy !== ""} className="h-12 rounded-full px-8 font-semibold">
-          Générer mon influenceur
+          Voir 9 personnages
         </Button>
         <span className="text-xs text-muted-foreground/80">
-          {sheets} planche(s) de 9 vues, facturée(s) sur votre compte OpenAI
+          9 propositions, puis {sheets} planche(s) de 9 vues du personnage retenu, facturées sur votre compte OpenAI
         </span>
       </div>
     </div>
