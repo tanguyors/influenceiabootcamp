@@ -470,9 +470,25 @@ export function higgsfieldBrief(choices, brief) {
   ].filter(Boolean).join("\n").slice(0, 4000);
 }
 
+// Étapes dont un trait peut apparaître ou non sur le personnage. Leurs options non
+// choisies sont interdites au moteur, qui sinon les invente (grandes oreilles, piercing…).
+const OPTIONAL_STEPS = new Set(["q-feat", "q-df", "q-acc", "q-fh"]);
+
+function forbiddenTraits(choices) {
+  const out = [];
+  for (const step of REFERENCE_STEPS) {
+    if (!OPTIONAL_STEPS.has(step.id)) continue;
+    const value = (choices || {})[step.id];
+    const chosen = new Set((Array.isArray(value) ? value : value ? [value] : []));
+    for (const option of step.options) if (!chosen.has(option.id)) out.push(option.label);
+  }
+  return Array.from(new Set(out));
+}
+
 // Brief transmis au moteur de génération : TOUS les choix du parcours (aucun n'est écarté),
-// le nom du personnage, les marques ajoutées à la main, puis l'univers saisi par l'utilisateur.
-// Les choix passent en premier pour qu'une saisie libre très longue ne puisse jamais les écraser.
+// les traits non choisis à ne pas inventer, le nom du personnage, les marques ajoutées à la
+// main, puis l'univers saisi par l'utilisateur. Les choix passent en premier pour qu'une
+// saisie libre très longue ne puisse jamais les écraser.
 export function influencerBrief(choices, brief, brands = [], name = "") {
   const lines = REFERENCE_STEPS
     .map((step) => [step.title, picked(step, choices).map((o) => o.label).join(", ")])
@@ -481,9 +497,11 @@ export function influencerBrief(choices, brief, brands = [], name = "") {
   if (name) lines.push(`Nom du personnage : ${name}`);
   if (brands.length) lines.push(`Marques souhaitées : ${brands.join(", ")}`);
 
+  const forbidden = forbiddenTraits(choices);
   const universe = String(brief || "").trim();
   return [
     lines.length ? `Choix à respecter :\n- ${lines.join("\n- ")}` : "",
+    forbidden.length ? `Traits absents du personnage, à ne pas ajouter : ${forbidden.join(", ")}.` : "",
     universe ? `Univers souhaité : ${universe}` : "",
   ].filter(Boolean).join("\n\n").slice(0, 6000);
 }

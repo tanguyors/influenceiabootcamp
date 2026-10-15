@@ -24,6 +24,7 @@ function promptFrom(brief: string) {
     `Planche de référence de personnage (character sheet) : une seule image composée d'une grille de 3 lignes sur 3 colonnes, 9 cases de taille égale, chacune montrant exactement la même personne sous un angle différent : ${VIEWS.join(", ")}.`,
     `Personnage : ${brief}`,
     "Identité strictement identique dans les 9 cases (même visage, mêmes cheveux, même tenue, même morphologie), même lumière naturelle et même fond uni gris clair partout, photo réaliste, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende, espacement régulier entre les cases.",
+    "Le personnage correspond exactement à la description : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
   ].filter(Boolean).join("\n\n");
 }
 
