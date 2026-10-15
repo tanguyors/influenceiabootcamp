@@ -1,5 +1,6 @@
 // Parcours du funnel de création : ordre des étapes, questions et visuels des choix.
 import { groupLabel } from "@/lib/influencerTraits";
+import { optionImage } from "@/lib/funnelAssets";
 
 // Du plus identitaire au plus accessoire (comme les funnels de référence).
 const ORDER = [
@@ -91,8 +92,11 @@ const SWATCHES = {
   ],
 };
 
-// Visuel d'un choix : pastille de couleur pour les teintes, emoji sinon.
+// Visuel d'un choix : photo du site de référence, pastille de couleur pour les teintes, emoji sinon.
 export function optionVisual(groupId, option) {
+  const image = optionImage(groupId, option);
+  if (image) return { image };
+
   const key = `${option.id || ""} ${option.label || ""}`.toLowerCase();
   const swatch = (SWATCHES[groupId] || []).find(([re]) => re.test(key));
   if (swatch) return { swatch: swatch[1] };

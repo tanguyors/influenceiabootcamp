@@ -1,8 +1,33 @@
 import { Check } from "lucide-react";
+import { Image } from "@/components/ui/image";
 import { optionVisual } from "@/lib/influencerFunnel";
 
 export default function FunnelChoiceCard({ option, groupId, selected, onSelect }) {
-  const { emoji, swatch } = optionVisual(groupId, option);
+  const { emoji, swatch, image } = optionVisual(groupId, option);
+
+  if (image) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        className={`relative overflow-hidden rounded-2xl border text-left transition ${
+          selected
+            ? "border-primary-foreground"
+            : "border-white/10 hover:border-white/40"
+        }`}
+      >
+        <Image src={image} alt={option.label} fittingType="fill" className="aspect-[3/5] w-full" />
+        <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pb-3 pt-10 text-sm font-medium leading-snug text-white">
+          {option.label}
+        </span>
+        {selected && (
+          <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary-foreground text-primary">
+            <Check className="h-3.5 w-3.5" />
+          </span>
+        )}
+      </button>
+    );
+  }
 
   return (
     <button
