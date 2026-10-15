@@ -13,6 +13,12 @@ import { traitSummary, traitsOf } from "@/lib/influencerTraits";
 const POLL_MS = 5000;
 const MAX_POLLS = 60;
 
+// Message lisible même quand le serveur renvoie une erreur HTTP (le texte utile est dans la réponse).
+function errorText(e) {
+  const data = (e && e.response && e.response.data) || null;
+  return (data && (data.error || data.message)) || (e && e.message) || "Erreur inconnue";
+}
+
 export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImportPhotos }) {
   const [groups, setGroups] = useState(null);
   const [loadError, setLoadError] = useState("");
@@ -46,7 +52,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
         if (data.error) setLoadError(data.error);
         else setGroups(data.groups || []);
       } catch (e) {
-        if (alive) setLoadError(e.message);
+        if (alive) setLoadError(errorText(e));
       }
     })();
     return () => { alive = false; };
@@ -67,7 +73,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
         if (data.error) { setError(data.error); setJobId(""); setBusy(""); return; }
         if ((data.images || []).length) { setImages(data.images); setJobId(""); setBusy(""); return; }
       } catch (e) {
-        if (alive && tries > 3) { setError(e.message); setJobId(""); setBusy(""); return; }
+        if (alive && tries > 3) { setError(errorText(e)); setJobId(""); setBusy(""); return; }
       }
       if (!alive) return;
       if (tries >= MAX_POLLS) { setError("Génération trop longue : relancez."); setJobId(""); setBusy(""); return; }
@@ -109,7 +115,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
       if (data.error) throw new Error(data.error);
       setQuote({ params: data.params, credits: Number(data.credits) || 0 });
     } catch (e) {
-      setError(e.message);
+      setError(errorText(e));
     } finally {
       setBusy("");
     }
@@ -139,7 +145,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
       setJobId(data.job_id);
       setBusy("poll");
     } catch (e) {
-      setError(e.message);
+      setError(errorText(e));
       setBusy("");
     }
   }
@@ -156,9 +162,9 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
         reference_images: images,
       });
       onCreated(created);
-    } catch (e) {
-      setError(e.message);
-    } finally {
+      } catch (e) {
+      setError(errorText(e));
+      } finally {
       setBusy("");
     }
   }
