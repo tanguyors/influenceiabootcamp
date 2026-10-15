@@ -42,12 +42,13 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   const [busy, setBusy] = useState("");
   const [jobId, setJobId] = useState("");
   const [images, setImages] = useState([]);
+  const [engine, setEngine] = useState("higgsfield");
 
   // Chaque ouverture repart d'un parcours vierge.
   useEffect(() => {
     if (!open) return;
     setError(""); setIndex(0); setChoices({}); setBrands([]); setName({ first: "", last: "" });
-    setBrief(""); setSheets(1); setQuote(null); setBusy(""); setJobId(""); setImages([]);
+    setBrief(""); setSheets(1); setQuote(null); setBusy(""); setJobId(""); setImages([]); setEngine("higgsfield");
   }, [open]);
 
   // Le parcours mène à Higgsfield : on vérifie la connexion avant de commencer.
@@ -147,12 +148,35 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   // description ou le nombre de planches change : Higgsfield reçoit toujours la version à jour.
   useEffect(() => {
     if (!open || !step || step.layout !== "recap" || !fullName) return;
+    // Le moteur GPT n'a pas besoin de devis Higgsfield.
+    if (engine === "gpt") return;
     if (quote && quote.sheets === sheets && quote.brief === brief.trim()) return;
     const timer = window.setTimeout(prepare, 600);
     return () => window.clearTimeout(timer);
-  }, [open, step, quote, sheets, fullName, brief]);
+  }, [open, step, quote, sheets, fullName, brief, engine]);
+
+  // GPT (clé OpenAI de l'utilisateur) : une seule requête, aucune tâche à suivre.
+  async function generateWithGpt() {
+    setBusy("start");
+    setError("");
+    try {
+      const res = await base44.functions.invoke("generateInfluencerGpt", {
+        brief: higgsfieldBrief(choices, brief),
+        count: sheets,
+      });
+      const data = res.data || {};
+      if (data.error) throw new Error(data.error);
+      if (!(data.images || []).length) throw new Error("Aucune image renvoyée par OpenAI.");
+      setImages(data.images);
+    } catch (e) {
+      setError(errorText(e));
+    } finally {
+      setBusy("");
+    }
+  }
 
   async function generate() {
+    if (engine === "gpt") return generateWithGpt();
     if (!quote) return;
     setBusy("start");
     setError("");
@@ -310,7 +334,9 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
                 <FunnelRecapStep
                   traits={referenceTraits(choices)}
                   credits={quote && quote.credits}
-                  ready={Boolean(quote)}
+                  engine={engine}
+                  onEngineChange={setEngine}
+                  ready={engine === "gpt" ? true : Boolean(quote)}
                   busy={busy}
                   brief={brief}
                   sheets={sheets}
