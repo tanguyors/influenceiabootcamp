@@ -117,3 +117,8 @@ export function optionImage(groupId, option) {
   const map = CHOICE_IMAGES[groupId];
   return (map && map[(option && option.id) || ""]) || "";
 }
+
+// Une étape n'est proposée que si au moins un de ses choix a un visuel.
+export function groupHasImages(group) {
+  return (group.options || []).some((o) => optionImage(group.id, o));
+}

@@ -7,6 +7,7 @@ import FunnelDetailsStep from "@/components/influencers/funnel/FunnelDetailsStep
 import FunnelRecapStep from "@/components/influencers/funnel/FunnelRecapStep";
 import FunnelResult from "@/components/influencers/funnel/FunnelResult";
 import { orderedGroups } from "@/lib/influencerFunnel";
+import { groupHasImages } from "@/lib/funnelAssets";
 import { traitSummary, traitsOf } from "@/lib/influencerTraits";
 
 const POLL_MS = 5000;
@@ -77,7 +78,10 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   }, [jobId]);
 
   const steps = useMemo(() => {
-    const traits = orderedGroups(groups || []).map((g) => ({ kind: "trait", group: g }));
+    // Les étapes dont aucun choix n'a de visuel sont retirées du parcours.
+    const traits = orderedGroups(groups || [])
+      .filter(groupHasImages)
+      .map((g) => ({ kind: "trait", group: g }));
     return [...traits, { kind: "details" }, { kind: "recap" }];
   }, [groups]);
 
