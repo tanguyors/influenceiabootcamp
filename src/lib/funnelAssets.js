@@ -1,9 +1,7 @@
-// Visuels des choix du funnel : toutes les cartes du funnel de référence
-// (cashfluencer.co/create/i/<hash>.webp), par étape et par genre — "base" étant le jeu
-// affiché par défaut côté site.
+// Visuels du funnel de référence (cashfluencer.co/create/i/<hash>.webp), par écran,
+// par jeu de visuels (féminin, masculin, non binaire, base) et par choix.
 const A = (hash) => `https://cashfluencer.co/create/i/${hash}.webp`;
 
-// Étape -> genre -> option -> hash.
 const SETS = {
   "s-gender": { base: { female: "31627b2c1ce5", male: "c15e17cfe6eb", nb: "6329de5b4d4b" } },
 
@@ -69,8 +67,8 @@ const SETS = {
 
   "q-fh": {
     base: { none: "76cb738531e4", stubble: "e49bfe330522", stache: "3e7f9c85e7d0", goatee: "66f7a76f1d25", short: "341b2c28947d", full: "c91cbf2794e7", handle: "43b347e36e40", chops: "c4187fa58c92", dali: "bcd00a9fd227" },
-    m: { clean: "e4b5f58d6d10", handlebar: "9d30d63c507e", seventies: "b40581069e26", walrus: "6a508095aad3", twirl: "16a8e3fbe178", bushy: "b8a1e1356d8c", goatee: "bdec809eee11", stubble: "dc731f6d54d0", full: "c58721f5a005" },
-    nb: { clean: "df54def37a7f", handlebar: "d5008f2ccc7c", seventies: "c1735d2603f7", walrus: "714db17489d2", twirl: "f0248d34c952", bushy: "0473735af9df", goatee: "4d9ab9c8a710", stubble: "c04c9469b607", full: "930f5fc6be31" },
+    m: { none: "e4b5f58d6d10", stubble: "dc731f6d54d0", stache: "6a508095aad3", goatee: "bdec809eee11", short: "b40581069e26", full: "c58721f5a005", handle: "9d30d63c507e", chops: "b8a1e1356d8c", dali: "16a8e3fbe178" },
+    nb: { none: "df54def37a7f", stubble: "c04c9469b607", stache: "714db17489d2", goatee: "4d9ab9c8a710", short: "c1735d2603f7", full: "930f5fc6be31", handle: "d5008f2ccc7c", chops: "0473735af9df", dali: "f0248d34c952" },
   },
 
   "q-df": {
@@ -102,243 +100,24 @@ const SETS = {
   },
 };
 
-// Étapes Higgsfield -> étapes du funnel de référence.
-const GROUPS = {
-  gender: { screen: "s-gender" },
-  ethnicity_origin_base: { screen: "s-2" },
-  age: { screen: "q-age" },
-  skin_tone: { screen: "s-3" },
-  body_type: { screen: "q-build" },
-  height: { screen: "q-height" },
-  proportions: { screen: "q-height" },
-  hair_colour: { screen: "s-4" },
-  hair: { screen: "s-4b" },
-  eye_color: { screen: "s-5" },
-  eye_shape: { screen: "q-eyes" },
-  freak_head: { screen: "q-head" },
-  freak_neck: { screen: "q-head" },
-  freak_face: { screen: "q-feat" },
-  facial_hair: { screen: "q-fh" },
-  distinctive: { screens: ["q-df", "q-feat"] },
-  accessory: { screen: "q-acc" },
-  aesthetic: { screens: ["s-7", "s-6"] },
-  niche: { screen: "s-8" },
-};
-
-// Option Higgsfield -> étape + clé du funnel de référence.
-const OVERRIDES = {
-  "gender:female": ["s-gender", "female"],
-  "gender:male": ["s-gender", "male"],
-  "gender:non_binary": ["s-gender", "nb"],
-  "gender:trans_woman": ["s-gender", "female"],
-  "gender:trans_man": ["s-gender", "male"],
-
-  "ethnicity_origin_base:african": ["s-2", "african"],
-  "ethnicity_origin_base:east_asian": ["s-2", "eastasian"],
-  "ethnicity_origin_base:european": ["s-2", "western"],
-  "ethnicity_origin_base:indian": ["s-2", "southasian"],
-  "ethnicity_origin_base:middle_eastern": ["s-2", "middleeast"],
-  "ethnicity_origin_base:latin_american": ["s-2", "latina"],
-
-  "age:adult": ["q-age", "adult"],
-  "age:mature": ["q-age", "mature"],
-  "age:senior": ["q-age", "senior"],
-
-  "skin_tone:st_porcelain": ["s-3", "porcelain"],
-  "skin_tone:st_fair": ["s-3", "ivory"],
-  "skin_tone:st_light": ["s-3", "sand"],
-  "skin_tone:st_olive": ["s-3", "honey"],
-  "skin_tone:st_tan": ["s-3", "caramel"],
-  "skin_tone:st_brown": ["s-3", "mocha"],
-  "skin_tone:st_deep": ["s-3", "espresso"],
-  "skin_tone:st_ebony": ["s-3", "ebony"],
-
-  "body_type:body_slim": ["q-build", "slim"],
-  "body_type:body_athletic": ["q-build", "athletic"],
-  "body_type:body_muscular": ["q-build", "muscular"],
-  "body_type:body_curvy": ["q-build", "curvy"],
-  "body_type:body_heavy": ["q-build", "dad"],
-  "body_type:body_ultra": ["q-build", "muscular"],
-
-  "height:h_average": ["q-height", "avg"],
-  "height:h_tall": ["q-height", "tall"],
-  "height:h_very_tall": ["q-height", "longlimbs"],
-
-  "proportions:pr_longlimbs": ["q-height", "longlimbs"],
-  "proportions:pr_shoulders": ["q-height", "shoulders"],
-  "proportions:pr_waist": ["q-height", "waist"],
-
-  "hair_colour:hc_black": ["s-4", "black"],
-  "hair_colour:hc_darkbrown": ["s-4", "dark-brown"],
-  "hair_colour:hc_chestnut": ["s-4", "chestnut"],
-  "hair_colour:hc_ginger": ["s-4", "ginger"],
-  "hair_colour:hc_red": ["s-4", "auburn"],
-  "hair_colour:hc_blonde": ["s-4", "blonde"],
-  "hair_colour:hc_platinum": ["s-4", "platinum"],
-  "hair_colour:hc_grey": ["s-4", "grey"],
-  "hair_colour:hc_white": ["s-4", "white"],
-  "hair_colour:hc_pink": ["s-4", "pink"],
-
-  "hair:hair_bald": ["s-4b", "bald"],
-  "hair:hair_buzz": ["s-4b", "bleach"],
-  "hair:hair_bowl": ["s-4b", "broccoli"],
-  "hair:hair_mullet": ["s-4b", "mullet"],
-  "hair:hair_afro": ["s-4b", "afro"],
-  "hair:hair_punk": ["s-4b", "mohawk"],
-  "hair:hair_long": ["s-4b", "butterfly"],
-  "hair:hair_short": ["s-4b", "edgar"],
-
-  "eye_color:eye_brown": ["s-5", "dark-brown"],
-  "eye_color:eye_amber": ["s-5", "amber"],
-  "eye_color:eye_hazel": ["s-5", "hazel"],
-  "eye_color:eye_green": ["s-5", "green"],
-  "eye_color:eye_blue": ["s-5", "ocean"],
-  "eye_color:eye_ice_blue": ["s-5", "ice-blue"],
-  "eye_color:eye_grey": ["s-5", "grey"],
-
-  "eye_shape:es_almond": ["q-eyes", "almond"],
-  "eye_shape:es_round": ["q-eyes", "round"],
-  "eye_shape:es_monolid": ["q-eyes", "monolid"],
-  "eye_shape:es_hooded": ["q-eyes", "hooded"],
-  "eye_shape:es_large": ["q-eyes", "huge"],
-  "eye_shape:es_upturned": ["q-eyes", "up"],
-
-  "freak_head:head_oval": ["q-head", "std"],
-  "freak_head:head_long": ["q-head", "long"],
-  "freak_head:head_round": ["q-head", "round"],
-  "freak_neck:neck_normal": ["q-head", "std"],
-
-  "freak_face:fn_freckles": ["q-feat", "freckles"],
-  "freak_face:fn_dimples": ["q-feat", "dimples"],
-  "freak_face:fn_eyebags": ["q-feat", "bags"],
-  "freak_face:fn_cheekbones": ["q-feat", "cheek"],
-  "freak_face:fn_fulllips": ["q-feat", "lips"],
-  "freak_face:fn_thickbrows": ["q-feat", "unibrow"],
-  "freak_face:fn_mole": ["q-feat", "mark"],
-
-  "facial_hair:fh_none": ["q-fh", "none"],
-  "facial_hair:fh_stubble": ["q-fh", "stubble"],
-  "facial_hair:fh_beard": ["q-fh", "full"],
-  "facial_hair:fh_goatee": ["q-fh", "goatee"],
-  "facial_hair:fh_moustache": ["q-fh", "stache"],
-  "facial_hair:fh_pencil": ["q-fh", "dali"],
-
-  "distinctive:df_hetero": ["q-df", "oddeyes"],
-  "distinctive:df_facetattoo": ["q-df", "facetat"],
-  "distinctive:df_septum": ["q-df", "piercing"],
-  "distinctive:df_slits": ["q-df", "brow"],
-  "distinctive:df_grill": ["q-df", "grill"],
-  "distinctive:df_scar": ["q-df", "scar"],
-  "distinctive:df_gems": ["q-df", "gems"],
-  "distinctive:df_elf": ["q-df", "elf"],
-
-  "accessory:acc_none": ["q-acc", "none"],
-  "accessory:acc_glasses": ["q-acc", "glasses"],
-  "accessory:acc_headphones": ["q-acc", "headphones"],
-  "accessory:acc_jewelry": ["q-acc", "jewelry"],
-  "accessory:acc_hat": ["q-acc", "hat"],
-
-  "aesthetic:retro": ["s-7", "disco"],
-  "aesthetic:sporty": ["s-7", "track"],
-  "aesthetic:suits": ["s-7", "lilac"],
-  "aesthetic:casual": ["s-7", "knit"],
-  "aesthetic:theatrical": ["s-6", "drama"],
-  "aesthetic:goth": ["s-6", "edgy"],
-};
-
-// Les options de barbe n'ont pas les mêmes clés selon le genre : on aligne sur le jeu par genre.
-const ALIAS = {
-  "q-fh": { none: "clean", stache: "walrus", short: "seventies", handle: "handlebar", chops: "bushy", dali: "twirl" },
-};
-
-const PREFIX = /^(hair_|hc_|body_|eye_|es_|fh_|fn_|df_|acc_|st_|pr_|h_|head_|neck_)/;
-
-// Libellés du funnel de référence, pour retrouver un visuel par son intitulé.
-const SITE_LABELS = {
-  "s-2": { western: "Western", latina: "Latina/o", eastasian: "East Asian", african: "African", southasian: "South Asian", middleeast: "Middle East" },
-  "q-age": { young: "Young", adult: "Adult", mature: "Mature", senior: "Senior" },
-  "s-3": { porcelain: "Porcelain", ivory: "Ivory", sand: "Sand", honey: "Honey", caramel: "Caramel", mocha: "Mocha", espresso: "Espresso", ebony: "Ebony" },
-  "q-build": { slim: "Slim", athletic: "Athletic", muscular: "Muscular", curvy: "Curvy", dad: "Dad bod", tall: "Tall" },
-  "q-height": { avg: "Average", tall: "Tall", longlimbs: "Long limbs", shoulders: "Big shoulders", waist: "Tiny waist", egg: "Egg body" },
-  "s-4": { black: "Jet black", "dark-brown": "Dark brown", chestnut: "Chestnut", auburn: "Auburn", ginger: "Ginger", strawberry: "Strawberry", blonde: "Blonde", platinum: "Platinum", grey: "Grey", white: "White", pink: "Pink", bald: "Bald" },
-  "s-4b": {
-    wolf: "Wolf cut", broccoli: "Broccoli perm", mullet: "Mullet", butterfly: "Butterfly cut", edgar: "Edgar cut",
-    afro: "Afro", mohawk: "Mohawk", bleach: "Bleached buzz", bald: "Bald",
-  },
-  "s-5": { "dark-brown": "Dark brown", amber: "Amber", hazel: "Hazel", green: "Green", ocean: "Ocean", "ice-blue": "Ice blue", grey: "Grey", violet: "Violet" },
-  "q-eyes": { almond: "Almond", round: "Round", monolid: "Monolid", hooded: "Hooded", huge: "Huge", up: "Cat eyes" },
-  "q-head": { std: "Normal", long: "Long face", neck: "Long neck", thick: "Big neck", egg: "Egg head", round: "Round" },
-  "q-feat": { freckles: "Freckles", dimples: "Dimples", bags: "Eye bags", cheek: "Cheekbones", lips: "Full lips", unibrow: "Unibrow", mark: "Beauty mark", gap: "Gap teeth", jug: "Big ears" },
-  "q-fh": { none: "Clean-shaven", stubble: "Stubble", stache: "Moustache", goatee: "Goatee", short: "Short beard", full: "Full beard", handle: "Handlebar", chops: "Mutton chops", dali: "Dalí", clean: "Clean-shaven" },
-  "q-df": { oddeyes: "Odd eyes", facetat: "Face tattoo", piercing: "Piercing", brow: "Brow slits", grill: "Gold grill", freckles: "Freckle storm", gems: "Face gems", elf: "Elf ears", scar: "Brow scar" },
-  "q-acc": { none: "None", glasses: "Glasses", headphones: "Headphones", jewelry: "Gold jewelry", hat: "Bucket hat", monocle: "Monocle", pearls: "Pearls", bowtie: "Bow tie", feather: "Feather hat" },
-  "s-6": { luxury: "Luxury", funny: "Funny", inspire: "Inspiring", edgy: "Dark & Edgy", wholesome: "Wholesome", savage: "Savage Boss", chill: "Chill", romantic: "Romantic", drama: "Drama" },
-  "s-7": { tweed: "Old money", djellaba: "Djellaba", knit: "Grandpa knit", disco: "70s Disco", dandy: "Dandy", riviera: "Riviera chic", robe: "Silk robe", lilac: "Lilac suit", safari: "Safari", fur: "Gold & fur", tunic: "Red tunic", track: "Velvet tracksuit" },
-  "s-8": { dance: "Dance", party: "Party", sing: "Singing", romance: "Romance", comedy: "Comedy", fashion: "Fashion", fitness: "Fitness", finance: "Money", food: "Food" },
-};
-
-// Genre Higgsfield -> jeu du funnel de référence.
-const GENDER_KEY = { female: "f", trans_woman: "f", male: "m", trans_man: "m", non_binary: "nb" };
+// Genre choisi -> jeu de visuels du site.
+const GENDER_KEY = { female: "f", trans_woman: "f", male: "m", trans_man: "m", nb: "nb", non_binary: "nb" };
 
 // Ordre de repli : on ne montre jamais les visuels de l'autre genre.
 const GENDER_ORDER = {
   f: ["f", "base", "nb"],
   m: ["m", "base", "nb"],
   nb: ["nb", "base", "f"],
-  base: ["f", "base", "nb"],
+  base: ["base", "f", "nb"],
 };
 
-function labelKey(text) {
-  return String(text || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]/g, "");
-}
-
-// Clé du funnel de référence pour une option : identifiant, alias, puis intitulé.
-function siteKey(screen, rawKey, label) {
+// Photo d'un choix du funnel de référence, pour le genre choisi.
+export function refImage(screen, key, gender) {
+  if (!screen || !key) return "";
   const sets = SETS[screen] || {};
-  const known = (key) => Object.keys(sets).some((g) => sets[g] && sets[g][key]);
-  if (known(rawKey)) return rawKey;
-  const alias = (ALIAS[screen] || {})[rawKey];
-  if (alias) return alias;
-  const wanted = labelKey(label);
-  if (!wanted) return "";
-  const labels = SITE_LABELS[screen] || {};
-  for (const key of Object.keys(labels)) {
-    if (labelKey(labels[key]) === wanted) return key;
-  }
-  return "";
-}
-
-function hashFor(screen, key, gender) {
-  if (!key) return "";
-  const sets = SETS[screen] || {};
-  const alias = (ALIAS[screen] || {})[key];
   for (const g of GENDER_ORDER[GENDER_KEY[gender] || "base"]) {
     const set = sets[g];
-    if (!set) continue;
-    if (set[key]) return set[key];
-    if (alias && set[alias]) return set[alias];
-  }
-  return "";
-}
-
-// Photo d'un choix pour le genre choisi, ou chaîne vide si le funnel de référence n'a pas
-// d'équivalent (ces options ne sont alors pas proposées).
-export function optionImage(groupId, option, gender) {
-  const group = GROUPS[groupId];
-  if (!group) return "";
-  const id = (option && option.id) || "";
-  const label = (option && option.label) || "";
-
-  const override = OVERRIDES[`${groupId}:${id}`];
-  if (override) {
-    const hash = hashFor(override[0], override[1], gender);
-    return hash ? A(hash) : "";
-  }
-
-  const bare = id.replace(PREFIX, "");
-  for (const screen of group.screens || [group.screen]) {
-    const hash = hashFor(screen, siteKey(screen, bare, label), gender);
-    if (hash) return A(hash);
+    if (set && set[key]) return A(set[key]);
   }
   return "";
 }
