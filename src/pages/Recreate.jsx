@@ -21,6 +21,7 @@ export default function Recreate() {
   const [influencers, setInfluencers] = useState([]);
   const [activeId, setActiveId] = useState(() => localStorage.getItem("influenceia.activeInfluencer") || "");
   const [launching, setLaunching] = useState(false);
+  const [launchLabel, setLaunchLabel] = useState("");
   const [tools, setTools] = useState(null);
   const [connected, setConnected] = useState(null);
   const [credits, setCredits] = useState(null);
@@ -60,6 +61,8 @@ export default function Recreate() {
   const selectedInfluencer = influencers.find((i) => i.id === activeId);
   const hasReferenceTransfer = tools?.some((t) => /reference|motion|transfer|control|character/i.test(t.name + " " + (t.description || "")));
   const hasSourceVideo = Boolean(video?.video_file_uri);
+  const motionReference = selectedInfluencer?.motion_reference_source === selectedInfluencer?.reference_image
+    ? selectedInfluencer?.motion_reference_image : "";
 
   async function launch() {
     if (!selectedInfluencer) {
@@ -72,6 +75,18 @@ export default function Recreate() {
     }
     setLaunching(true);
     try {
+      if (hasSourceVideo) {
+        setLaunchLabel("Préparation de la photo…");
+        const { data } = await base44.functions.invoke("generateVideo", {
+          action: "prepare_reference",
+          influencer_id: selectedInfluencer.id,
+        });
+        if (data.error) throw new Error(data.error);
+        setInfluencers((items) => items.map((item) => item.id === selectedInfluencer.id
+          ? { ...item, motion_reference_image: data.reference_image, motion_reference_source: data.source }
+          : item));
+      }
+      setLaunchLabel("Lancement…");
       await base44.functions.invoke("generateVideo", {
         influencer_id: selectedInfluencer.id,
         viral_video_id: video.id,
@@ -140,7 +155,7 @@ export default function Recreate() {
             <div className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">Mon influenceur</div>
             <div className="relative aspect-[9/16] bg-secondary">
               {selectedInfluencer?.reference_image ? (
-                <SignedImage src={selectedInfluencer.reference_image} className="h-full w-full" />
+                <SignedImage src={(hasSourceVideo && motionReference) || selectedInfluencer.reference_image} fittingType="fit" className="h-full w-full" />
               ) : (
                 <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground/50" /></div>
               )}
@@ -253,13 +268,14 @@ export default function Recreate() {
               <span>Résolution : <strong className="text-foreground">{form.resolution}</strong></span>
             </div>
             <p className="mt-2 text-[11px] text-muted-foreground/80">Le 1080p natif est privilégié ; une mise à l'échelle sera signalée si le modèle ne le permet pas. La musique originale n'est pas réutilisée automatiquement.</p>
+            {hasSourceVideo && <p className="mt-2 text-[11px] text-muted-foreground">Le cadrage de la photo est vérifié avant l'envoi. Si nécessaire, OpenAI prépare une photo plein pied, conservée pour les prochains transferts.</p>}
             <Button
               onClick={launch}
               disabled={launching || !selectedInfluencer || connected === false}
               className="mt-4 w-full font-semibold"
             >
               {launching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-              {launching ? "Lancement…" : "Lancer la génération"}
+              {launching ? launchLabel || "Lancement…" : "Lancer la génération"}
             </Button>
           </div>
         </div>

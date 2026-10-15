@@ -1,6 +1,7 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { getAccessToken, callTool } from "../../shared/higgsfield.ts";
 import { resultText, collectStrings } from "../../shared/mcp.ts";
+import { prepareMotionReference } from "../../shared/motionReference.ts";
 
 const VIDEO_RE = /https?:\/\/[^\s"'<>]+\.(mp4|mov|webm)(\?[^\s"'<>]*)?/i;
 
@@ -57,7 +58,9 @@ function readJob(res) {
   const blocked = MODERATION_STATUSES.includes(String(status || "").toLowerCase());
   if (blocked) error = moderationMessage(status);
 
-  const mapped = blocked ? "failed" : mapStatus(status);
+  const badFraming = /upper[\s_-]*body[\s_-]*not[\s_-]*detected/i.test(strings.join(" "));
+  if (badFraming) error = "Higgsfield ne détecte pas le haut du corps : utilisez une photo individuelle montrant la tête, les épaules, le torse et les bras, et non un portrait serré ou une planche.";
+  const mapped = blocked || badFraming ? "failed" : mapStatus(status);
   // Une URL n'est retenue que si la tâche est terminée : tant qu'elle tourne, les seules
   // vidéos présentes sont celles des médias d'entrée.
   return { status: mapped, videoUrl: mapped === "ready" ? found : "", jobId, error, blocked };
@@ -89,14 +92,10 @@ function referencePhotos(influencer) {
   return Array.from(new Set(list)).filter(Boolean).slice(0, 8);
 }
 
-// Higgsfield ne joint aucun motif à une tâche interrompue. En pratique, Kling 3.0 motion
-// control abandonne les vidéos longues en 9:16 : durée × résolution dépasse son budget.
-function interruptionMessage(creation) {
-  const duration = Number(creation.duration) || 0;
-  if (duration > 10) {
-    return `Higgsfield a interrompu cette génération sans en donner le motif. Une vidéo de ${duration} s dépasse probablement ce que le modèle accepte en ${creation.aspect_ratio || "9:16"} : essayez une vidéo de référence de 10 s maximum.`;
-  }
-  return "Higgsfield a interrompu cette génération sans en donner le motif : relancez-la.";
+// Ne pas attribuer sans preuve un refus à la durée : le MCP peut omettre le motif
+// que le site Higgsfield affiche, notamment une référence au cadrage trop serré.
+function interruptionMessage() {
+  return "Higgsfield a interrompu cette génération sans transmettre le motif à l'application. Consultez le détail de l'échec sur Higgsfield avant de relancer.";
 }
 
 function modelRoles(model) {
@@ -160,7 +159,8 @@ async function relaunchWithMotionControl(base44, token, creation) {
         return signed_url;
       } catch { return ""; }
     };
-    const imageUrl = await sign(photos[0]);
+    const motionPhoto = await prepareMotionReference(base44, influencer);
+    const imageUrl = await sign(motionPhoto);
     const videoUrl = await sign(viralVideo.video_file_uri);
     if (!imageUrl || !videoUrl) return false;
 
@@ -267,15 +267,25 @@ export default async function(req) {
     const influencer = (infPage.items || [])[0];
     if (!influencer) return Response.json({ error: "Influenceur introuvable" }, { status: 404 });
 
-    const photoUris = referencePhotos(influencer);
+    let photoUris = referencePhotos(influencer);
     if (!photoUris.length) {
       return Response.json({ error: "Cet influenceur n'a aucune photo de référence." }, { status: 400 });
+    }
+    if (body.action === "prepare_reference") {
+      const uri = await prepareMotionReference(base44, influencer);
+      return Response.json({ reference_image: uri, source: photoUris[0] });
     }
 
     let viralVideo = null;
     if (viral_video_id) {
       const vp = await base44.entities.ViralVideo.filter({ id: viral_video_id }, { limit: 1 });
       viralVideo = (vp.items || [])[0];
+    }
+
+    // Vérifier/préparer la photo AVANT de créer une tâche ou d'importer un média payant.
+    // Jamais de portrait serré ni de planche comme image de transfert de mouvement.
+    if (viralVideo?.video_file_uri) {
+      photoUris = [await prepareMotionReference(base44, influencer)];
     }
 
     // Durée : toujours celle de la vidéo d'origine (jamais un choix manuel).

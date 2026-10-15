@@ -20,6 +20,14 @@
         "type": "string"
       },
       "description": "file_uris de toutes les photos de r\u00e9f\u00e9rence du personnage (stockage priv\u00e9)"
+    },
+    "motion_reference_image": {
+      "type": "string",
+      "description": "file_uri de la photo individuelle au cadrage v\u00e9rifi\u00e9 pour le transfert de mouvement (stockage priv\u00e9)"
+    },
+    "motion_reference_source": {
+      "type": "string",
+      "description": "Photo principale ayant servi \u00e0 pr\u00e9parer la r\u00e9f\u00e9rence de mouvement, pour invalider le cache si le personnage change"
     }
   },
   "required": [
