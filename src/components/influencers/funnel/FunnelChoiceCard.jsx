@@ -2,8 +2,8 @@ import { Check } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { optionVisual } from "@/lib/influencerFunnel";
 
-export default function FunnelChoiceCard({ option, groupId, selected, onSelect }) {
-  const { emoji, swatch, image } = optionVisual(groupId, option);
+export default function FunnelChoiceCard({ option, groupId, gender, selected, onSelect }) {
+  const { emoji, swatch, image } = optionVisual(groupId, option, gender);
 
   if (image) {
     return (

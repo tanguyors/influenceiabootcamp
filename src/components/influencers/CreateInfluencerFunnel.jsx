@@ -6,8 +6,7 @@ import FunnelTraitStep from "@/components/influencers/funnel/FunnelTraitStep";
 import FunnelDetailsStep from "@/components/influencers/funnel/FunnelDetailsStep";
 import FunnelRecapStep from "@/components/influencers/funnel/FunnelRecapStep";
 import FunnelResult from "@/components/influencers/funnel/FunnelResult";
-import { orderedGroups } from "@/lib/influencerFunnel";
-import { optionImage } from "@/lib/funnelAssets";
+import { funnelGroups } from "@/lib/influencerFunnel";
 import { traitSummary, traitsOf } from "@/lib/influencerTraits";
 
 const POLL_MS = 5000;
@@ -83,14 +82,14 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     return () => { alive = false; clearTimeout(timer); };
   }, [jobId]);
 
+  const gender = choices.gender;
+
   const steps = useMemo(() => {
-    // Seuls les choix illustrés sont proposés ; une étape sans visuel disparaît du parcours.
-    const traits = orderedGroups(groups || [])
-      .map((g) => ({ ...g, options: (g.options || []).filter((o) => optionImage(g.id, o)) }))
-      .filter((g) => g.options.length)
-      .map((g) => ({ kind: "trait", group: g }));
+    // Toutes les étapes renseignées par Higgsfield sont proposées ; celles dont les visuels ne
+    // correspondent pas au genre choisi (barbe pour une femme, couettes pour un homme) sont écartées.
+    const traits = funnelGroups(groups || [], gender).map((g) => ({ kind: "trait", group: g }));
     return [...traits, { kind: "details" }, { kind: "recap" }];
-  }, [groups]);
+  }, [groups, gender]);
 
   const step = steps[index] || null;
   const running = busy === "start" || busy === "poll" || Boolean(jobId);
@@ -237,6 +236,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
           ) : step.kind === "trait" ? (
             <FunnelTraitStep
               group={step.group}
+              gender={gender}
               selected={choices[step.group.id]}
               onSelect={(optionId) => selectOption(step.group.id, optionId)}
               onSkip={() => setIndex((i) => Math.min(i + 1, steps.length - 1))}

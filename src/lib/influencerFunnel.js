@@ -2,11 +2,32 @@
 import { groupLabel } from "@/lib/influencerTraits";
 import { optionImage } from "@/lib/funnelAssets";
 
-// Du plus identitaire au plus accessoire (comme les funnels de référence).
+// Même ordre que le funnel de référence : du plus identitaire au plus accessoire.
 const ORDER = [
   "gender", "ethnicity_origin_base", "age", "skin_tone", "body_type", "height", "proportions",
-  "hair", "hair_colour", "aesthetic", "eye_shape", "eye_color", "facial_hair", "distinctive", "accessory",
+  "hair_colour", "hair", "eye_color", "eye_shape", "head", "face_features", "features",
+  "facial_hair", "distinctive", "accessory", "aesthetic", "outfit", "niche",
 ];
+
+// Certaines étapes n'ont de visuels que pour un genre donné : on ne les propose pas aux autres.
+const FEMALE_HIDDEN_GROUPS = ["facial_hair"];
+const MALE_ONLY = /(dad.?bod|man.?bun|beard|barbe|moustache|mustache|stubble|goatee|handlebar|mutton.?chops|dali|walrus|bushy|pencil)/i;
+const FEMALE_ONLY = /(pigtail|couettes)/i;
+
+export function isFemaleGender(gender) {
+  return gender === "female" || gender === "trans_woman";
+}
+
+export function isMaleGender(gender) {
+  return gender === "male" || gender === "trans_man";
+}
+
+function optionAllowed(option, gender) {
+  const key = `${(option && option.id) || ""} ${(option && option.label) || ""}`;
+  if (isFemaleGender(gender) && MALE_ONLY.test(key)) return false;
+  if (isMaleGender(gender) && FEMALE_ONLY.test(key)) return false;
+  return true;
+}
 
 export function orderedGroups(groups) {
   const rank = (g) => {
@@ -14,6 +35,15 @@ export function orderedGroups(groups) {
     return i < 0 ? ORDER.length : i;
   };
   return [...(groups || [])].sort((a, b) => rank(a) - rank(b));
+}
+
+// Étapes réellement proposées : toutes les étapes renseignées par Higgsfield, celles dont les
+// visuels ne correspondent pas au genre choisi étant écartées.
+export function funnelGroups(groups, gender) {
+  return orderedGroups(groups)
+    .filter((g) => !(FEMALE_HIDDEN_GROUPS.includes(g.id) && isFemaleGender(gender)))
+    .map((g) => ({ ...g, options: (g.options || []).filter((o) => optionAllowed(o, gender)) }))
+    .filter((g) => g.options.length);
 }
 
 const HINTS = {
@@ -24,14 +54,20 @@ const HINTS = {
   body_type: "Sa morphologie",
   height: "Sa taille",
   proportions: "Ses proportions",
-  hair: "Sa coiffure",
   hair_colour: "Sa couleur de cheveux",
-  aesthetic: "Son style",
-  eye_shape: "La forme de ses yeux",
+  hair: "Sa coupe de cheveux",
   eye_color: "La couleur de ses yeux",
-  facial_hair: "Barbe ou pas ?",
+  eye_shape: "La forme de ses yeux",
+  head: "La forme de son visage",
+  face_features: "Ses traits",
+  features: "Ses traits",
+  facial_hair: "Sa pilosité faciale",
   distinctive: "Ses signes particuliers",
   accessory: "Ses accessoires",
+  aesthetic: "Son style",
+  vibe: "Son tempérament",
+  outfit: "Sa tenue signature",
+  niche: "Son univers de contenu",
 };
 
 export function stepHint(group) {
@@ -40,35 +76,48 @@ export function stepHint(group) {
 
 const FALLBACK = {
   gender: "🧑", ethnicity_origin_base: "🌍", age: "🎂", skin_tone: "🎨", body_type: "🧍", height: "📏",
-  proportions: "🧍", hair: "💇", hair_colour: "🎨", aesthetic: "✨", eye_shape: "👁️", eye_color: "👁️",
-  facial_hair: "🧔", distinctive: "✦", accessory: "🎒",
+  proportions: "🧍", hair_colour: "🎨", hair: "💇", eye_color: "👁️", eye_shape: "👁️", head: "🙂",
+  face_features: "✨", features: "✨", facial_hair: "🧔", distinctive: "✦", accessory: "🎒",
+  aesthetic: "✨", vibe: "🎭", outfit: "👕", niche: "🎬",
 };
 
 const ICONS = {
   gender: [[/female|femme/, "👩"], [/male|homme/, "👨"], [/non|fluid/, "🧑"]],
   ethnicity_origin_base: [
-    [/east.?asian|asie de l/, "🧑🏻"], [/south.?asian|indo/, "🧑🏾"], [/african|afrique|noir/, "🧑🏿"],
-    [/latin|hispan/, "🧑🏽"], [/middle|arab|moyen.?orient/, "🧑🏽"], [/western|occident|caucas/, "🧑🏼"],
+    [/east.?asian|asie de l/, "🧑🏻"], [/south.?asian|indo|indien/, "🧑🏾"], [/african|afrique|noir/, "🧑🏿"],
+    [/latin|hispan/, "🧑🏽"], [/middle|arab|moyen.?orient/, "🧑🏽"], [/western|occident|caucas|europ/, "🧑🏼"],
   ],
   age: [[/teen|ado/, "🧒"], [/young|jeune/, "🧑"], [/adult|adulte/, "🧑‍🦱"], [/mature|mûr/, "🧑‍🦳"], [/senior|âgé|vieux/, "🧓"]],
   body_type: [
-    [/slim|mince|thin|fin/, "🧍"], [/athletic|sport/, "🏃"], [/muscular|muscl/, "💪"],
-    [/curvy|rond|round/, "🍐"], [/dad|papa/, "🧔"], [/lanky|élanc|haut/, "🦒"], [/plus|large/, "🧸"],
+    [/slim|mince|thin|fin/, "🧍"], [/athletic|sport/, "🏃"], [/muscular|muscl|ultra/, "💪"],
+    [/curvy|rond|round/, "🍐"], [/dad|papa|heavy|lourd/, "🧔"], [/lanky|élanc|haut/, "🦒"], [/plus|large/, "🧸"],
   ],
   height: [[/very.?tall|très grand/, "⬆️"], [/tall|grand/, "↗️"], [/average|moyen/, "↔️"], [/very.?short|très petit/, "⬇️"], [/short|petit/, "↘️"]],
   proportions: [[/shoulder|épaule/, "🏋️"], [/waist|taille/, "⏳"], [/limb|membre|long/, "🦵"], [/egg|œuf|ovo/, "🥚"], [/average|moyen/, "🧍"]],
-  hair: [[/bald|chauve|rasé/, "👨‍🦲"], [/afro/, "🦱"], [/curly|boucl|ondul/, "🦱"], [/long/, "💇‍♀️"], [/short|court/, "💇‍♂️"], [/mohawk|crête|buzz/, "⚡"]],
-  aesthetic: [
-    [/lux|rich|chic/, "💎"], [/street|urban/, "🧢"], [/retro|vintage/, "📼"], [/sport|gym/, "🏋️"],
-    [/minimal|sobre|clean/, "◽"], [/boho|nature/, "🕊️"], [/y2k|pop/, "💿"], [/edgy|rock|dark/, "🖤"],
+  hair: [
+    [/wolf/, "🐺"], [/broccoli/, "🥦"], [/edgar/, "✂️"], [/butterfly/, "🦋"], [/jellyfish/, "🪼"],
+    [/karen/, "💇‍♀️"], [/bleach|buzz|crête|mohawk/, "⚡"], [/pompadour|slick|french/, "💈"], [/cornrows|braids|tresses/, "🪢"],
+    [/dreads|locs/, "🌿"], [/curls|boucl|ondul/, "🦱"], [/bun|chignon/, "🍡"], [/bald|chauve|rasé/, "👨‍🦲"],
+    [/afro/, "🦱"], [/long/, "💇‍♀️"], [/short|court/, "💇‍♂️"], [/bowl/, "🥣"], [/mullet/, "🎸"],
   ],
-  eye_shape: [[/almond|amande/, "👁️"], [/round|rond/, "⚪"], [/monolid|brid/, "➖"], [/hooded|paupière/, "🥺"], [/huge|grand/, "😳"], [/cat|félin/, "😼"]],
-  facial_hair: [[/none|aucune|rasé|no/, "🧑"], [/beard|barbe/, "🧔"], [/stubble|trois/, "🧔‍♂️"], [/moustache|moust/, "👨"], [/goatee|bouc/, "🐐"]],
-  distinctive: [[/ear|oreille/, "👂"], [/mole|grain/, "🔘"], [/freckle|tache/, "✨"], [/scar|cicatrice/, "⚡"], [/dimple|fossette/, "🙂"], [/teeth|dent/, "😁"]],
+  hair_colour: [[/black|noir/, "🖤"], [/brown|brun/, "🤎"], [/blonde|blond/, "💛"], [/ginger|roux|auburn/, "🧡"], [/grey|gray|gris|white|blanc|platinum|platin/, "🤍"], [/pink|rose|red|rouge/, "💗"]],
+  head: [[/long face|visage long/, "📐"], [/neck|cou/, "🦒"], [/egg|œuf/, "🥚"], [/round|rond/, "⚪"], [/thick|épais/, "🧱"], [/normal|std/, "🙂"]],
+  face_features: [[/freckle|tache/, "✨"], [/dimple|fossette/, "🙂"], [/bag|cernes/, "😴"], [/cheek|pommette/, "😊"], [/lips|lèvre/, "👄"], [/unibrow|sourcil/, "🤨"], [/mark|grain/, "🔘"], [/gap|dent/, "😁"], [/jug|oreille/, "👂"]],
+  features: [[/freckle|tache/, "✨"], [/dimple|fossette/, "🙂"], [/lips|lèvre/, "👄"], [/mark|grain/, "🔘"]],
+  eye_shape: [[/almond|amande/, "👁️"], [/round|rond/, "⚪"], [/monolid|brid/, "➖"], [/hooded|paupière/, "🥺"], [/huge|large|grand/, "😳"], [/cat|up|félin/, "😼"]],
+  facial_hair: [[/none|aucune|rasé|clean|no/, "🧑"], [/beard|barbe/, "🧔"], [/stubble|trois/, "🧔‍♂️"], [/moustache|moust/, "👨"], [/goatee|bouc/, "🐐"]],
+  distinctive: [[/ear|oreille|elf/, "👂"], [/mole|grain/, "🔘"], [/freckle|tache/, "✨"], [/scar|cicatrice/, "⚡"], [/dimple|fossette/, "🙂"], [/teeth|dent|grill/, "😁"], [/piercing/, "💎"], [/tattoo|tatou/, "🖋️"], [/eye|regard/, "👁️"], [/brow|sourcil/, "🤨"], [/gems|gem/, "💠"]],
   accessory: [
-    [/bag|sac/, "👜"], [/headphone|casque/, "🎧"], [/glass|lunette|sunglass/, "👓"], [/cap|casquette/, "🧢"],
-    [/hat|chapeau|beanie|bonnet/, "👒"], [/watch|montre/, "⌚"], [/chain|chaîne|collier/, "📿"], [/jewel|boucle|bijou/, "💎"],
+    [/bag|sac/, "👜"], [/headphone|casque/, "🎧"], [/glass|lunette|sunglass|monocle/, "👓"], [/cap|casquette/, "🧢"],
+    [/hat|chapeau|beanie|bonnet|feather/, "👒"], [/watch|montre/, "⌚"], [/chain|chaîne|collier|jewel|pearl/, "📿"], [/bowtie|nœud/, "🎀"], [/none|aucun/, "🚫"],
   ],
+  aesthetic: [
+    [/lux|luxury|rich|chic/, "💎"], [/street|urban/, "🧢"], [/retro|vintage|disco/, "📼"], [/sport|gym|track/, "🏋️"],
+    [/minimal|sobre|clean|knit/, "◽"], [/boho|nature/, "🕊️"], [/y2k|pop/, "💿"], [/edgy|rock|dark|goth/, "🖤"],
+  ],
+  vibe: [[/lux/, "💎"], [/funny|drole|drôle/, "😂"], [/inspir/, "🌟"], [/edgy|dark/, "🖤"], [/wholesome|douceur/, "🕊️"], [/savage|boss/, "🔥"], [/chill/, "😎"], [/romantic/, "🌹"], [/drama/, "🎭"]],
+  outfit: [[/money|tweed/, "🧥"], [/knit|grandpa/, "🧶"], [/disco/, "🕺"], [/dandy/, "🎩"], [/riviera/, "🕶️"], [/robe/, "🥻"], [/suit|lilac|tailleur/, "👔"], [/safari/, "🧭"], [/fur|gold/, "🦊"], [/tunic|tunique/, "👘"], [/tracksuit|track|velour/, "👟"], [/djellaba/, "🧵"]],
+  niche: [[/dance|danse/, "💃"], [/party|fête/, "🪩"], [/sing|chant/, "🎤"], [/romance/, "💘"], [/comedy|humour/, "😂"], [/fashion|mode/, "👗"], [/fitness|sport/, "🏋️"], [/finance|money|argent/, "💰"], [/food|cuisine/, "🍽️"]],
 };
 
 const SWATCHES = {
@@ -92,12 +141,12 @@ const SWATCHES = {
   ],
 };
 
-// Visuel d'un choix : photo du site de référence, pastille de couleur pour les teintes, emoji sinon.
-export function optionVisual(groupId, option) {
-  const image = optionImage(groupId, option);
+// Visuel d'un choix : photo du site pour le genre choisi, pastille de couleur, emoji sinon.
+export function optionVisual(groupId, option, gender) {
+  const image = optionImage(groupId, option, gender);
   if (image) return { image };
 
-  const key = `${option.id || ""} ${option.label || ""}`.toLowerCase();
+  const key = `${(option && option.id) || ""} ${(option && option.label) || ""}`.toLowerCase();
   const swatch = (SWATCHES[groupId] || []).find(([re]) => re.test(key));
   if (swatch) return { swatch: swatch[1] };
   const icon = (ICONS[groupId] || []).find(([re]) => re.test(key));

@@ -2,7 +2,7 @@ import FunnelChoiceCard from "@/components/influencers/funnel/FunnelChoiceCard";
 import { stepHint } from "@/lib/influencerFunnel";
 import { groupLabel } from "@/lib/influencerTraits";
 
-export default function FunnelTraitStep({ group, selected, onSelect, onSkip }) {
+export default function FunnelTraitStep({ group, gender, selected, onSelect, onSkip }) {
   return (
     <div>
       <p className="text-[11px] uppercase tracking-[0.2em] text-primary">{groupLabel(group)}</p>
@@ -14,6 +14,7 @@ export default function FunnelTraitStep({ group, selected, onSelect, onSkip }) {
             key={o.id}
             option={o}
             groupId={group.id}
+            gender={gender}
             selected={selected === o.id}
             onSelect={() => onSelect(o.id)}
           />
