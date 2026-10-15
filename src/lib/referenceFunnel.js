@@ -1,6 +1,8 @@
 // Funnel de création aligné sur le funnel de référence (cashfluencer.co/create) :
 // 26 étapes, mêmes sections, mêmes intitulés, mêmes choix et mêmes visuels (en français).
 // Chaque choix est relié à une option Higgsfield quand elle existe (champ `hf`).
+import { GENDER_KEY } from "@/lib/funnelAssets";
+
 // Cartes illustrées d'une étape (visuels du funnel de référence).
 const cards = (screen, rows) =>
   rows.map(([id, label, hf, sub]) => ({ id, label, sub: sub || "", image: [screen, id], hf: hf || null }));
@@ -457,7 +459,9 @@ export const NAME_IDEAS = {
 };
 
 export function nameIdeas(gender, count = 4) {
-  const pool = NAME_IDEAS[gender] || NAME_IDEAS.f;
+  // Le genre arrive sous forme d'identifiant de choix (male, female, nb…).
+  const key = GENDER_KEY[gender] || gender;
+  const pool = NAME_IDEAS[key] || NAME_IDEAS.nb;
   const out = [];
   for (let i = 0; i < count; i += 1) {
     const first = pool[0][Math.floor(Math.random() * pool[0].length)];

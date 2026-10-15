@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import FunnelNextButton from "@/components/influencers/funnel/FunnelNextButton";
@@ -9,6 +9,11 @@ const FIELD = "h-[52px] border-[1.5px] border-border bg-secondary text-center fo
 export default function FunnelNameStep({ gender, value, onChange, onNext }) {
   const [ideas, setIdeas] = useState(() => nameIdeas(gender));
   const ready = String(value.first || "").trim().length > 1;
+
+  // Les idées de prénom suivent le genre choisi, y compris après un retour en arrière.
+  useEffect(() => {
+    setIdeas(nameIdeas(gender));
+  }, [gender]);
 
   return (
     <div className="mx-auto w-full max-w-[420px]">

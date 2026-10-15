@@ -101,7 +101,7 @@ const SETS = {
 };
 
 // Genre choisi -> jeu de visuels du site.
-const GENDER_KEY = { female: "f", trans_woman: "f", male: "m", trans_man: "m", nb: "nb", non_binary: "nb" };
+export const GENDER_KEY = { female: "f", trans_woman: "f", male: "m", trans_man: "m", nb: "nb", non_binary: "nb" };
 
 // Ordre de repli : on ne montre jamais les visuels de l'autre genre.
 const GENDER_ORDER = {
