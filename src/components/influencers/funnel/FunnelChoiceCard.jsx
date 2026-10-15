@@ -3,7 +3,7 @@ import { Image } from "@/components/ui/image";
 import { optionVisual } from "@/lib/influencerFunnel";
 
 export default function FunnelChoiceCard({ option, groupId, gender, selected, onSelect }) {
-  const { emoji, swatch, image } = optionVisual(groupId, option, gender);
+  const { image } = optionVisual(groupId, option, gender);
 
   if (image) {
     return (
@@ -39,13 +39,9 @@ export default function FunnelChoiceCard({ option, groupId, gender, selected, on
           : "border-border bg-card/50 text-foreground hover:border-muted-foreground/40 hover:bg-secondary"
       }`}
     >
-      {swatch ? (
-        <span className="h-14 w-14 rounded-full ring-1 ring-inset ring-border" style={{ backgroundColor: swatch }} />
-      ) : (
-        <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-3xl leading-none">
-          {emoji}
-        </span>
-      )}
+      <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-lg font-semibold text-muted-foreground">
+        {option.label.slice(0, 1).toUpperCase()}
+      </span>
       <span className="text-sm font-medium leading-snug">{option.label}</span>
       {selected && <Check className="absolute right-3 top-3 h-4 w-4 text-primary" />}
     </button>

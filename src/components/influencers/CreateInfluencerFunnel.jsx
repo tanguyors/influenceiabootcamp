@@ -85,8 +85,8 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   const gender = choices.gender;
 
   const steps = useMemo(() => {
-    // Toutes les étapes renseignées par Higgsfield sont proposées ; celles dont les visuels ne
-    // correspondent pas au genre choisi (barbe pour une femme, couettes pour un homme) sont écartées.
+    // Chaque étape propose exactement les choix du funnel de référence, avec les visuels du genre
+    // choisi ; un choix sans visuel correspondant n'est pas proposé.
     const traits = funnelGroups(groups || [], gender).map((g) => ({ kind: "trait", group: g }));
     return [...traits, { kind: "details" }, { kind: "recap" }];
   }, [groups, gender]);
