@@ -12,6 +12,7 @@ import FunnelRecapStep from "@/components/influencers/funnel/FunnelRecapStep";
 import FunnelResult from "@/components/influencers/funnel/FunnelResult";
 import {
   funnelSteps,
+  higgsfieldBrief,
   higgsfieldSelection,
   referenceNotes,
   referenceTraits,
@@ -124,7 +125,9 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
       const res = await base44.functions.invoke("generateInfluencer", {
         action: "quote",
         tier: "normal",
-        brief: brief.trim(),
+        // Tous les choix partent : en identifiant de trait quand Higgsfield en a un,
+        // sinon en texte dans le brief.
+        brief: higgsfieldBrief(choices, brief),
         batch_size: sheets,
         selection,
         // Tous les choix sont transmis : Higgsfield complète seulement ce qui n'a pas d'équivalent.
@@ -132,7 +135,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
       });
       const data = res.data || {};
       if (data.error) throw new Error(data.error);
-      setQuote({ params: data.params, credits: Number(data.credits) || 0, sheets });
+      setQuote({ params: data.params, credits: Number(data.credits) || 0, sheets, brief: brief.trim() });
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -140,12 +143,14 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     }
   }
 
-  // Le devis est demandé dès l'arrivée sur la dernière étape (et recalculé si le nombre de planches change).
+  // Le devis est demandé dès l'arrivée sur la dernière étape, puis recalculé dès que la
+  // description ou le nombre de planches change : Higgsfield reçoit toujours la version à jour.
   useEffect(() => {
     if (!open || !step || step.layout !== "recap" || !fullName) return;
-    if (quote && quote.sheets === sheets) return;
-    prepare();
-  }, [open, step, quote, sheets, fullName]);
+    if (quote && quote.sheets === sheets && quote.brief === brief.trim()) return;
+    const timer = window.setTimeout(prepare, 600);
+    return () => window.clearTimeout(timer);
+  }, [open, step, quote, sheets, fullName, brief]);
 
   async function generate() {
     if (!quote) return;

@@ -415,26 +415,59 @@ function picked(step, choices) {
   return ids.map((id) => (step.options || []).find((o) => o.id === id)).filter(Boolean);
 }
 
-// Groupes Higgsfield qui acceptent plusieurs options à la fois.
+// Groupes Higgsfield qui acceptent plusieurs options à la fois, et leur plafond.
 const MULTI_GROUPS = new Set(["freak_face", "distinctive"]);
+const GROUP_MAX = { proportions: 2, distinctive: 2, accessory: 3, freak_face: 2 };
 
-// Réglages transmis à Higgsfield : uniquement les choix qui ont un équivalent.
+// Étapes qui décrivent le personnage : elles seules alimentent le brief.
+const CHARACTER_STEPS = new Set([
+  "s-1", "s-2", "q-age", "s-3", "q-build", "q-height", "s-4", "s-4b", "s-5",
+  "q-eyes", "q-head", "q-feat", "q-fh", "q-df", "q-acc", "s-6", "s-7", "s-8",
+]);
+
+// Réglages transmis à Higgsfield : les choix qui ont un équivalent, dans la limite
+// du nombre de valeurs acceptées par groupe (une seule en général).
 export function higgsfieldSelection(choices) {
   const selection = {};
   for (const step of REFERENCE_STEPS) {
     for (const option of picked(step, choices)) {
       if (!option.hf) continue;
       const [group, value] = option.hf.split(":");
-      if (MULTI_GROUPS.has(group)) {
-        const list = selection[group] || (selection[group] = []);
-        if (!list.includes(value)) list.push(value);
-      } else {
-        // Un seul choix par groupe : la dernière étape l'emporte.
-        selection[group] = [value];
-      }
+      const max = MULTI_GROUPS.has(group) ? GROUP_MAX[group] || 4 : 1;
+      const list = selection[group] || (selection[group] = []);
+      if (list.includes(value)) continue;
+      if (list.length < max) list.push(value);
+      else if (max === 1) list[0] = value; // une étape plus tardive remplace le choix précédent
+      // Au-delà du plafond, le choix part dans le brief (voir selectionExtras).
     }
   }
   return selection;
+}
+
+// Choix sans identifiant Higgsfield, ou écartés par le plafond du groupe : ils sont
+// transmis en texte dans le brief au lieu d'être ignorés.
+export function selectionExtras(choices) {
+  const selection = higgsfieldSelection(choices);
+  const extras = [];
+  for (const step of REFERENCE_STEPS) {
+    if (!CHARACTER_STEPS.has(step.id)) continue;
+    for (const option of picked(step, choices)) {
+      if (!option.hf) { extras.push(option.label); continue; }
+      const [group, value] = option.hf.split(":");
+      if (!(selection[group] || []).includes(value)) extras.push(option.label);
+    }
+  }
+  return Array.from(new Set(extras));
+}
+
+// Brief envoyé à Higgsfield : l'univers saisi par l'utilisateur, puis tout ce qui
+// n'est pas passé en identifiant de trait.
+export function higgsfieldBrief(choices, brief) {
+  const extras = selectionExtras(choices);
+  return [
+    String(brief || "").trim(),
+    extras.length ? `Précisions à respecter : ${extras.join(", ")}.` : "",
+  ].filter(Boolean).join("\n").slice(0, 4000);
 }
 
 // Traits retenus, affichés sur le récapitulatif.
