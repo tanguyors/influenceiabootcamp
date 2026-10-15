@@ -13,7 +13,6 @@ const EMPTY = {
   title: "",
   platform: "tiktok",
   category: "lifestyle",
-  source_url: "",
   duration: "",
   thumbnailFile: null,
   thumbnailPreview: "",
@@ -31,8 +30,8 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
   }
 
   async function save() {
-    if (!form.title.trim() || !form.source_url.trim()) {
-      toast({ title: "Titre et lien requis", variant: "destructive" });
+    if (!form.title.trim() || !form.videoFile) {
+      toast({ title: "Titre et fichier mp4 requis", variant: "destructive" });
       return;
     }
     setSaving(true);
@@ -51,7 +50,6 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
         title: form.title.trim(),
         platform: form.platform,
         category: form.category,
-        source_url: form.source_url.trim(),
         duration: form.duration ? Number(form.duration) : undefined,
         thumbnail_url,
         video_file_uri,
@@ -94,10 +92,6 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
                 <SelectContent>{CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-          </div>
-          <div>
-            <Label htmlFor="rurl">Lien de la publication</Label>
-            <Input id="rurl" value={form.source_url} onChange={(e) => setForm((s) => ({ ...s, source_url: e.target.value }))} placeholder="https://…" />
           </div>
           <div>
             <Label htmlFor="rduration">Durée de la vidéo (secondes)</Label>

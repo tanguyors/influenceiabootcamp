@@ -17,7 +17,7 @@
     },
     "source_url": {
       "type": "string",
-      "description": "Lien vers la publication originale"
+      "description": "Lien vers la publication originale (facultatif)"
     },
     "thumbnail_url": {
       "type": "string",
@@ -67,7 +67,6 @@
   "required": [
     "title",
     "platform",
-    "source_url",
     "published_date"
   ],
   "rls": {

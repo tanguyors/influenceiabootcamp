@@ -131,7 +131,7 @@ export default function ViralLibrary() {
           <EmptyState
             icon={Flame}
             title="Votre banque est vide"
-            description="Ajoutez vos propres modèles vidéo : titre, lien et fichier mp4 pour reprendre le mouvement de la référence."
+            description="Ajoutez vos propres modèles vidéo : titre et fichier mp4 pour reprendre le mouvement de la référence."
             action={addButton}
           />
         ) : (

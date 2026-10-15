@@ -47,9 +47,11 @@ export default function ReferenceCard({ video, favorite, onToggleFavorite, onRec
           <Button onClick={() => onRecreate(video)} className="flex-1 bg-black text-white hover:bg-black/85">
             Recréer avec mon influenceur
           </Button>
-          <a href={video.source_url} target="_blank" rel="noreferrer" className="rounded-lg border border-black/15 p-2 text-black/60 hover:bg-black/5">
-            <ExternalLink className="h-4 w-4" />
-          </a>
+          {video.source_url && (
+            <a href={video.source_url} target="_blank" rel="noreferrer" className="rounded-lg border border-black/15 p-2 text-black/60 hover:bg-black/5">
+              <ExternalLink className="h-4 w-4" />
+            </a>
+          )}
         </div>
 
         {!video.video_file_uri && (
