@@ -161,7 +161,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   if (!open) return null;
 
   const total = steps.length || 1;
-  const progress = images.length || running ? 100 : Math.round(((index + 1) / total) * 100);
+  const progress = !step ? 0 : (images.length || running ? 100 : Math.round(((index + 1) / total) * 100));
   const traits = quote ? traitsOf(quote.params, groups) : [];
   const canGoBack = index > 0 && !running && !images.length;
 
@@ -185,7 +185,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
 
         <div className="flex-1">
           <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-primary-foreground/40">
-            <span>{running || images.length ? "Génération" : `Étape ${index + 1} / ${total}`}</span>
+            <span>{!step ? "Préparation" : running || images.length ? "Génération" : `Étape ${index + 1} / ${total}`}</span>
             {onImportPhotos && !running && !images.length && (
               <button type="button" onClick={onImportPhotos} className="normal-case tracking-normal underline-offset-4 hover:text-primary-foreground hover:underline">
                 Importer mes photos
@@ -207,7 +207,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto px-5 pb-20 pt-8 sm:px-8">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-20 pt-8 sm:px-8">
         <div className="mx-auto w-full max-w-3xl">
           {loadError ? (
             <div className="py-24 text-center">

@@ -6,6 +6,7 @@ import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import SignedImage from "@/components/SignedImage";
+import CreateInfluencerFunnel from "@/components/influencers/CreateInfluencerFunnel";
 import CreateInfluencerDialog from "@/components/influencers/CreateInfluencerDialog";
 
 const ACTIVE_KEY = "influenceia.activeInfluencer";
@@ -14,7 +15,8 @@ export default function Influencers() {
   const { toast } = useToast();
   const [items, setItems] = useState(null);
   const [activeId, setActiveId] = useState(() => localStorage.getItem(ACTIVE_KEY) || "");
-  const [open, setOpen] = useState(false);
+  const [funnelOpen, setFunnelOpen] = useState(false);
+  const [photosOpen, setPhotosOpen] = useState(false);
 
   // Photos de référence d'un influenceur (les anciens n'en ont qu'une).
   const photosOf = (inf) => (Array.isArray(inf.reference_images) && inf.reference_images.length
@@ -40,7 +42,8 @@ export default function Influencers() {
   function handleCreated(created) {
     setItems((s) => [created, ...(s || [])]);
     selectActive(created.id);
-    setOpen(false);
+    setFunnelOpen(false);
+    setPhotosOpen(false);
     toast({ title: "Influenceur créé" });
   }
 
@@ -62,8 +65,8 @@ export default function Influencers() {
       title="Mes influenceurs"
       subtitle="Générez un personnage par IA ou importez vos propres photos. Plus il y a d'angles, mieux son apparence est conservée à chaque génération."
       actions={
-        <Button onClick={() => setOpen(true)} className="bg-black text-white hover:bg-black/85">
-          <Plus className="mr-2 h-4 w-4" /> Nouvel influenceur
+        <Button onClick={() => setFunnelOpen(true)} className="bg-black text-white hover:bg-black/85">
+          <Plus className="mr-2 h-4 w-4" /> Créer ma star
         </Button>
       }
     >
@@ -74,7 +77,7 @@ export default function Influencers() {
           icon={Users}
           title="Aucun influenceur pour le moment"
           description="Créez votre personnage en quelques choix, ou importez vos propres photos. Il sera réutilisable à chaque génération."
-          action={<Button onClick={() => setOpen(true)} className="bg-black text-white hover:bg-black/85"><Plus className="mr-2 h-4 w-4" /> Créer mon premier influenceur</Button>}
+          action={<Button onClick={() => setFunnelOpen(true)} className="bg-black text-white hover:bg-black/85"><Plus className="mr-2 h-4 w-4" /> Créer mon premier influenceur</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -118,7 +121,13 @@ export default function Influencers() {
         </div>
       )}
 
-      <CreateInfluencerDialog open={open} onOpenChange={setOpen} onCreated={handleCreated} />
+      <CreateInfluencerFunnel
+        open={funnelOpen}
+        onClose={() => setFunnelOpen(false)}
+        onCreated={handleCreated}
+        onImportPhotos={() => { setFunnelOpen(false); setPhotosOpen(true); }}
+      />
+      <CreateInfluencerDialog open={photosOpen} onOpenChange={setPhotosOpen} onCreated={handleCreated} />
     </PageShell>
   );
 }
