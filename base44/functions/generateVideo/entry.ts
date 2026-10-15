@@ -94,40 +94,6 @@ async function listVideoModels(token) {
   return items || [];
 }
 
-// Modèles capables de reprendre la vidéo source (cadre, caméra, décor, mouvement)
-// tout en utilisant le personnage fourni comme référence.
-const REFERENCE_MODELS = ["seedance_2_5", "seedance_2_0", "minimax_h3_max", "minimax_h3", "wan2_6", "flux_3_video"];
-
-function referenceRank(model) {
-  const i = REFERENCE_MODELS.indexOf(String(model.id || "").toLowerCase());
-  return i < 0 ? 0 : REFERENCE_MODELS.length - i;
-}
-
-// Certains modèles refusent les médias de référence tant que le mode de génération
-// n'est pas déclaré explicitement (le mode par défaut est « prompt seul »).
-const REFERENCE_MODE_NAMES = ["omni_reference", "reference_to_video", "r2v", "video_reference", "reference"];
-
-function referenceMode(model) {
-  const param = ((model && model.parameters) || []).find((p) => p.name === "mode");
-  const options = (param && param.options) || [];
-  return REFERENCE_MODE_NAMES.find((name) => options.includes(name)) || "";
-}
-
-function acceptsReferences(model) {
-  const param = ((model && model.parameters) || []).find((p) => p.name === "mode");
-  return !param || Boolean(referenceMode(model));
-}
-
-function pickReferenceModel(models, seconds) {
-  const usable = models.filter((m) => {
-    const roles = modelRoles(m);
-    return roles.includes("video_references")
-      && (roles.includes("image_references") || roles.includes("image"))
-      && acceptsReferences(m);
-  }).sort((a, b) => referenceRank(b) - referenceRank(a));
-  return usable.find((m) => supportsDuration(m, seconds)) || usable[0] || null;
-}
-
 function scoreModel(model) {
   const id = String(model.id || "").toLowerCase();
   const tags = (model.tags || []).map((t) => String(t).toLowerCase());
@@ -322,7 +288,9 @@ export default async function(req) {
           file_uri: viralVideo.video_file_uri, expires_in: 3600,
         });
         videoUrl = signed_url;
-      } catch { /* on continue sans vidéo source */ }
+      } catch {
+        return Response.json({ error: "Impossible de préparer la vidéo source. Aucune génération n'a été lancée." }, { status: 400 });
+      }
     }
 
     const parts = [];
@@ -359,39 +327,13 @@ export default async function(req) {
       // 1. Import des médias : Higgsfield n'accepte que des media_id confirmés.
       const imageMediaId = await importMedia(token, imageUrls[0], "image");
       let motionMediaId = "";
-      if (videoUrl) {
-        try { motionMediaId = await importMedia(token, videoUrl, "video"); } catch { motionMediaId = ""; }
-      }
+      if (videoUrl) motionMediaId = await importMedia(token, videoUrl, "video");
 
-      // 2. La vidéo source sert de référence (cadre, caméra, décor, rythme) : seule la personne est remplacée.
-      const videoModels = motionMediaId ? await listVideoModels(token) : [];
-      const referenceModel = motionMediaId ? pickReferenceModel(videoModels, sourceDuration) : null;
-
+      // Remplacement de personnage : utiliser directement l'outil dédié au transfert
+      // de mouvement, sans soumettre d'abord une génération Seedance.
       let toolName = "";
       let result = null;
-      if (referenceModel && motionMediaId) {
-        toolName = `generate_video:${referenceModel.id}`;
-        const medias = [
-          { value: motionMediaId, role: "video_references" },
-          { value: imageMediaId, role: "image_references" },
-        ];
-        // Une seconde photo aide le modèle à garder le visage.
-        if (imageUrls[1]) {
-          try { medias.push({ value: await importMedia(token, imageUrls[1], "image"), role: "image_references" }); } catch { /* une référence suffit */ }
-        }
-        const refMode = referenceMode(referenceModel);
-        result = await callTool(token, "generate_video", {
-          params: {
-            model: referenceModel.id,
-            prompt,
-            aspect_ratio: aspect_ratio || "9:16",
-            ...(refMode ? { mode: refMode } : {}),
-            ...(sourceDuration ? { duration: sourceDuration } : {}),
-            medias,
-          },
-        });
-      } else if (motionMediaId) {
-        // Repli : transfert de mouvement, le décor de la vidéo source est conservé.
+      if (motionMediaId) {
         toolName = "motion_control";
         result = await callTool(token, toolName, {
           params: {
@@ -402,7 +344,7 @@ export default async function(req) {
           },
         });
       } else {
-        const model = pickImageModel(videoModels.length ? videoModels : await listVideoModels(token), sourceDuration);
+        const model = pickImageModel(await listVideoModels(token), sourceDuration);
         if (!model) throw new Error("Aucun modèle vidéo compatible n'est disponible sur votre compte Higgsfield.");
         toolName = `generate_video:${model.id}`;
         result = await callTool(token, "generate_video", {
@@ -417,14 +359,11 @@ export default async function(req) {
       }
 
       const job = readJob(result);
-      // Refus du mode référence (personne réelle détectée, paramètres non supportés…) :
-      // repli immédiat en transfert de mouvement.
-      if ((job.blocked || job.error) && await relaunchWithMotionControl(base44, token, creation)) {
-        return Response.json({ creation_id: creation.id, status: "processing", tool: "motion_control" });
-      }
-      if (job.error) {
-        await base44.entities.Creation.update(creation.id, { status: "failed", error: job.error, model: toolName });
-        return Response.json({ error: job.error, creation_id: creation.id }, { status: 400 });
+      // Un refus ne doit pas provoquer une deuxième soumission payante.
+      if (job.error || job.status === "failed") {
+        const message = job.error || "Higgsfield a interrompu cette génération sans préciser le motif.";
+        await base44.entities.Creation.update(creation.id, { status: "failed", error: message, model: toolName });
+        return Response.json({ error: message, creation_id: creation.id }, { status: 400 });
       }
       if (!job.videoUrl && !job.jobId) {
         const msg = `Higgsfield n'a renvoyé aucune tâche à suivre (outil ${toolName}).`;
