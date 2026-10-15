@@ -1,100 +1,197 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { secrets } from 'base44:runtime';
 
 const MAX_BYTES = 15000000;
+const MAX_CANDIDATES = 3;
 const UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
 
-// Plateforme reconnue -> acteur Apify qui renvoie l'URL directe du fichier vidéo.
-const SOURCES = [
-  { host: /instagram\.com/i, platform: "instagram", actor: "apify~instagram-scraper", input: (url: string) => ({ directUrls: [url], resultsType: "posts", resultsLimit: 1 }) },
-  { host: /tiktok\.com/i, platform: "tiktok", actor: "clockworks~free-tiktok-scraper", input: (url: string) => ({ postURLs: [url], resultsPerPage: 1 }) },
-  { host: /facebook\.com|fb\.watch/i, platform: "facebook", actor: "apify~facebook-posts-scraper", input: (url: string) => ({ startUrls: [{ url }], resultsLimit: 1 }) },
-];
+// Clés JSON qui portent une adresse de fichier vidéo sur les pages des plateformes.
+const VIDEO_KEYS = /^(playaddr|downloadaddr|play_addr|download_addr|video_url|videourl|contenturl|playable_url|playable_url_quality_hd|browser_native_hd_url|browser_native_sd_url|hd_src|sd_src|hdplay|play|url|urllist)$/i;
 
-const VIDEO_KEY = /video.*(url|link)|download.*url|downloadaddr|playaddr|contenturl|hdurl|sdurl/i;
-const THUMB_KEY = /thumbnail|displayurl|cover|picture|image/i;
-const TITLE_KEYS = ["caption", "text", "title", "description", "alt"];
-
-// Toutes les chaînes URL d'une réponse Apify, avec le nom du champ qui les porte.
-function collectUrls(value: any, path = "", out: Array<[string, string]> = []) {
-  if (typeof value === "string") {
-    if (/^https?:\/\//i.test(value)) out.push([path, value]);
-    return out;
-  }
-  if (Array.isArray(value)) {
-    for (const v of value) collectUrls(v, path, out);
-    return out;
-  }
-  if (value && typeof value === "object") {
-    for (const [key, v] of Object.entries(value)) collectUrls(v, path ? `${path}.${key}` : key, out);
-  }
-  return out;
+// Les URL trouvées dans un JSON embarqué sont échappées (\/, \u0026) : on les remet en clair.
+function unescapeUrl(value: string) {
+  return String(value)
+    .replace(/\\u0026/gi, "&")
+    .replace(/\\u002F/gi, "/")
+    .replace(/\\\//g, "/");
 }
 
-const isFile = (url: string) => /\.(mp4|mov|webm|m4v)(\?|$)/i.test(url);
-
-// Fichier vidéo : champ explicite, sinon premier fichier vidéo trouvé.
-function pickVideo(item: any): string {
-  const urls = collectUrls(item);
-  const named = urls.find(([key, url]) => VIDEO_KEY.test(key) && (isFile(url) || /video/i.test(url)));
-  if (named) return named[1];
-  const anyFile = urls.find(([, url]) => isFile(url));
-  return anyFile ? anyFile[1] : "";
+function decodeEntities(value: string) {
+  const code = (n: number) => (Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "");
+  return String(value)
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => code(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, num) => code(Number(num)))
+    .replace(/&quot;/gi, '"')
+    .replace(/&apos;|&#0?39;/gi, "'")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&");
 }
 
-function pickThumb(item: any): string {
-  const urls = collectUrls(item);
-  const named = urls.find(([key, url]) => THUMB_KEY.test(key) && /\.(jpe?g|png|webp)(\?|$)/i.test(url));
-  if (named) return named[1];
-  const anyImage = urls.find(([, url]) => /\.(jpe?g|png|webp)(\?|$)/i.test(url));
-  return anyImage ? anyImage[1] : "";
+// Page lue avec les en-têtes d'un navigateur : la plupart des plateformes ne servent
+// leur lecteur (et donc l'adresse du fichier) qu'à ce prix.
+async function fetchText(url: string, timeout = 30000) {
+  try {
+    const res = await fetch(url, {
+      headers: {
+        "User-Agent": UA,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+        "Sec-Fetch-Mode": "navigate",
+      },
+      redirect: "follow",
+      signal: AbortSignal.timeout(timeout),
+    });
+    if (!res.ok) return "";
+    return await res.text();
+  } catch {
+    return "";
+  }
 }
 
-function pickTitle(item: any): string {
-  for (const key of TITLE_KEYS) {
-    const value = item && item[key];
-    if (typeof value === "string" && value.trim()) return value.replace(/\s+/g, " ").trim().slice(0, 120);
+function absolute(url: string) {
+  if (!url) return "";
+  if (url.startsWith("//")) return `https:${url}`;
+  if (url.startsWith("/")) return `https://www.tikwm.com${url}`;
+  return url;
+}
+
+// Balise méta d'une page (titre, image, lecteur…).
+function meta(html: string, property: string) {
+  const patterns = [
+    new RegExp(`<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`, "i"),
+    new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${property}["']`, "i"),
+  ];
+  for (const re of patterns) {
+    const m = html.match(re);
+    if (m) return decodeEntities(unescapeUrl(m[1]));
   }
   return "";
 }
 
-// Durée annoncée par la source (les millisecondes sont ramenées en secondes).
-function pickDuration(item: any): number {
-  const values: number[] = [];
-  const scan = (value: any) => {
-    if (!value || typeof value !== "object") return;
-    for (const [key, v] of Object.entries(value)) {
-      if (/duration/i.test(key) && typeof v === "number" && v > 0) values.push(v);
-      scan(v);
-    }
-  };
-  scan(item);
-  if (!values.length) return 0;
-  const first = values[0];
-  return Math.round(first > 600 ? first / 1000 : first);
+// Adresses de fichier vidéo présentes dans le JSON embarqué d'une page, dans l'ordre du document.
+// TikTok et Instagram n'exposent pas toujours le même champ : on garde plusieurs candidats.
+function pageVideos(html: string) {
+  if (!html) return [];
+  const found: string[] = [];
+  // Certaines pages échappent les barres obliques en \/ ou \u002F : on lit la valeur brute.
+  const re = /"([a-zA-Z_]+)"\s*:\s*"(https?:[^"]{10,})"/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(html))) {
+    const url = unescapeUrl(m[2]);
+    if (!/^https?:\/\//i.test(url)) continue;
+    const looksAudio = /\.(mp3|m4a|aac|wav|ogg)(\?|$|&)/i.test(url) || /music|audio|sound/i.test(m[1]);
+    const looksVideo = !looksAudio && (
+      /\.(mp4|m4v|mov|webm)(\?|$|&)/i.test(url)
+      || /mime_type=video/i.test(url)
+      || /\/video\/tos\//i.test(url)
+      || (VIDEO_KEYS.test(m[1]) && /video|tiktokcdn|tikwm\.com/i.test(url)));
+    if (looksVideo) found.push(url);
+    if (found.length >= MAX_CANDIDATES) break;
+  }
+  return Array.from(new Set(found));
 }
 
-async function apifyItems(actor: string, input: any, token: string) {
-  const res = await fetch(
-    `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?token=${encodeURIComponent(token)}&timeout=180&format=json`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(input),
-      signal: AbortSignal.timeout(240000),
-    },
-  );
-  if (!res.ok) {
-    const detail = await res.text();
-    // La limite mensuelle du compte Apify bloque toute récupération : message explicite.
-    if (res.status === 402 || /hard limit|usage limit|platform-feature-disabled/i.test(detail)) {
-      throw new Error("Quota Apify atteint : augmentez la limite mensuelle sur console.apify.com, ou réessayez après le renouvellement.");
-    }
-    throw new Error(`Source injoignable (${res.status}). ${detail.slice(0, 160)}`);
-  }
-  const items = await res.json();
-  return Array.isArray(items) ? items : [];
+function cleanTitle(value: string) {
+  return decodeEntities(value)
+    .replace(/\s+/g, " ")
+    .replace(/^.*?\b(?:on|sur) Instagram\s*:\s*/i, "")
+    .replace(/^["“]|["”]$/g, "")
+    .trim()
+    .slice(0, 120);
 }
+
+// TikTok : l'API publique TikWM renvoie le fichier sans filigrane, sans clé ni compte.
+// En cas d'indisponibilité, la page publique fournit d'autres adresses.
+async function fromTikTok(url: string) {
+  let videos: string[] = [];
+  let thumb = "";
+  let title = "";
+  let duration = 0;
+  try {
+    const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(url)}&hd=1`, {
+      headers: { "User-Agent": UA, Accept: "application/json" },
+      signal: AbortSignal.timeout(30000),
+    });
+    const body: any = res.ok ? await res.json().catch(() => null) : null;
+    const data = body && body.data;
+    if (data) {
+      videos = [absolute(String(data.hdplay || "")), absolute(String(data.play || ""))].filter(Boolean);
+      thumb = absolute(String(data.cover || data.origin_cover || ""));
+      title = cleanTitle(data.title || "");
+      duration = Math.round(Number(data.duration) || 0);
+    }
+  } catch {
+    /* on retombe sur la page publique */
+  }
+
+  if (!videos.length) {
+    const html = await fetchText(url);
+    videos = pageVideos(html);
+    if (!thumb) thumb = meta(html, "og:image");
+    if (!title) title = cleanTitle(meta(html, "og:title"));
+  }
+  return videos.length ? { videos, thumb, title, duration } : null;
+}
+
+// Instagram : la page « embed » de la publication expose l'adresse du fichier dans son JSON interne.
+async function fromInstagram(url: string) {
+  const m = url.match(/instagram\.com\/(?:[^/]+\/)?(p|reels?|tv)\/([A-Za-z0-9_-]+)/i);
+  if (!m) return null;
+  const kind = /^reel/i.test(m[1]) ? "reel" : m[1].toLowerCase();
+  const html = await fetchText(`https://www.instagram.com/${kind}/${m[2]}/embed/captioned/`);
+  if (!html) return null;
+  const videos = pageVideos(html).concat(meta(html, "og:video") ? [meta(html, "og:video")] : []);
+  if (!videos.length) return null;
+  return {
+    videos: Array.from(new Set(videos)),
+    thumb: meta(html, "og:image"),
+    title: cleanTitle(meta(html, "og:title")),
+    duration: 0,
+  };
+}
+
+// Facebook : la page publique puis le lecteur intégré, qui expose le fichier plus volontiers.
+async function fromFacebook(url: string) {
+  const html = await fetchText(url);
+  let videos = pageVideos(html);
+  let source = html;
+  if (!videos.length) {
+    source = await fetchText(`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}`);
+    videos = pageVideos(source);
+  }
+  if (!videos.length) return null;
+  return {
+    videos,
+    thumb: meta(source, "og:image"),
+    title: cleanTitle(meta(source, "og:title")),
+    duration: 0,
+  };
+}
+
+// Dernier recours pour une plateforme reconnue : la page publique elle-même.
+async function fromPage(url: string) {
+  const html = await fetchText(url);
+  if (!html) return null;
+  const videos = [meta(html, "og:video:secure_url"), meta(html, "og:video")].filter(Boolean).concat(pageVideos(html));
+  if (!videos.length) return null;
+  return {
+    videos: Array.from(new Set(videos)),
+    thumb: meta(html, "og:image"),
+    title: cleanTitle(meta(html, "og:title")),
+    duration: 0,
+  };
+}
+
+// Plateformes reconnues : la vidéo est extraite directement depuis la publication publique,
+// sans acteur ni service payant, exactement comme le ferait un navigateur.
+const SOURCES = [
+  { host: /instagram\.com/i, platform: "instagram", extract: fromInstagram },
+  { host: /tiktok\.com/i, platform: "tiktok", extract: fromTikTok },
+  { host: /facebook\.com|fb\.watch/i, platform: "facebook", extract: fromFacebook },
+];
+
+const isFile = (url: string) => /\.(mp4|mov|webm|m4v)(\?|$)/i.test(url);
 
 // Range un fichier distant dans le stockage privé de l'app : la banque de modèles n'utilise que du privé.
 async function storeRemote(base44: any, url: string, kind: "video" | "image", stamp: number) {
@@ -116,6 +213,15 @@ async function storeRemote(base44: any, url: string, kind: "video" | "image", st
   }
 }
 
+// Certaines adresses sont refusées aux serveurs : on essaie les candidats dans l'ordre.
+async function storeFirst(base44: any, urls: string[], stamp: number) {
+  for (const url of urls.slice(0, MAX_CANDIDATES)) {
+    const stored = await storeRemote(base44, url, "video", stamp);
+    if (stored) return stored;
+  }
+  return null;
+}
+
 export default async function (req: any) {
   try {
     const base44 = createClientFromRequest(req);
@@ -128,46 +234,47 @@ export default async function (req: any) {
       return Response.json({ error: "Lien invalide : collez un lien complet (https://…)." }, { status: 400 });
     }
 
-    const token = secrets.get("APIFY_TOKEN");
-    if (!token) return Response.json({ error: "Jeton de récupération absent." }, { status: 500 });
-
     const source = SOURCES.find((s) => s.host.test(url));
-    let videoUrl = "";
-    let thumbUrl = "";
-    let title = "";
-    let duration = 0;
+    let found: any = null;
     let platform = "direct";
 
     if (source) {
       platform = source.platform;
-      const items = await apifyItems(source.actor, source.input(url), token);
-      if (!items.length) {
-        return Response.json({ error: "Aucune vidéo trouvée pour ce lien. Vérifiez que la publication est publique." }, { status: 400 });
-      }
-      const item = items[0];
-      videoUrl = pickVideo(item);
-      thumbUrl = pickThumb(item);
-      title = pickTitle(item);
-      duration = pickDuration(item);
-      if (!videoUrl) return Response.json({ error: "Ce lien ne contient pas de vidéo téléchargeable." }, { status: 400 });
+      found = await source.extract(url);
+      if (!found) found = await fromPage(url);
     } else if (isFile(url)) {
-      videoUrl = url;
+      found = { videos: [url], thumb: "", title: "", duration: 0 };
     } else {
       return Response.json({ error: "Lien non pris en charge : Instagram, TikTok, Facebook ou un lien direct .mp4." }, { status: 400 });
     }
 
-    const stamp = Date.now();
-    const video_file_uri = await storeRemote(base44, videoUrl, "video", stamp);
-    if (!video_file_uri) {
-      return Response.json({ error: "Téléchargement impossible : fichier inaccessible ou trop lourd (15 Mo maximum)." }, { status: 502 });
+    // TikTok refuse les téléchargements demandés par des serveurs : le message doit rester actionnable.
+    const videoFailure = platform === "tiktok"
+      ? "TikTok refuse la récupération de cette vidéo, ou elle dépasse 15 Mo. Téléchargez-la sur votre téléphone puis ajoutez le fichier mp4 au modèle."
+      : "";
+
+    if (!found || !found.videos.length) {
+      return Response.json(
+        { error: videoFailure || "Aucune vidéo téléchargeable sur ce lien. Vérifiez que la publication est publique et accessible sans connexion." },
+        { status: 400 },
+      );
     }
-    const thumbnail_url = thumbUrl ? await storeRemote(base44, thumbUrl, "image", stamp) : null;
+
+    const stamp = Date.now();
+    const video_file_uri = await storeFirst(base44, found.videos, stamp);
+    if (!video_file_uri) {
+      return Response.json(
+        { error: videoFailure || "Téléchargement impossible : fichier inaccessible ou trop lourd (15 Mo maximum)." },
+        { status: 502 },
+      );
+    }
+    const thumbnail_url = found.thumb ? await storeRemote(base44, found.thumb, "image", stamp) : null;
 
     return Response.json({
       video_file_uri,
       thumbnail_url: thumbnail_url || "",
-      duration,
-      title,
+      duration: Math.round(Number(found.duration) || 0),
+      title: cleanTitle(found.title),
       platform,
       source_url: url,
     });
