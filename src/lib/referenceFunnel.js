@@ -1,8 +1,6 @@
 // Funnel de création aligné sur le funnel de référence (cashfluencer.co/create) :
 // 26 étapes, mêmes sections, mêmes intitulés, mêmes choix et mêmes visuels (en français).
 // Chaque choix est relié à une option Higgsfield quand elle existe (champ `hf`).
-import { refImage } from "@/lib/funnelAssets";
-
 // Cartes illustrées d'une étape (visuels du funnel de référence).
 const cards = (screen, rows) =>
   rows.map(([id, label, hf, sub]) => ({ id, label, sub: sub || "", image: [screen, id], hf: hf || null }));
@@ -469,5 +467,3 @@ export function nameIdeas(gender, count = 4) {
   }
   return out;
 }
-
-export { refImage };

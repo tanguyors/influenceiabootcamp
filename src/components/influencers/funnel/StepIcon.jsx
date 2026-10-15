@@ -1,0 +1,56 @@
+import {
+  Banknote,
+  Briefcase,
+  Calendar,
+  CalendarDays,
+  Clock,
+  Cpu,
+  CupSoda,
+  Dumbbell,
+  Flame,
+  Footprints,
+  Globe,
+  Handshake,
+  Play,
+  Receipt,
+  Rocket,
+  Scale,
+  Shirt,
+  ShoppingBag,
+  Smartphone,
+  Sparkles,
+  Timer,
+  Utensils,
+  Zap,
+} from "lucide-react";
+
+const ICONS = {
+  play: Play,
+  handshake: Handshake,
+  "shopping-bag": ShoppingBag,
+  rocket: Rocket,
+  banknote: Banknote,
+  receipt: Receipt,
+  briefcase: Briefcase,
+  flame: Flame,
+  zap: Zap,
+  clock: Clock,
+  timer: Timer,
+  calendar: Calendar,
+  "calendar-days": CalendarDays,
+  shirt: Shirt,
+  footprints: Footprints,
+  sparkles: Sparkles,
+  cpu: Cpu,
+  smartphone: Smartphone,
+  scale: Scale,
+  dumbbell: Dumbbell,
+  "cup-soda": CupSoda,
+  utensils: Utensils,
+  globe: Globe,
+};
+
+export default function StepIcon({ name, className }) {
+  const Icon = ICONS[name] || Sparkles;
+  return <Icon className={className} />;
+}
