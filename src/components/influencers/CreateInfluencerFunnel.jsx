@@ -220,6 +220,17 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
                   onGenerate={generate}
                 />
               )}
+
+              {/* Étape facultative : on peut la sauter sans rien choisir. */}
+              {!step.required && (
+                <button
+                  type="button"
+                  onClick={goNext}
+                  className="mx-auto mt-6 block text-[13px] font-semibold text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"
+                >
+                  Passer cette étape
+                </button>
+              )}
             </>
           )}
 

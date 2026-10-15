@@ -53,6 +53,7 @@ export const REFERENCE_STEPS = [
     section: "Identité",
     title: "Qui est-ce ?",
     layout: "cards",
+    required: true,
     options: cards("s-gender", [
       ["male", "Homme", "gender:male"],
       ["female", "Femme", "gender:female"],
@@ -388,6 +389,7 @@ export const REFERENCE_STEPS = [
     hint: "Choisissez un nom qui nous plaît, ou le vôtre",
     layout: "name",
     options: [],
+    required: true,
   },
   {
     id: "s-11",
@@ -396,6 +398,7 @@ export const REFERENCE_STEPS = [
     hint: "Votre star + 30 posts",
     layout: "recap",
     options: [],
+    required: true,
   },
 ];
 
