@@ -7,7 +7,7 @@ const navItems = [
   { to: "/influenceurs", label: "Mes influenceurs", icon: Users },
   { to: "/videos", label: "Banque de modèles", icon: Flame },
   { to: "/creations", label: "Mes créations", icon: Film },
-  { to: "/connexion", label: "Connexion Higgsfield", icon: Plug },
+  { to: "/connexion", label: "Setup Higgsfield", icon: Plug },
 ];
 
 export default function Sidebar() {
