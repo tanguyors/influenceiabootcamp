@@ -8,7 +8,7 @@ import McpToolsCard from "@/components/higgsfield/McpToolsCard";
 import { useToast } from "@/components/ui/use-toast";
 
 // Lien d'affiliation utilisé à l'étape 1.
-const AFFILIATE_URL = "https://higgsfield.ai/";
+const AFFILIATE_URL = "https://higgsfield.ai?fpr=thibault-e42228";
 
 export default function HiggsfieldConnection() {
   const { toast } = useToast();
