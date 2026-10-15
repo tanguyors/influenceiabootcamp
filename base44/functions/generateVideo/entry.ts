@@ -81,6 +81,16 @@ function supportsDuration(model, seconds) {
   return true;
 }
 
+// Higgsfield ne joint aucun motif à une tâche interrompue. En pratique, Kling 3.0 motion
+// control abandonne les vidéos longues en 9:16 : durée × résolution dépasse son budget.
+function interruptionMessage(creation) {
+  const duration = Number(creation.duration) || 0;
+  if (duration > 10) {
+    return `Higgsfield a interrompu cette génération sans en donner le motif. Une vidéo de ${duration} s dépasse probablement ce que le modèle accepte en ${creation.aspect_ratio || "9:16"} : essayez une vidéo de référence de 10 s maximum.`;
+  }
+  return "Higgsfield a interrompu cette génération sans en donner le motif : relancez-la.";
+}
+
 function modelRoles(model) {
   return Array.from(new Set((model.medias || []).flatMap((x) => x.roles || [])));
 }
@@ -205,7 +215,7 @@ async function refreshProcessing(base44, token) {
       // Tâche interrompue sans message : l'utilisateur doit le voir tout de suite.
       else if (job.status === "failed") {
         patch.status = "failed";
-        patch.error = "Higgsfield a interrompu cette génération : relancez-la.";
+        patch.error = interruptionMessage(creation);
       }
       // Tâche sans réponse depuis 45 minutes : on libère la liste au lieu d'attendre sans fin.
       else if (age(creation) > 2700000) {
