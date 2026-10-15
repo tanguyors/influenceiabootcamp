@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { ArrowLeft, Loader2, X } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import FunnelStepHead from "@/components/influencers/funnel/FunnelStepHead";
@@ -13,14 +12,10 @@ import FunnelResult from "@/components/influencers/funnel/FunnelResult";
 import {
   funnelSteps,
   higgsfieldBrief,
-  higgsfieldSelection,
   referenceNotes,
   referenceTraits,
   stepGender,
 } from "@/lib/referenceFunnel";
-
-const POLL_MS = 5000;
-const MAX_POLLS = 60;
 
 // Message lisible même quand le serveur renvoie une erreur HTTP (le texte utile est dans la réponse).
 function errorText(e) {
@@ -29,8 +24,6 @@ function errorText(e) {
 }
 
 export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImportPhotos }) {
-  const [connected, setConnected] = useState(null);
-  const [loadError, setLoadError] = useState("");
   const [error, setError] = useState("");
   const [index, setIndex] = useState(0);
   const [choices, setChoices] = useState({});
@@ -38,67 +31,21 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   const [name, setName] = useState({ first: "", last: "" });
   const [brief, setBrief] = useState("");
   const [sheets, setSheets] = useState(1);
-  const [quote, setQuote] = useState(null);
   const [busy, setBusy] = useState("");
-  const [jobId, setJobId] = useState("");
   const [images, setImages] = useState([]);
-  const [engine, setEngine] = useState("higgsfield");
 
   // Chaque ouverture repart d'un parcours vierge.
   useEffect(() => {
     if (!open) return;
     setError(""); setIndex(0); setChoices({}); setBrands([]); setName({ first: "", last: "" });
-    setBrief(""); setSheets(1); setQuote(null); setBusy(""); setJobId(""); setImages([]); setEngine("higgsfield");
+    setBrief(""); setSheets(1); setBusy(""); setImages([]);
   }, [open]);
-
-  // Le parcours mène à Higgsfield : on vérifie la connexion avant de commencer.
-  useEffect(() => {
-    if (!open || connected !== null) return;
-    let alive = true;
-    (async () => {
-      try {
-        const res = await base44.functions.invoke("higgsfieldGateway", {});
-        const data = res.data || {};
-        if (!alive) return;
-        if (data.connected) setConnected(true);
-        else setLoadError(data.message || "Compte Higgsfield non connecté.");
-      } catch (e) {
-        if (alive) setLoadError(errorText(e));
-      }
-    })();
-    return () => { alive = false; };
-  }, [open, connected]);
-
-  // Suivi de la génération : les planches sont copiées dans le stockage privé dès qu'elles sont prêtes.
-  useEffect(() => {
-    if (!jobId) return;
-    let alive = true;
-    let tries = 0;
-    let timer;
-    const tick = async () => {
-      tries += 1;
-      try {
-        const res = await base44.functions.invoke("generateInfluencer", { action: "status", job_id: jobId });
-        const data = res.data || {};
-        if (!alive) return;
-        if (data.error) { setError(data.error); setJobId(""); setBusy(""); return; }
-        if ((data.images || []).length) { setImages(data.images); setJobId(""); setBusy(""); return; }
-      } catch (e) {
-        if (alive && tries > 3) { setError(errorText(e)); setJobId(""); setBusy(""); return; }
-      }
-      if (!alive) return;
-      if (tries >= MAX_POLLS) { setError("Génération trop longue : relancez."); setJobId(""); setBusy(""); return; }
-      timer = setTimeout(tick, POLL_MS);
-    };
-    timer = setTimeout(tick, POLL_MS);
-    return () => { alive = false; clearTimeout(timer); };
-  }, [jobId]);
 
   const steps = useMemo(() => funnelSteps(choices), [choices]);
   const step = steps[Math.min(index, steps.length - 1)] || null;
   const gender = stepGender(choices);
   const fullName = `${name.first || ""} ${name.last || ""}`.trim();
-  const running = busy === "start" || busy === "poll" || Boolean(jobId);
+  const running = busy === "start";
 
   function pick(stepId, optionId) {
     setChoices((s) => ({ ...s, [stepId]: optionId }));
@@ -116,47 +63,8 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     setIndex((i) => Math.min(i + 1, steps.length - 1));
   }
 
-  // Devis : Higgsfield compose le personnage et chiffre la génération sans rien dépenser.
-  async function prepare() {
-    setBusy("quote");
-    setError("");
-    setQuote(null);
-    try {
-      const selection = higgsfieldSelection(choices);
-      const res = await base44.functions.invoke("generateInfluencer", {
-        action: "quote",
-        tier: "normal",
-        // Tous les choix partent : en identifiant de trait quand Higgsfield en a un,
-        // sinon en texte dans le brief.
-        brief: higgsfieldBrief(choices, brief),
-        batch_size: sheets,
-        selection,
-        // Tous les choix sont transmis : Higgsfield complète seulement ce qui n'a pas d'équivalent.
-        randomize: Object.keys(selection).length === 0,
-      });
-      const data = res.data || {};
-      if (data.error) throw new Error(data.error);
-      setQuote({ params: data.params, credits: Number(data.credits) || 0, sheets, brief: brief.trim() });
-    } catch (e) {
-      setError(errorText(e));
-    } finally {
-      setBusy("");
-    }
-  }
-
-  // Le devis est demandé dès l'arrivée sur la dernière étape, puis recalculé dès que la
-  // description ou le nombre de planches change : Higgsfield reçoit toujours la version à jour.
-  useEffect(() => {
-    if (!open || !step || step.layout !== "recap" || !fullName) return;
-    // Le moteur GPT n'a pas besoin de devis Higgsfield.
-    if (engine === "gpt") return;
-    if (quote && quote.sheets === sheets && quote.brief === brief.trim()) return;
-    const timer = window.setTimeout(prepare, 600);
-    return () => window.clearTimeout(timer);
-  }, [open, step, quote, sheets, fullName, brief, engine]);
-
-  // GPT (clé OpenAI de l'utilisateur) : une seule requête, aucune tâche à suivre.
-  async function generateWithGpt() {
+  // Le personnage est généré par l'API OpenAI à partir de tous les choix du parcours.
+  async function generate() {
     setBusy("start");
     setError("");
     try {
@@ -171,29 +79,6 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     } catch (e) {
       setError(errorText(e));
     } finally {
-      setBusy("");
-    }
-  }
-
-  async function generate() {
-    if (engine === "gpt") return generateWithGpt();
-    if (!quote) return;
-    setBusy("start");
-    setError("");
-    try {
-      const res = await base44.functions.invoke("generateInfluencer", {
-        action: "start",
-        params: quote.params,
-        max_credits: Math.ceil(quote.credits) + 1,
-      });
-      const data = res.data || {};
-      if (data.error) throw new Error(data.error);
-      if ((data.images || []).length) { setImages(data.images); setBusy(""); return; }
-      if (!data.job_id) throw new Error("Aucune tâche renvoyée par Higgsfield.");
-      setJobId(data.job_id);
-      setBusy("poll");
-    } catch (e) {
-      setError(errorText(e));
       setBusy("");
     }
   }
@@ -266,15 +151,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
 
       <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-20 pt-8 sm:px-8">
         <div className="mx-auto w-full max-w-3xl">
-          {loadError ? (
-            <div className="py-24 text-center">
-              <h2 className="font-heading text-2xl font-semibold tracking-tight">Higgsfield n'est pas connecté</h2>
-              <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">{loadError}</p>
-              <Link to="/connexion" onClick={onClose} className="mt-6 inline-block rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground">
-                Connecter Higgsfield
-              </Link>
-            </div>
-          ) : !step ? (
+          {!step ? (
             <div className="flex items-center gap-3 py-24 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Préparation du parcours…
             </div>
@@ -333,10 +210,6 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
               {step.layout === "recap" && (
                 <FunnelRecapStep
                   traits={referenceTraits(choices)}
-                  credits={quote && quote.credits}
-                  engine={engine}
-                  onEngineChange={setEngine}
-                  ready={engine === "gpt" ? true : Boolean(quote)}
                   busy={busy}
                   brief={brief}
                   sheets={sheets}
@@ -344,7 +217,6 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
                     if (patch.brief !== undefined) setBrief(patch.brief);
                     if (patch.sheets !== undefined) setSheets(patch.sheets);
                   }}
-                  onRefresh={prepare}
                   onGenerate={generate}
                 />
               )}
