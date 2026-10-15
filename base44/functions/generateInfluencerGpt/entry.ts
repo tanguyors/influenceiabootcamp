@@ -19,14 +19,33 @@ const VIEWS = [
 ];
 
 // Étape 1 : neuf interprétations du personnage décrit, une par image, pour laisser le choix.
+// Pistes de structure du visage réparties sur les neuf propositions : sans elles, le moteur
+// décline neuf fois le même visage et le choix devient impossible.
+const VARIATION_AXES = [
+  "visage anguleux, pommettes hautes, sourcils fins",
+  "visage rond, joues pleines, mâchoire large",
+  "front haut, sourcils épais, nez droit",
+  "traits fins et longs, lèvres minces, menton discret",
+  "joues hautes, nez court, menton large",
+  "pommettes marquées, nez aquilin, regard profond",
+  "visage allongé, menton saillant, arcades marquées",
+  "traits doux, yeux légèrement tombants, bouche pleine",
+  "traits massifs, cou épais, arcade sourcilière lourde",
+];
+
+// Étape 1 : neuf propositions franchement différentes du même brief, pour laisser le choix.
+// Ce que le brief et les traits de signature fixent ne bouge pas ; tout le reste varie.
 function optionsPrompt(brief: string, details: string[]) {
   return [
-    "Neuf propositions de personnage, une par image : même archétype et mêmes traits de signature pour les neuf, mais chacune interprète le visage, le regard et la coiffure à sa façon, afin que l'utilisateur puisse choisir celle qu'il préfère.",
-    `Personnage : ${brief}`,
+    "Neuf propositions de personnage : neuf personnes visiblement différentes les unes des autres, qui partagent toutes exactement le même brief et les mêmes traits de signature. Au premier coup d'œil on doit voir neuf individus distincts, jamais neuf versions du même visage.",
+    `Personnage (commun aux neuf) : ${brief}`,
     details.length
-      ? `Signature features of this person, to render exactly and unmistakably on every proposal: ${details.join("; ")}. These features are the point of the character: never idealise, beautify, soften or omit them.`
+      ? `Signature features of this person, to render exactly and unmistakably on every proposal: ${details.join("; ")}. These features are the point of the character: never idealise, beautify, soften or omit them, and keep them identical across all nine proposals.`
       : "",
-    "Chaque image : un seul personnage, plan poitrine de face, regard vers l'objectif, même lumière naturelle et même fond uni gris clair pour les neuf, photo réaliste, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende.",
+    "Ce que le brief et les traits de signature fixent reste identique partout : même âge, même genre, mêmes yeux, mêmes cheveux, même pilosité, même style vestimentaire. Tout le reste varie largement d'une proposition à l'autre : structure du visage, forme du nez, des lèvres et du menton, densité des sourcils, grain de peau, expression, pose, tenue précise dans le style retenu, teinte du fond uni (gris clair, beige, blanc cassé, bleu très pâle).",
+    `Répartissez ces pistes de visage sur les neuf images, une piste par image : ${VARIATION_AXES.join(" ; ")}.`,
+    "Contrainte de cadrage pour les neuf : la tête, les épaules et le torse restent bien visibles (photo utilisable pour un transfert de mouvement) — cadrage du buste au plan américain, jamais un gros plan sur le seul visage.",
+    "Chaque image : une seule personne, photo réaliste, lumière naturelle de studio, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende.",
     "Le personnage correspond exactement à la description : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
   ].filter(Boolean).join("\n\n");
 }
