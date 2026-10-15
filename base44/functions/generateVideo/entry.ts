@@ -81,6 +81,14 @@ function supportsDuration(model, seconds) {
   return true;
 }
 
+// Photos du personnage, portrait principal d'abord : Higgsfield refuse le transfert de
+// mouvement quand la photo ne montre pas nettement tête, épaules et torse — une planche de
+// 9 vues, elle, n'est pas un portrait utilisable.
+function referencePhotos(influencer) {
+  const list = [influencer.reference_image, ...(Array.isArray(influencer.reference_images) ? influencer.reference_images : [])];
+  return Array.from(new Set(list)).filter(Boolean).slice(0, 8);
+}
+
 // Higgsfield ne joint aucun motif à une tâche interrompue. En pratique, Kling 3.0 motion
 // control abandonne les vidéos longues en 9:16 : durée × résolution dépasse son budget.
 function interruptionMessage(creation) {
@@ -141,9 +149,7 @@ async function relaunchWithMotionControl(base44, token, creation) {
     const ip = await base44.entities.Influencer.filter({ id: creation.influencer_id }, { limit: 1 });
     const influencer = (ip.items || [])[0];
     if (!influencer) return false;
-    const photos = (Array.isArray(influencer.reference_images) && influencer.reference_images.length
-      ? influencer.reference_images
-      : [influencer.reference_image]).filter(Boolean);
+    const photos = referencePhotos(influencer);
     if (!photos.length) return false;
 
     const sign = async (uri) => {
@@ -261,9 +267,7 @@ export default async function(req) {
     const influencer = (infPage.items || [])[0];
     if (!influencer) return Response.json({ error: "Influenceur introuvable" }, { status: 404 });
 
-    const photoUris = (Array.isArray(influencer.reference_images) && influencer.reference_images.length
-      ? influencer.reference_images
-      : [influencer.reference_image]).filter(Boolean).slice(0, 8);
+    const photoUris = referencePhotos(influencer);
     if (!photoUris.length) {
       return Response.json({ error: "Cet influenceur n'a aucune photo de référence." }, { status: 400 });
     }

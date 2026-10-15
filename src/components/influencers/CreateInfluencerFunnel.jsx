@@ -121,11 +121,14 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
         referenceNotes(choices, fullName, brief),
         brands.length ? `Marques citées : ${brands.join(", ")}` : "",
       ].filter(Boolean).join(" · ");
+      // Le portrait retenu passe en premier : c'est lui la photo de référence du personnage,
+      // et le transfert de mouvement exige une photo montrant tête, épaules et torse.
+      const refs = chosen ? [chosen, ...images] : images;
       const created = await base44.entities.Influencer.create({
         name: fullName,
         notes,
-        reference_image: images[0],
-        reference_images: images,
+        reference_image: refs[0],
+        reference_images: refs,
       });
       onCreated(created);
     } catch (e) {
