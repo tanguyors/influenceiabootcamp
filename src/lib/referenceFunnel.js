@@ -1,5 +1,5 @@
 // Funnel de création aligné sur le funnel de référence (cashfluencer.co/create) :
-// 26 étapes, mêmes sections, mêmes intitulés, mêmes choix et mêmes visuels (en français).
+// 24 étapes, mêmes sections, mêmes intitulés, mêmes choix et mêmes visuels (en français).
 // Chaque choix est relié à une option Higgsfield quand elle existe (champ `hf`).
 import { GENDER_KEY } from "@/lib/funnelAssets";
 
@@ -114,20 +114,6 @@ export const REFERENCE_STEPS = [
       ["curvy", "Pulpeuse", "body_type:body_curvy"],
       ["dad", "Bedaine", "body_type:body_heavy"],
       ["tall", "Grand & élancé", "body_type:body_slim"],
-    ]),
-  },
-  {
-    id: "q-height",
-    section: "Corps",
-    title: "Silhouette",
-    layout: "cards",
-    options: cards("q-height", [
-      ["avg", "Moyenne", "height:h_average"],
-      ["tall", "Grande", "height:h_tall"],
-      ["longlimbs", "Membres longs", "proportions:pr_longlimbs"],
-      ["shoulders", "Épaules larges", "proportions:pr_shoulders"],
-      ["waist", "Taille fine", "proportions:pr_waist"],
-      ["egg", "Corps œuf"],
     ]),
   },
   {
@@ -322,23 +308,6 @@ export const REFERENCE_STEPS = [
     ]),
   },
   {
-    id: "s-8",
-    section: "Contenu",
-    title: "Quel sujet ?",
-    layout: "cards",
-    options: cards("s-8", [
-      ["dance", "Danse"],
-      ["party", "Fête"],
-      ["sing", "Chant"],
-      ["romance", "Romance"],
-      ["comedy", "Comédie"],
-      ["fashion", "Mode"],
-      ["fitness", "Fitness"],
-      ["finance", "Argent"],
-      ["food", "Food"],
-    ]),
-  },
-  {
     id: "s-9",
     section: "Plateforme",
     title: "Quelle appli ?",
@@ -424,8 +393,8 @@ const GROUP_MAX = { proportions: 2, distinctive: 2, accessory: 3, freak_face: 2 
 
 // Étapes qui décrivent le personnage : elles seules alimentent le brief.
 const CHARACTER_STEPS = new Set([
-  "s-1", "s-2", "q-age", "s-3", "q-build", "q-height", "s-4", "s-4b", "s-5",
-  "q-eyes", "q-head", "q-feat", "q-fh", "q-df", "q-acc", "s-6", "s-7", "s-8",
+  "s-1", "s-2", "q-age", "s-3", "q-build", "s-4", "s-4b", "s-5",
+  "q-eyes", "q-head", "q-feat", "q-fh", "q-df", "q-acc", "s-6", "s-7",
 ]);
 
 // Réglages transmis à Higgsfield : les choix qui ont un équivalent, dans la limite
