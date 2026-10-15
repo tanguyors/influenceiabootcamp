@@ -134,7 +134,6 @@ export const REFERENCE_STEPS = [
       ["grey", "Gris", "hair_colour:hc_grey"],
       ["white", "Blanc", "hair_colour:hc_white"],
       ["pink", "Rose", "hair_colour:hc_pink"],
-      ["bald", "Chauve", "hair:hair_bald"],
     ]),
   },
   {
