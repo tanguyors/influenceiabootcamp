@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import { Loader2, ArrowLeft, Wand2, Info, Image as ImageIcon, Film, FileVideo, AlertTriangle } from "lucide-react";
@@ -10,7 +10,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import SignedImage from "@/components/SignedImage";
-import { findDemoVideo } from "@/lib/demoVideos";
 
 export default function Recreate() {
   const navigate = useNavigate();
@@ -25,9 +24,6 @@ export default function Recreate() {
   const [tools, setTools] = useState(null);
   const [connected, setConnected] = useState(null);
   const [credits, setCredits] = useState(null);
-  const [sourceStatus, setSourceStatus] = useState("idle");
-  const [sourceError, setSourceError] = useState("");
-  const fetchedFor = useRef("");
   const [form, setForm] = useState({
     aspect_ratio: "9:16",
     resolution: "1080p",
@@ -45,7 +41,6 @@ export default function Recreate() {
       setInfluencers(infPage.items || []);
       const vid = (vidPage.items || [])[0];
       if (vid) setVideo(vid);
-      else if (videoId) setVideo(findDemoVideo(videoId));
     } catch (e) {
       /* entities may not exist yet */
     }
@@ -65,31 +60,6 @@ export default function Recreate() {
   const selectedInfluencer = influencers.find((i) => i.id === activeId);
   const hasReferenceTransfer = tools?.some((t) => /reference|motion|transfer|control|character/i.test(t.name + " " + (t.description || "")));
   const hasSourceVideo = Boolean(video?.video_file_uri);
-  const needsSourceFile = Boolean(video?.id && !hasSourceVideo && ["tiktok", "instagram"].includes(video?.platform));
-
-  // Sans le fichier source, Higgsfield ne peut pas reprendre le mouvement de la référence : on le récupère d'abord.
-  async function fetchSource() {
-    setSourceStatus("fetching");
-    setSourceError("");
-    try {
-      const res = await base44.functions.invoke("viralScraper", { action: "fetchSource", viral_video_id: video.id });
-      const data = res.data || {};
-      if (data.error) throw new Error(data.error);
-      setVideo((v) => ({ ...v, video_file_uri: data.video_file_uri, duration: data.duration || v.duration }));
-      setSourceStatus("ready");
-      toast({ title: "Vidéo source récupérée", description: "Le mouvement de la référence sera repris à l'identique." });
-    } catch (e) {
-      setSourceError(e?.response?.data?.error || e.message);
-      setSourceStatus("error");
-    }
-  }
-
-  useEffect(() => {
-    if (!needsSourceFile || !video?.id) return;
-    if (fetchedFor.current === video.id) return;
-    fetchedFor.current = video.id;
-    fetchSource();
-  }, [needsSourceFile, video?.id]);
 
   async function launch() {
     if (!selectedInfluencer) {
@@ -127,9 +97,9 @@ export default function Recreate() {
       <PageShell title="Recréer une vidéo">
         <div className="rounded-xl border border-dashed border-black/15 bg-white p-10 text-center">
           <Film className="mx-auto h-8 w-8 text-black/25" />
-          <p className="mt-3 text-sm text-black/50">Choisissez d'abord une vidéo virale dans la bibliothèque.</p>
+          <p className="mt-3 text-sm text-black/50">Choisissez d'abord un modèle dans votre banque.</p>
           <Link to="/videos" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-black underline">
-            <ArrowLeft className="h-4 w-4" /> Aller à la bibliothèque
+            <ArrowLeft className="h-4 w-4" /> Aller à la banque de modèles
           </Link>
         </div>
       </PageShell>
@@ -157,18 +127,13 @@ export default function Recreate() {
             <div className="p-3">
               <p className="line-clamp-2 text-xs font-medium">{video?.title}</p>
               <p className="mt-1 text-[11px] text-black/40">{video?.platform} · {video?.category}</p>
-              {sourceStatus === "fetching" ? (
-                <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-black/50">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Récupération de la vidéo source…
-                </p>
-              ) : hasSourceVideo ? (
+              {hasSourceVideo ? (
                 <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-green-700"><FileVideo className="h-3 w-3" /> Vidéo source jointe</p>
-              ) : sourceStatus === "error" ? (
-                <div className="mt-1.5">
-                  <p className="text-[11px] leading-relaxed text-amber-700">Vidéo source indisponible : {sourceError}</p>
-                  <button onClick={fetchSource} className="mt-1 text-[11px] font-medium text-black underline">Réessayer</button>
-                </div>
-              ) : null}
+              ) : (
+                <p className="mt-1.5 text-[11px] leading-relaxed text-amber-700">
+                  Ce modèle n'a pas de fichier mp4 : ajoutez-le depuis <Link to="/videos" className="underline">la banque de modèles</Link> pour que le mouvement soit repris. Sinon, le résultat sera une adaptation.
+                </p>
+              )}
             </div>
           </div>
           <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
@@ -290,7 +255,7 @@ export default function Recreate() {
             <p className="mt-2 text-[11px] text-black/40">Le 1080p natif est privilégié ; une mise à l'échelle sera signalée si le modèle ne le permet pas. La musique originale n'est pas réutilisée automatiquement.</p>
             <Button
               onClick={launch}
-              disabled={launching || !selectedInfluencer || connected === false || sourceStatus === "fetching"}
+              disabled={launching || !selectedInfluencer || connected === false}
               className="mt-4 w-full bg-black text-white hover:bg-black/85"
             >
               {launching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}

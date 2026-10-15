@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { to: "/", label: "Tableau de bord", icon: LayoutDashboard, end: true },
   { to: "/influenceurs", label: "Mes influenceurs", icon: Users },
-  { to: "/videos", label: "Vidéos virales", icon: Flame },
+  { to: "/videos", label: "Banque de modèles", icon: Flame },
   { to: "/creations", label: "Mes créations", icon: Film },
   { to: "/connexion", label: "Connexion Higgsfield", icon: Plug },
 ];
