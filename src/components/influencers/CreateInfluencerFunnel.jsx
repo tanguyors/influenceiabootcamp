@@ -16,6 +16,7 @@ import {
   referenceTraits,
   stepGender,
 } from "@/lib/referenceFunnel";
+import { traitDetailsEn } from "@/lib/traitDetails";
 
 // Message lisible même quand le serveur renvoie une erreur HTTP (le texte utile est dans la réponse).
 function errorText(e) {
@@ -70,6 +71,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     try {
       const res = await base44.functions.invoke("generateInfluencerGpt", {
         brief: influencerBrief(choices, brief, brands, fullName),
+        details: traitDetailsEn(choices),
         count: sheets,
       });
       const data = res.data || {};

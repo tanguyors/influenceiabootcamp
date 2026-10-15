@@ -6,25 +6,29 @@ const MAX_IMAGES = 4;
 
 // Les 9 vues de la planche de référence (grille 3x3, du visage au plan large).
 const VIEWS = [
-  "très gros plan du visage de face",
+  "très gros plan du visage de face, cadrage serré sur les yeux et la bouche",
   "visage de trois-quarts gauche",
   "visage de trois-quarts droit",
   "profil gauche complet",
   "profil droit complet",
   "vue de dos",
-  "plan poitrine de face, souriant",
+  "plan poitrine de face, grand sourire montrant les dents",
   "plan américain",
   "plan pied entier de face",
 ];
 
-// Le brief du funnel décrit déjà le personnage : on y ajoute la composition de la
-// planche pour obtenir 9 vues exploitables comme référence d'influenceur.
-function promptFrom(brief: string) {
+// Le brief du funnel décrit déjà le personnage. On y ajoute la composition de la planche
+// et, surtout, les traits de signature en anglais : sans cette insistance, le moteur lisse
+// le visage et laisse tomber les détails fins (dents du bonheur, paupières lourdes, grill…).
+function promptFrom(brief: string, details: string[]) {
   return [
     `Planche de référence de personnage (character sheet) : une seule image composée d'une grille de 3 lignes sur 3 colonnes, 9 cases de taille égale, chacune montrant exactement la même personne sous un angle différent : ${VIEWS.join(", ")}.`,
     `Personnage : ${brief}`,
-    "Identité strictement identique dans les 9 cases (même visage, mêmes cheveux, même tenue, même morphologie), même lumière naturelle et même fond uni gris clair partout, photo réaliste, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende, espacement régulier entre les cases.",
-    "Le personnage correspond exactement à la description : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
+    details.length
+      ? `Signature features of this person, to render exactly and unmistakably in every view where they can be seen: ${details.join("; ")}. These features are the point of the character: never idealise, beautify, soften or omit them, and never replace the face with a generic attractive person.`
+      : "",
+    "Identité strictement identique dans les 9 cases (même visage, mêmes cheveux, même tenue, même morphologie), mêmes traits du visage au détail près (mêmes yeux, mêmes sourcils, mêmes lèvres, mêmes dents), même lumière naturelle et même fond uni gris clair partout, photo réaliste, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende, espacement régulier entre les cases.",
+    "Le personnage correspond exactement à la description et aux traits de signature listés : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
   ].filter(Boolean).join("\n\n");
 }
 
@@ -41,6 +45,12 @@ export default async function (req: any) {
     }
     const count = Math.min(Math.max(Number(body.count) || 1, 1), MAX_IMAGES);
 
+    // Traits de signature déjà traduits en anglais par le funnel (liste courte, bornée).
+    const details = (Array.isArray(body.details) ? body.details : [])
+      .map((item: any) => String(item || "").trim().slice(0, 180))
+      .filter(Boolean)
+      .slice(0, 24);
+
     const key = secrets.get("OPENAI_API_KEY");
     if (!key) {
       return Response.json({ error: "Clé OpenAI manquante : ajoutez le secret OPENAI_API_KEY." }, { status: 400 });
@@ -51,7 +61,7 @@ export default async function (req: any) {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: MODEL,
-        prompt: promptFrom(brief),
+        prompt: promptFrom(brief, details),
         n: count,
         size: "1024x1536",
         quality: "medium",
