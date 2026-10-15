@@ -19,6 +19,16 @@ const VIEWS = [
 ];
 
 // Étape 1 : neuf interprétations du personnage décrit, une par image, pour laisser le choix.
+// Rendu exigé sur toutes les images : sans ces consignes, le moteur lisse la peau et livre un
+// visage de synthèse, sans pores ni aspérités.
+const REALISM = [
+  "Rendu photographique de très haute fidélité, peau réelle et jamais lissée.",
+  "Grain de peau visible partout (pores, duvet, rides fines, taches, rougeurs légères, éventuelles cicatrices), aspérités et irrégularités naturelles, léger brillant du naturel, asymétrie discrète du visage.",
+  "Aucune retouche beauté : ni peau de porcelaine, ni lissage, ni flou artistique, ni effet plastique, ni rendu 3D ou illustration, ni aspect « image générée par IA ».",
+  "Les traits de signature gardent un aspect naturel : un regard coloré reste un vrai iris photographié (fibres, reflets, cils), jamais un œil qui brille ou une couleur d'effet spécial, et aucun trait n'est maquillé, idéalisé ou embelli.",
+  "Photo de studio : objectif 85 mm, lumière naturelle douce, netteté sur les yeux et la peau, aucune écriture, aucun logo, aucun cadre ni légende.",
+];
+
 // Pistes de structure du visage réparties sur les neuf propositions : sans elles, le moteur
 // décline neuf fois le même visage et le choix devient impossible.
 const VARIATION_AXES = [
@@ -45,7 +55,8 @@ function optionsPrompt(brief: string, details: string[]) {
     "Ce que le brief et les traits de signature fixent reste identique partout : même âge, même genre, mêmes yeux, mêmes cheveux, même pilosité, même style vestimentaire. Tout le reste varie largement d'une proposition à l'autre : structure du visage, forme du nez, des lèvres et du menton, densité des sourcils, grain de peau, expression, pose, tenue précise dans le style retenu, teinte du fond uni (gris clair, beige, blanc cassé, bleu très pâle).",
     `Répartissez ces pistes de visage sur les neuf images, une piste par image : ${VARIATION_AXES.join(" ; ")}.`,
     "Contrainte de cadrage pour les neuf : la tête, les épaules et le torse restent bien visibles (photo utilisable pour un transfert de mouvement) — cadrage du buste au plan américain, jamais un gros plan sur le seul visage.",
-    "Chaque image : une seule personne, photo réaliste, lumière naturelle de studio, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende.",
+    "Chaque image : une seule personne.",
+    REALISM.join(" "),
     "Le personnage correspond exactement à la description : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
   ].filter(Boolean).join("\n\n");
 }
@@ -61,7 +72,8 @@ function sheetPrompt(brief: string, details: string[]) {
     details.length
       ? `Signature features of this person, to render exactly and unmistakably in every view where they can be seen: ${details.join("; ")}. These features are the point of the character: never idealise, beautify, soften or omit them, and never replace the face with a generic attractive person.`
       : "",
-    "Identité strictement identique dans les 9 cases (même visage, mêmes cheveux, même tenue, même morphologie), mêmes traits du visage au détail près (mêmes yeux, mêmes sourcils, mêmes lèvres, mêmes dents), même lumière naturelle et même fond uni gris clair partout, photo réaliste, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende, espacement régulier entre les cases.",
+    "Identité strictement identique dans les 9 cases (même visage, mêmes cheveux, même tenue, même morphologie), mêmes traits du visage au détail près (mêmes yeux, mêmes sourcils, mêmes lèvres, mêmes dents), même lumière naturelle et même fond uni gris clair partout, espacement régulier entre les cases.",
+    REALISM.join(" "),
     "Le personnage correspond exactement à la description et aux traits de signature listés : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
   ].filter(Boolean).join("\n\n");
 }
