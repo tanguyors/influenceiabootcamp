@@ -69,7 +69,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     setError("");
     try {
       const res = await base44.functions.invoke("generateInfluencerGpt", {
-        brief: influencerBrief(choices, brief, brands),
+        brief: influencerBrief(choices, brief, brands, fullName),
         count: sheets,
       });
       const data = res.data || {};

@@ -34,7 +34,7 @@ export default async function (req: any) {
     if (!user) return Response.json({ error: "Non authentifié" }, { status: 401 });
 
     const body = await req.json().catch(() => ({}));
-    const brief = String(body.brief || "").trim().slice(0, 4000);
+    const brief = String(body.brief || "").trim().slice(0, 6000);
     if (brief.length < 3) {
       return Response.json({ error: "Décrivez le personnage avant de générer." }, { status: 400 });
     }

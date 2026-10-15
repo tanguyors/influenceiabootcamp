@@ -470,19 +470,22 @@ export function higgsfieldBrief(choices, brief) {
   ].filter(Boolean).join("\n").slice(0, 4000);
 }
 
-// Brief transmis au moteur de génération : l'univers saisi par l'utilisateur, puis
-// TOUS les choix du parcours (aucun n'est écarté) et les marques ajoutées à la main.
-export function influencerBrief(choices, brief, brands = []) {
+// Brief transmis au moteur de génération : TOUS les choix du parcours (aucun n'est écarté),
+// le nom du personnage, les marques ajoutées à la main, puis l'univers saisi par l'utilisateur.
+// Les choix passent en premier pour qu'une saisie libre très longue ne puisse jamais les écraser.
+export function influencerBrief(choices, brief, brands = [], name = "") {
   const lines = REFERENCE_STEPS
     .map((step) => [step.title, picked(step, choices).map((o) => o.label).join(", ")])
     .filter(([, values]) => values)
     .map(([title, values]) => `${title} : ${values}`);
+  if (name) lines.push(`Nom du personnage : ${name}`);
   if (brands.length) lines.push(`Marques souhaitées : ${brands.join(", ")}`);
 
+  const universe = String(brief || "").trim();
   return [
-    String(brief || "").trim(),
     lines.length ? `Choix à respecter :\n- ${lines.join("\n- ")}` : "",
-  ].filter(Boolean).join("\n\n").slice(0, 4000);
+    universe ? `Univers souhaité : ${universe}` : "",
+  ].filter(Boolean).join("\n\n").slice(0, 6000);
 }
 
 // Traits retenus, affichés sur le récapitulatif.
