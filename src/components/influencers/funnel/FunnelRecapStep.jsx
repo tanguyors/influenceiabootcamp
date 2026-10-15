@@ -30,7 +30,10 @@ export default function FunnelRecapStep({ traits, busy, brief, sheets, onChange,
       </div>
 
       <div className="mt-5">
-        <Label className="text-muted-foreground">Images générées</Label>
+        <Label className="text-muted-foreground">Planches générées</Label>
+        <p className="mt-1 text-xs text-muted-foreground/80">
+          Chaque planche réunit 9 vues du personnage : visage de face et de trois-quarts, profils, dos et plans larges.
+        </p>
         <div className="mt-2 flex gap-2">
           {SHEETS.map((n) => (
             <button
@@ -54,7 +57,7 @@ export default function FunnelRecapStep({ traits, busy, brief, sheets, onChange,
           Générer mon influenceur
         </Button>
         <span className="text-xs text-muted-foreground/80">
-          {sheets} image(s) facturée(s) sur votre compte OpenAI
+          {sheets} planche(s) de 9 vues, facturée(s) sur votre compte OpenAI
         </span>
       </div>
     </div>

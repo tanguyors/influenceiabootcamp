@@ -4,12 +4,26 @@ import { secrets } from "base44:runtime";
 const MODEL = "gpt-image-1";
 const MAX_IMAGES = 4;
 
-// Le brief du funnel décrit déjà le personnage : on y ajoute seulement les
-// contraintes de cadrage pour obtenir un portrait exploitable comme influenceur.
+// Les 9 vues de la planche de référence (grille 3x3, du visage au plan large).
+const VIEWS = [
+  "très gros plan du visage de face",
+  "visage de trois-quarts gauche",
+  "visage de trois-quarts droit",
+  "profil gauche complet",
+  "profil droit complet",
+  "vue de dos",
+  "plan poitrine de face, souriant",
+  "plan américain",
+  "plan pied entier de face",
+];
+
+// Le brief du funnel décrit déjà le personnage : on y ajoute la composition de la
+// planche pour obtenir 9 vues exploitables comme référence d'influenceur.
 function promptFrom(brief: string) {
   return [
-    brief,
-    "Portrait photo réaliste d'une seule personne, cadrage vertical 9:16, lumière naturelle, rendu authentique de réseaux sociaux, aucun texte ni logo dans l'image.",
+    `Planche de référence de personnage (character sheet) : une seule image composée d'une grille de 3 lignes sur 3 colonnes, 9 cases de taille égale, chacune montrant exactement la même personne sous un angle différent : ${VIEWS.join(", ")}.`,
+    `Personnage : ${brief}`,
+    "Identité strictement identique dans les 9 cases (même visage, mêmes cheveux, même tenue, même morphologie), même lumière naturelle et même fond uni gris clair partout, photo réaliste, pas de flou, aucune écriture, aucun logo, aucun cadre ni légende, espacement régulier entre les cases.",
   ].filter(Boolean).join("\n\n");
 }
 
