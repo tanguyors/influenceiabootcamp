@@ -16,7 +16,7 @@ export default function FunnelChoiceCard({ option, groupId, selected, onSelect }
             : "border-white/10 hover:border-white/40"
         }`}
       >
-        <Image src={image} alt={option.label} fittingType="fill" className="aspect-[3/5] w-full" />
+        <Image src={image} alt={option.label} fittingType="fill" className="aspect-[4/5] w-full object-cover object-top" />
         <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pb-3 pt-10 text-sm font-medium leading-snug text-white">
           {option.label}
         </span>
