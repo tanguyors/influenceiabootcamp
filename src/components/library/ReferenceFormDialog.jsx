@@ -88,16 +88,16 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
               {form.thumbnailPreview && <img src={form.thumbnailPreview} alt="" className="h-16 w-16 rounded-lg object-cover" />}
               <Input type="file" accept="image/*" onChange={onThumbnail} />
             </div>
-            <p className="mt-1 text-xs text-black/45">La vignette est stockée de façon privée (stored privately).</p>
+            <p className="mt-1 text-xs text-muted-foreground">La vignette est stockée de façon privée (stored privately).</p>
           </div>
           <div>
             <Label>Vidéo mp4</Label>
             <div className="flex items-center gap-3">
               <Input type="file" accept="video/mp4" onChange={onVideo} />
-              {form.videoFile && <span className="text-xs font-medium text-green-700">{form.videoFile.name}</span>}
+              {form.videoFile && <span className="text-xs font-medium text-primary">{form.videoFile.name}</span>}
             </div>
-            <p className="mt-1 text-xs text-black/45">Le transfert de mouvement reprend le mouvement de ce fichier (4 à 30 s). Il est stocké de façon privée (stored privately).</p>
-            <p className="mt-1 text-xs font-medium text-black/60">
+            <p className="mt-1 text-xs text-muted-foreground">Le transfert de mouvement reprend le mouvement de ce fichier (4 à 30 s). Il est stocké de façon privée (stored privately).</p>
+            <p className="mt-1 text-xs font-medium text-muted-foreground">
               {form.reading
                 ? "Lecture de la durée…"
                 : form.duration
@@ -108,7 +108,7 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Annuler</Button>
-          <Button onClick={save} disabled={saving} className="bg-black text-white hover:bg-black/85">
+          <Button onClick={save} disabled={saving} className="font-semibold">
             {saving ? <Loader2 className="mr-2 animate-spin" /> : null}
             Ajouter
           </Button>

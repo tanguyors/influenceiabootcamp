@@ -65,30 +65,30 @@ export default function Influencers() {
       title="Mes influenceurs"
       subtitle="Générez un personnage par IA ou importez vos propres photos. Plus il y a d'angles, mieux son apparence est conservée à chaque génération."
       actions={
-        <Button onClick={() => setFunnelOpen(true)} className="bg-black text-white hover:bg-black/85">
+        <Button onClick={() => setFunnelOpen(true)} className="font-semibold">
           <Plus className="mr-2 h-4 w-4" /> Créer ma star
         </Button>
       }
     >
       {items === null ? (
-        <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
+        <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : list.length === 0 ? (
         <EmptyState
           icon={Users}
           title="Aucun influenceur pour le moment"
           description="Créez votre personnage en quelques choix, ou importez vos propres photos. Il sera réutilisable à chaque génération."
-          action={<Button onClick={() => setFunnelOpen(true)} className="bg-black text-white hover:bg-black/85"><Plus className="mr-2 h-4 w-4" /> Créer mon premier influenceur</Button>}
+          action={<Button onClick={() => setFunnelOpen(true)} className="font-semibold"><Plus className="mr-2 h-4 w-4" /> Créer mon premier influenceur</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((inf) => (
-            <div key={inf.id} className={`group relative overflow-hidden rounded-xl border bg-white ${activeId === inf.id ? "border-black ring-2 ring-black" : "border-black/10"}`}>
+            <div key={inf.id} className={`group relative overflow-hidden rounded-xl border bg-card ${activeId === inf.id ? "border-primary ring-2 ring-primary" : "border-border"}`}>
               <button onClick={() => selectActive(inf.id)} className="block w-full text-left">
-                <div className="relative aspect-[3/4] bg-black/5">
+                <div className="relative aspect-[3/4] bg-secondary">
                   {photosOf(inf).length ? (
                     <SignedImage src={photosOf(inf)[0]} fittingType="fill" className="h-full w-full" />
                   ) : (
-                    <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-black/20" /></div>
+                    <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground/50" /></div>
                   )}
                   {photosOf(inf).length > 1 && (
                     <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
@@ -96,24 +96,24 @@ export default function Influencers() {
                     </span>
                   )}
                   {activeId === inf.id && (
-                    <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-black text-white">
+                    <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
                       <Check className="h-4 w-4" />
                     </div>
                   )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-heading text-base font-semibold tracking-tight">{inf.name}</h3>
-                  {inf.notes && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-black/50">{inf.notes}</p>}
+                  {inf.notes && <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">{inf.notes}</p>}
                   {photosOf(inf).length > 1 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
                       {photosOf(inf).slice(1).map((uri) => (
-                        <SignedImage key={uri} src={uri} fittingType="fill" className="h-12 w-12 rounded-md border border-black/10 bg-black/5" />
+                        <SignedImage key={uri} src={uri} fittingType="fill" className="h-12 w-12 rounded-md border border-border bg-secondary" />
                       ))}
                     </div>
                   )}
                 </div>
               </button>
-              <button onClick={() => remove(inf.id)} className="absolute bottom-3 right-3 rounded-md bg-white/80 p-1.5 text-black/40 opacity-0 transition hover:text-red-600 group-hover:opacity-100">
+              <button onClick={() => remove(inf.id)} className="absolute bottom-3 right-3 rounded-md bg-card/80 p-1.5 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>

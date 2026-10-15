@@ -80,7 +80,7 @@ export default function ViralLibrary() {
   }, [items, period, q]);
 
   const addButton = (
-    <Button onClick={() => setOpen(true)} className="bg-black text-white hover:bg-black/85">
+    <Button onClick={() => setOpen(true)} className="font-semibold">
       <Plus className="mr-2 h-4 w-4" /> Ajouter un modèle
     </Button>
   );
@@ -92,9 +92,9 @@ export default function ViralLibrary() {
       actions={addButton}
     >
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-black/10 bg-white p-4">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-black/30" />
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="relative min-w-[200px] flex-1">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="pl-9" />
         </div>
         <Select value={period} onValueChange={setPeriod}>
@@ -106,7 +106,7 @@ export default function ViralLibrary() {
       </div>
 
       {items === null ? (
-        <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-black/30" /></div>
+        <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : filtered.length === 0 ? (
         items.length === 0 ? (
           <EmptyState

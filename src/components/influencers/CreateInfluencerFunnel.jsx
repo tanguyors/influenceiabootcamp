@@ -182,29 +182,29 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-primary text-primary-foreground">
+    <div className="fixed inset-0 z-50 flex flex-col bg-background text-foreground">
       <header className="flex items-start gap-4 px-5 pb-2 pt-5 sm:px-8">
         <button
           type="button"
           onClick={() => setIndex((i) => Math.max(i - 1, 0))}
           disabled={!canGoBack}
           aria-label="Étape précédente"
-          className="mt-1 rounded-full p-2 text-primary-foreground/60 transition hover:bg-white/10 hover:text-primary-foreground disabled:opacity-25"
+          className="mt-1 rounded-full p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground disabled:opacity-25"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
 
         <div className="flex-1">
-          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-primary-foreground/40">
+          <div className="flex items-center justify-between text-[11px] uppercase tracking-[0.2em] text-primary">
             <span>{!step ? "Préparation" : running || images.length ? "Génération" : `Étape ${index + 1} / ${total}`}</span>
             {onImportPhotos && !running && !images.length && (
-              <button type="button" onClick={onImportPhotos} className="normal-case tracking-normal underline-offset-4 hover:text-primary-foreground hover:underline">
+              <button type="button" onClick={onImportPhotos} className="normal-case tracking-normal text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
                 Importer mes photos
               </button>
             )}
           </div>
-          <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-white/15">
-            <div className="h-full rounded-full bg-primary-foreground transition-all duration-300" style={{ width: `${progress}%` }} />
+          <div className="mt-3 h-[3px] w-full overflow-hidden rounded-full bg-secondary">
+            <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${progress}%` }} />
           </div>
         </div>
 
@@ -212,7 +212,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
           type="button"
           onClick={onClose}
           aria-label="Fermer"
-          className="mt-1 rounded-full p-2 text-primary-foreground/60 transition hover:bg-white/10 hover:text-primary-foreground"
+          className="mt-1 rounded-full p-2 text-muted-foreground transition hover:bg-secondary hover:text-foreground"
         >
           <X className="h-5 w-5" />
         </button>
@@ -223,13 +223,13 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
           {loadError ? (
             <div className="py-24 text-center">
               <h2 className="font-heading text-2xl font-semibold tracking-tight">Higgsfield n'est pas connecté</h2>
-              <p className="mx-auto mt-3 max-w-md text-sm text-primary-foreground/55">{loadError}</p>
-              <Link to="/connexion" onClick={onClose} className="mt-6 inline-block rounded-full bg-primary-foreground px-8 py-3 text-sm font-medium text-primary">
+              <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">{loadError}</p>
+              <Link to="/connexion" onClick={onClose} className="mt-6 inline-block rounded-full bg-primary px-8 py-3 text-sm font-semibold text-primary-foreground">
                 Connecter Higgsfield
               </Link>
             </div>
           ) : !step ? (
-            <div className="flex items-center gap-3 py-24 text-sm text-primary-foreground/50">
+            <div className="flex items-center gap-3 py-24 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" /> Préparation du parcours…
             </div>
           ) : running || images.length ? (
@@ -264,7 +264,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
             />
           )}
 
-          {error && <p className="mt-8 text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-8 text-sm text-destructive">{error}</p>}
         </div>
       </div>
     </div>

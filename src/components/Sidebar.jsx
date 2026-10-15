@@ -12,14 +12,14 @@ const navItems = [
 
 export default function Sidebar() {
   return (
-    <aside className="flex h-full w-64 flex-col bg-[#111111] text-white">
-      <div className="flex items-center gap-2.5 px-6 py-6 border-b border-white/10">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-[#111111]">
+    <aside className="flex h-full w-64 flex-col border-r border-border bg-card text-foreground">
+      <div className="flex items-center gap-2.5 border-b border-border px-6 py-6">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
           <Sparkles className="h-5 w-5" />
         </div>
         <div className="leading-tight">
           <div className="font-heading text-[15px] font-semibold tracking-tight">InfluenceIA</div>
-          <div className="text-[11px] text-white/50">Influenceur IA · Vidéos virales</div>
+          <div className="text-[11px] text-muted-foreground">Influenceur IA · Vidéos virales</div>
         </div>
       </div>
 
@@ -35,8 +35,8 @@ export default function Sidebar() {
                 cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
                   isActive
-                    ? "bg-white text-[#111111]"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
                 )
               }
             >
@@ -47,8 +47,8 @@ export default function Sidebar() {
         })}
       </nav>
 
-      <div className="px-6 py-5 border-t border-white/10">
-        <p className="text-[11px] leading-relaxed text-white/40">
+      <div className="border-t border-border px-6 py-5">
+        <p className="text-[11px] leading-relaxed text-muted-foreground/70">
           Propulsé par votre serveur MCP Higgsfield. Identifiants protégés côté serveur.
         </p>
       </div>

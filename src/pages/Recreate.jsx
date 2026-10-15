@@ -95,10 +95,10 @@ export default function Recreate() {
   if (!videoId) {
     return (
       <PageShell title="Recréer une vidéo">
-        <div className="rounded-xl border border-dashed border-black/15 bg-white p-10 text-center">
-          <Film className="mx-auto h-8 w-8 text-black/25" />
-          <p className="mt-3 text-sm text-black/50">Choisissez d'abord un modèle dans votre banque.</p>
-          <Link to="/videos" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-black underline">
+        <div className="rounded-xl border border-dashed border-border bg-card p-10 text-center">
+          <Film className="mx-auto h-8 w-8 text-muted-foreground/50" />
+          <p className="mt-3 text-sm text-muted-foreground">Choisissez d'abord un modèle dans votre banque.</p>
+          <Link to="/videos" className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary underline">
             <ArrowLeft className="h-4 w-4" /> Aller à la banque de modèles
           </Link>
         </div>
@@ -110,39 +110,39 @@ export default function Recreate() {
     <PageShell
       title="Recréer avec mon influenceur"
       subtitle="Votre personnage remplace la personne de la vidéo : le cadre, la caméra et le mouvement de l'original sont repris. Le rendu reste une adaptation, selon les capacités du modèle."
-      actions={<Link to="/videos" className="inline-flex items-center gap-1.5 text-sm text-black/60 hover:text-black"><ArrowLeft className="h-4 w-4" /> Retour</Link>}
+      actions={<Link to="/videos" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"><ArrowLeft className="h-4 w-4" /> Retour</Link>}
     >
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Side by side */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
-            <div className="border-b border-black/10 px-3 py-2 text-xs font-medium text-black/60">Référence</div>
-            <div className="relative aspect-[9/16] bg-black/5">
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">Référence</div>
+            <div className="relative aspect-[9/16] bg-secondary">
               {video?.thumbnail_url ? (
                 <SignedImage src={video.thumbnail_url} className="h-full w-full" />
               ) : (
-                <div className="flex h-full items-center justify-center"><Film className="h-8 w-8 text-black/20" /></div>
+                <div className="flex h-full items-center justify-center"><Film className="h-8 w-8 text-muted-foreground/50" /></div>
               )}
             </div>
             <div className="p-3">
               <p className="line-clamp-2 text-xs font-medium">{video?.title}</p>
-              <p className="mt-1 text-[11px] text-black/40">{video?.platform} · {video?.category}</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">{video?.platform} · {video?.category}</p>
               {hasSourceVideo ? (
-                <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-green-700"><FileVideo className="h-3 w-3" /> Vidéo source jointe</p>
+                <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] font-medium text-primary"><FileVideo className="h-3 w-3" /> Vidéo source jointe</p>
               ) : (
-                <p className="mt-1.5 text-[11px] leading-relaxed text-amber-700">
+                <p className="mt-1.5 text-[11px] leading-relaxed text-amber-300">
                   Ce modèle n'a pas de fichier mp4 : ajoutez-le depuis <Link to="/videos" className="underline">la banque de modèles</Link> pour que le mouvement soit repris. Sinon, le résultat sera une adaptation.
                 </p>
               )}
             </div>
           </div>
-          <div className="overflow-hidden rounded-xl border border-black/10 bg-white">
-            <div className="border-b border-black/10 px-3 py-2 text-xs font-medium text-black/60">Mon influenceur</div>
-            <div className="relative aspect-[9/16] bg-black/5">
+          <div className="overflow-hidden rounded-xl border border-border bg-card">
+            <div className="border-b border-border px-3 py-2 text-xs font-medium text-muted-foreground">Mon influenceur</div>
+            <div className="relative aspect-[9/16] bg-secondary">
               {selectedInfluencer?.reference_image ? (
                 <SignedImage src={selectedInfluencer.reference_image} className="h-full w-full" />
               ) : (
-                <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-black/20" /></div>
+                <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground/50" /></div>
               )}
             </div>
             <div className="p-3">
@@ -154,17 +154,17 @@ export default function Recreate() {
         {/* Controls */}
         <div className="space-y-5">
           {/* Influencer picker */}
-          <div className="rounded-xl border border-black/10 bg-white p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <Label className="text-xs">Choisir un influenceur</Label>
             {influencers.length === 0 ? (
-              <p className="mt-2 text-xs text-black/50">Aucun influenceur. <Link to="/influenceurs" className="underline">Créez-en un</Link>.</p>
+              <p className="mt-2 text-xs text-muted-foreground">Aucun influenceur. <Link to="/influenceurs" className="underline">Créez-en un</Link>.</p>
             ) : (
               <div className="mt-2 flex flex-wrap gap-2">
                 {influencers.map((inf) => (
                   <button
                     key={inf.id}
                     onClick={() => { setActiveId(inf.id); localStorage.setItem("influenceia.activeInfluencer", inf.id); }}
-                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium ${activeId === inf.id ? "border-black bg-black text-white" : "border-black/15 text-black/70 hover:bg-black/5"}`}
+                    className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${activeId === inf.id ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground hover:bg-secondary hover:text-foreground"}`}
                   >
                     {inf.name}
                   </button>
@@ -175,9 +175,9 @@ export default function Recreate() {
 
           {/* Connexion Higgsfield */}
           {connected === false && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-600" />
-              <p className="text-xs leading-relaxed text-amber-900">
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-400" />
+              <p className="text-xs leading-relaxed text-amber-200/90">
                 Compte Higgsfield non connecté. Connectez-le depuis <Link to="/connexion" className="underline">Connexion Higgsfield</Link> pour pouvoir générer.
               </p>
             </div>
@@ -185,9 +185,9 @@ export default function Recreate() {
 
           {/* Crédits Higgsfield */}
           {connected && credits === 0 && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/70 p-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-600" />
-              <p className="text-xs leading-relaxed text-amber-900">
+            <div className="flex items-start gap-2.5 rounded-lg border border-amber-500/25 bg-amber-500/10 p-3">
+              <AlertTriangle className="mt-0.5 h-4 w-4 flex-none text-amber-400" />
+              <p className="text-xs leading-relaxed text-amber-200/90">
                 Votre compte Higgsfield n'a aucun crédit : la génération échouera. Rechargez votre compte Higgsfield, puis relancez.
               </p>
             </div>
@@ -195,9 +195,9 @@ export default function Recreate() {
 
           {/* Capability notice */}
           {tools !== null && connected && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-blue-200 bg-blue-50/60 p-3">
-              <Info className="mt-0.5 h-4 w-4 flex-none text-blue-600" />
-              <p className="text-xs leading-relaxed text-blue-800">
+            <div className="flex items-start gap-2.5 rounded-lg border border-sky-500/25 bg-sky-500/10 p-3">
+              <Info className="mt-0.5 h-4 w-4 flex-none text-sky-400" />
+              <p className="text-xs leading-relaxed text-sky-200/90">
                 {hasReferenceTransfer
                   ? "Transfert de mouvement / référence détecté : la référence sera utilisée pour le cadrage et le rythme."
                   : "Aucun outil de transfert de mouvement détecté. La génération se fera à partir de l'image et du texte : le résultat sera une adaptation, pas une reproduction des mouvements."}
@@ -206,9 +206,9 @@ export default function Recreate() {
           )}
 
           {/* Params */}
-          <div className="rounded-xl border border-black/10 bg-white p-4">
+          <div className="rounded-xl border border-border bg-card p-4">
             <h3 className="font-heading text-sm font-semibold tracking-tight">Direction visuelle</h3>
-            <p className="mt-1 text-[11px] text-black/45">
+            <p className="mt-1 text-[11px] text-muted-foreground">
               Le modèle et la durée sont gérés automatiquement : la durée est exactement celle de la vidéo d'origine.
             </p>
             <div className="mt-3 grid grid-cols-2 gap-3">
@@ -244,19 +244,19 @@ export default function Recreate() {
           </div>
 
           {/* Summary + launch */}
-          <div className="rounded-xl border border-black/10 bg-white p-4">
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-black/55">
-              <span>Modèle : <strong>automatique</strong></span>
-              <span>Mode : <strong>{hasSourceVideo ? "cadre et mouvement de l'original, votre personnage à la place de la personne" : "adaptation sans fichier source"}</strong></span>
-              <span>Durée : <strong>identique à la vidéo d'origine</strong></span>
-              <span>Format : <strong>{form.aspect_ratio}</strong></span>
-              <span>Résolution : <strong>{form.resolution}</strong></span>
+          <div className="rounded-xl border border-border bg-card p-4">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <span>Modèle : <strong className="text-foreground">automatique</strong></span>
+              <span>Mode : <strong className="text-foreground">{hasSourceVideo ? "cadre et mouvement de l'original, votre personnage à la place de la personne" : "adaptation sans fichier source"}</strong></span>
+              <span>Durée : <strong className="text-foreground">identique à la vidéo d'origine</strong></span>
+              <span>Format : <strong className="text-foreground">{form.aspect_ratio}</strong></span>
+              <span>Résolution : <strong className="text-foreground">{form.resolution}</strong></span>
             </div>
-            <p className="mt-2 text-[11px] text-black/40">Le 1080p natif est privilégié ; une mise à l'échelle sera signalée si le modèle ne le permet pas. La musique originale n'est pas réutilisée automatiquement.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground/80">Le 1080p natif est privilégié ; une mise à l'échelle sera signalée si le modèle ne le permet pas. La musique originale n'est pas réutilisée automatiquement.</p>
             <Button
               onClick={launch}
               disabled={launching || !selectedInfluencer || connected === false}
-              className="mt-4 w-full bg-black text-white hover:bg-black/85"
+              className="mt-4 w-full font-semibold"
             >
               {launching ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
               {launching ? "Lancement…" : "Lancer la génération"}

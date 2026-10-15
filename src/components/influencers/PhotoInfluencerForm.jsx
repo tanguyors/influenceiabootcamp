@@ -59,7 +59,7 @@ export default function PhotoInfluencerForm({ onCreated }) {
     <div className="space-y-4">
       <div>
         <Label>Photos de référence</Label>
-        <p className="mb-2 text-xs text-black/45">
+        <p className="mb-2 text-xs text-muted-foreground">
           Ajoutez plusieurs photos du personnage (visage de face, profil, plan large). Plus il y en a, mieux Higgsfield le reproduit. Stockées de façon privée (stored privately).
         </p>
         {form.previews.length > 0 && (
@@ -70,7 +70,7 @@ export default function PhotoInfluencerForm({ onCreated }) {
                 <button
                   type="button"
                   onClick={() => removePhoto(i)}
-                  className="absolute -right-1.5 -top-1.5 rounded-full bg-black p-0.5 text-white"
+                  className="absolute -right-1.5 -top-1.5 rounded-full bg-primary p-0.5 text-primary-foreground"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -79,7 +79,7 @@ export default function PhotoInfluencerForm({ onCreated }) {
           </div>
         )}
         <Input type="file" accept="image/*" multiple onChange={onFile} />
-        <p className="mt-1 text-xs text-black/40">
+        <p className="mt-1 text-xs text-muted-foreground">
           {form.files.length ? `${form.files.length} photo(s) sélectionnée(s)` : "Aucune photo sélectionnée"}
         </p>
       </div>
@@ -92,7 +92,7 @@ export default function PhotoInfluencerForm({ onCreated }) {
         <Textarea id="photo-notes" value={form.notes} onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))} placeholder="Style, tenue habituelle, ton…" rows={3} />
       </div>
       <div className="flex justify-end">
-        <Button onClick={save} disabled={saving} className="bg-black text-white hover:bg-black/85">
+        <Button onClick={save} disabled={saving} className="font-semibold">
           {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Créer
         </Button>
       </div>
