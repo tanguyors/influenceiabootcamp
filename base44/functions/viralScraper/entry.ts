@@ -8,17 +8,30 @@ const INSTAGRAM_ACTOR = "apify~instagram-scraper";
 const MIN_VIEWS = { tiktok: 1000000, instagram: 100000 };
 
 // Hashtags de découverte par catégorie de la bibliothèque.
+// Tags russophones : le contenu russe est tagué en russe par ses créateurs,
+// c'est le seul repère fiable quelle que soit la région du proxy.
 const CATEGORY_HASHTAGS = {
-  danse: ["dance", "dancechallenge"],
-  lifestyle: ["lifestyle", "dayinmylife"],
-  humour: ["humour", "funny"],
-  beaute: ["beauty", "makeup"],
-  fitness: ["fitness", "workout"],
-  mode: ["fashion", "ootd"],
-  food: ["food", "recipe"],
-  voyage: ["travel", "voyage"],
-  tech: ["tech", "gadget"],
+  danse: ["танцы", "танцевальныйчеллендж"],
+  lifestyle: ["лайфхак", "деньизжизни"],
+  humour: ["юмор", "приколы"],
+  beaute: ["красота", "макияж"],
+  fitness: ["фитнес", "тренировка"],
+  mode: ["мода", "образ"],
+  food: ["еда", "рецепт"],
+  voyage: ["путешествия", "путешествие"],
+  tech: ["технологии", "гаджеты"],
 };
+
+// Le fil TikTok dépend fortement du pays d'où part la requête : le proxy russe
+// fait remonter des publications russes.
+const PROXY_COUNTRY = "RU";
+
+// La bibliothèque cible le contenu russophone : on vérifie le texte de la
+// publication (légende et hashtags), sinon des vidéos d'autres pays passent.
+const CYRILLIC = /[\u0400-\u04FF]/;
+function isRussian(text) {
+  return CYRILLIC.test(String(text || ""));
+}
 
 async function runActor(actor, input, token, limit) {
   const url = `https://api.apify.com/v2/acts/${actor}/run-sync-get-dataset-items?limit=${limit}&timeout=110`;
@@ -220,9 +233,11 @@ export default async function(req) {
           shouldDownloadVideos: false,
           shouldDownloadCovers: false,
           excludePinnedPosts: false,
-          proxyCountryCode: "None",
+          proxyCountryCode: PROXY_COUNTRY,
         }, token, fetchCount);
-        return items.map((i) => mapTikTok(i, category)).filter(Boolean).filter((v) => isViral(v, MIN_VIEWS.tiktok));
+        return items.map((i) => mapTikTok(i, category)).filter(Boolean)
+          .filter((v) => isViral(v, MIN_VIEWS.tiktok))
+          .filter((v) => isRussian(v.title));
       }
       const items = await runActor(INSTAGRAM_ACTOR, {
         directUrls: hashtags.map((h) => `https://www.instagram.com/explore/tags/${h}/`),
@@ -230,7 +245,9 @@ export default async function(req) {
         resultsLimit: fetchCount,
         addParentData: false,
       }, token, fetchCount);
-      return items.map((i) => mapInstagram(i, category)).filter(Boolean).filter((v) => isViral(v, MIN_VIEWS.instagram));
+      return items.map((i) => mapInstagram(i, category)).filter(Boolean)
+        .filter((v) => isViral(v, MIN_VIEWS.instagram))
+        .filter((v) => isRussian(v.title));
     });
 
     const settled = await Promise.allSettled(jobs);
