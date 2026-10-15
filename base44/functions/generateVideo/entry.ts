@@ -1,29 +1,6 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { getAccessToken, callTool } from "../../shared/higgsfield.ts";
-
-/* ----------------------------- Utilitaires MCP ---------------------------- */
-
-function resultText(res) {
-  if (!res) return "";
-  if (typeof res === "string") return res;
-  if (Array.isArray(res.content)) return res.content.map((c) => (c && c.text) || "").join(" ");
-  if (res.text) return res.text;
-  return "";
-}
-
-// Les URLs du résultat uniquement : le sous-objet "params" ne contient que l'écho de la requête
-// (les médias importés), jamais la vidéo produite.
-function collectStrings(value, out = []) {
-  if (typeof value === "string") out.push(value);
-  else if (Array.isArray(value)) for (const v of value) collectStrings(v, out);
-  else if (value && typeof value === "object") {
-    for (const [key, v] of Object.entries(value)) {
-      if (key === "params") continue;
-      collectStrings(v, out);
-    }
-  }
-  return out;
-}
+import { resultText, collectStrings } from "../../shared/mcp.ts";
 
 const VIDEO_RE = /https?:\/\/[^\s"'<>]+\.(mp4|mov|webm)(\?[^\s"'<>]*)?/i;
 
