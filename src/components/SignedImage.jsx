@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
 import { Image as ContentImage } from "@/components/ui/image";
+import { cn } from "@/lib/utils";
 
 // Renders a privately-stored file (file_uri) by obtaining a short-lived signed URL.
 export default function SignedImage({ src, alt = "", className, fittingType = "fill" }) {
@@ -18,5 +19,14 @@ export default function SignedImage({ src, alt = "", className, fittingType = "f
   }, [src]);
 
   if (!url) return null;
-  return <ContentImage src={url} alt={alt} className={className} fittingType={fittingType} />;
+  // Les fichiers privés ne passent pas par le redimensionnement automatique : le cadrage
+  // demandé (remplir / contenir) doit donc être appliqué ici, sinon l'image est étirée.
+  return (
+    <ContentImage
+      src={url}
+      alt={alt}
+      fittingType={fittingType}
+      className={cn(fittingType === "fit" ? "object-contain" : "object-cover", className)}
+    />
+  );
 }

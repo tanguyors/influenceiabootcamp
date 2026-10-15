@@ -86,7 +86,7 @@ export default function Influencers() {
               <button onClick={() => selectActive(inf.id)} className="block w-full text-left">
                 <div className="relative aspect-[3/4] bg-secondary">
                   {photosOf(inf).length ? (
-                    <SignedImage src={photosOf(inf)[0]} fittingType="fill" className="h-full w-full" />
+                    <SignedImage src={photosOf(inf)[0]} fittingType="fit" className="h-full w-full" />
                   ) : (
                     <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground/50" /></div>
                   )}
