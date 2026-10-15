@@ -1,11 +1,12 @@
-// Lit la durée réelle du fichier vidéo dans le navigateur, avant l'envoi.
-export function readVideoDuration(file) {
+// Lit la durée réelle d'une vidéo dans le navigateur : fichier choisi ou URL signée.
+export function readVideoDuration(source) {
   return new Promise((resolve) => {
-    const url = URL.createObjectURL(file);
+    const isFile = typeof source !== "string";
+    const url = isFile ? URL.createObjectURL(source) : source;
     const el = document.createElement("video");
     el.preload = "metadata";
     const done = (value) => {
-      URL.revokeObjectURL(url);
+      if (isFile) URL.revokeObjectURL(url);
       resolve(value);
     };
     el.onloadedmetadata = () => done(Number.isFinite(el.duration) ? Math.round(el.duration) : null);

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { readVideoDuration } from "@/lib/videoDuration";
+import VideoLinkField from "@/components/library/VideoLinkField";
 
 const EMPTY = {
   title: "",
@@ -21,6 +22,7 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
   const { toast } = useToast();
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
+  const [remote, setRemote] = useState(null);
 
   function onThumbnail(e) {
     const file = e.target.files?.[0];
@@ -37,25 +39,26 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
   }
 
   async function save() {
-    if (!form.title.trim() || !form.videoFile) {
-      toast({ title: "Titre et fichier mp4 requis", variant: "destructive" });
+    // La vidéo vient du lien téléchargé, ou du fichier mp4 choisi.
+    if (!form.title.trim() || (!form.videoFile && !remote)) {
+      toast({ title: "Titre et vidéo requis", variant: "destructive" });
       return;
     }
     setSaving(true);
     try {
-      let thumbnail_url = "";
+      let thumbnail_url = (remote && remote.thumbnail_url) || "";
       if (form.thumbnailFile) {
         const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: form.thumbnailFile });
         thumbnail_url = file_uri;
       }
-      let video_file_uri = "";
+      let video_file_uri = (remote && remote.video_file_uri) || "";
       if (form.videoFile) {
         const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: form.videoFile });
         video_file_uri = file_uri;
       }
       const created = await base44.entities.ViralVideo.create({
         title: form.title.trim(),
-        duration: form.duration || undefined,
+        duration: form.duration || (remote && remote.duration) || undefined,
         thumbnail_url,
         video_file_uri,
         published_date: new Date().toISOString(),
@@ -64,6 +67,7 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
       });
       onCreated(created);
       setForm(EMPTY);
+      setRemote(null);
       onOpenChange(false);
       toast({ title: "Modèle ajouté" });
     } catch (e) {
@@ -78,6 +82,17 @@ export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
       <DialogContent className="sm:max-w-md">
         <DialogHeader><DialogTitle>Ajouter un modèle</DialogTitle></DialogHeader>
         <div className="space-y-4 py-2">
+          <VideoLinkField
+            remote={remote}
+            onLoaded={(data) => {
+              setRemote(data);
+              setForm((s) => ({
+                ...s,
+                title: s.title.trim() ? s.title : data.title || "",
+                duration: data.duration || s.duration,
+              }));
+            }}
+          />
           <div>
             <Label htmlFor="rtitle">Titre</Label>
             <Input id="rtitle" value={form.title} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} placeholder="Description courte" />
