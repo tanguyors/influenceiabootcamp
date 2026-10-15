@@ -1,9 +1,11 @@
 import { Check } from "lucide-react";
 import { Image } from "@/components/ui/image";
 import { optionVisual } from "@/lib/influencerFunnel";
+import { frChoiceLabel } from "@/lib/funnelLabelsFr";
 
 export default function FunnelChoiceCard({ option, groupId, gender, selected, onSelect }) {
   const { image } = optionVisual(groupId, option, gender);
+  const label = frChoiceLabel(option.label, groupId);
 
   if (image) {
     return (
@@ -16,9 +18,9 @@ export default function FunnelChoiceCard({ option, groupId, gender, selected, on
             : "border-border hover:border-muted-foreground/40"
         }`}
       >
-        <Image src={image} alt={option.label} fittingType="fill" className="aspect-[4/5] w-full object-cover object-top" />
+        <Image src={image} alt={label} fittingType="fill" className="aspect-[4/5] w-full object-cover object-top" />
         <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pb-3 pt-10 text-sm font-medium leading-snug text-white">
-          {option.label}
+          {label}
         </span>
         {selected && (
           <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
@@ -40,9 +42,9 @@ export default function FunnelChoiceCard({ option, groupId, gender, selected, on
       }`}
     >
       <span className="flex h-14 w-14 items-center justify-center rounded-full bg-secondary text-lg font-semibold text-muted-foreground">
-        {option.label.slice(0, 1).toUpperCase()}
+        {label.slice(0, 1).toUpperCase()}
       </span>
-      <span className="text-sm font-medium leading-snug">{option.label}</span>
+      <span className="text-sm font-medium leading-snug">{label}</span>
       {selected && <Check className="absolute right-3 top-3 h-4 w-4 text-primary" />}
     </button>
   );

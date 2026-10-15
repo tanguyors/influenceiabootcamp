@@ -1,4 +1,6 @@
 // Libellés français des traits du générateur d'influenceurs Higgsfield.
+import { frChoiceLabel } from "@/lib/funnelLabelsFr";
+
 export const TRAIT_LABELS = {
   gender: "Genre",
   body_type: "Morphologie",
@@ -25,7 +27,7 @@ export function groupLabel(group) {
 function optionLabel(groups, groupId, optionId) {
   const group = (groups || []).find((g) => g.id === groupId);
   const option = ((group && group.options) || []).find((o) => o.id === optionId);
-  return (option && option.label) || optionId;
+  return frChoiceLabel((option && option.label) || optionId, groupId);
 }
 
 // Traits finalement retenus par Higgsfield (les groupes non choisis sont complétés par lui).
