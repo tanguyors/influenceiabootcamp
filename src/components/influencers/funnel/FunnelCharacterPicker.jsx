@@ -8,7 +8,7 @@ export default function FunnelCharacterPicker({ options, value, onChange, busy, 
     <div className="text-center">
       <h2 className="font-heading text-3xl font-semibold tracking-tight sm:text-4xl">Choisissez votre personnage</h2>
       <p className="mx-auto mt-3 max-w-lg text-sm text-muted-foreground">
-        9 propositions issues de votre parcours. Sa planche de référence de 9 vues sera générée à partir de celle
+        {options.length} propositions issues de votre parcours. Sa planche de référence de 9 vues sera générée à partir de celle
         que vous retenez.
       </p>
 

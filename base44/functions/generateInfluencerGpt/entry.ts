@@ -43,21 +43,21 @@ const VARIATION_AXES = [
   "traits massifs, cou épais, arcade sourcilière lourde",
 ];
 
-// Étape 1 : neuf propositions franchement différentes du même brief, pour laisser le choix.
-// Ce que le brief et les traits de signature fixent ne bouge pas ; tout le reste varie.
-function optionsPrompt(brief: string, details: string[]) {
+// Une seule identité et une seule photographie par appel : aucune instruction de série
+// dans le prompt, sinon le moteur dessine la série entière à l'intérieur de chaque image.
+function optionsPrompt(brief, details, variant) {
+  const backgrounds = ["gris clair", "beige clair", "blanc cassé", "bleu très pâle"];
   return [
-    "Neuf propositions de personnage : neuf personnes visiblement différentes les unes des autres, qui partagent toutes exactement le même brief et les mêmes traits de signature. Au premier coup d'œil on doit voir neuf individus distincts, jamais neuf versions du même visage.",
-    `Personnage (commun aux neuf) : ${brief}`,
+    "EXACTLY ONE PHOTOGRAPH OF ONE PERSON. One uninterrupted photographic scene, one head and one body. No collage, no grid, no contact sheet, no character sheet, no panels, no montage, no inset photographs, no multiple views, no other people, no reflections of people.",
+    `Attributs du personnage à respecter : ${brief}`,
     details.length
-      ? `Signature features of this person, to render exactly and unmistakably on every proposal: ${details.join("; ")}. These features are the point of the character: never idealise, beautify, soften or omit them, and keep them identical across all nine proposals.`
+      ? `Mandatory signature features, rendered exactly and unmistakably on this single person: ${details.join("; ")}. Never idealise, beautify, soften or omit them.`
       : "",
-    "Ce que le brief et les traits de signature fixent reste identique partout : même âge, même genre, mêmes yeux, mêmes cheveux, même pilosité, même style vestimentaire. Tout le reste varie largement d'une proposition à l'autre : structure du visage, forme du nez, des lèvres et du menton, densité des sourcils, grain de peau, expression, pose, tenue précise dans le style retenu, teinte du fond uni (gris clair, beige, blanc cassé, bleu très pâle).",
-    `Répartissez ces pistes de visage sur les neuf images, une piste par image : ${VARIATION_AXES.join(" ; ")}.`,
-    "Contrainte de cadrage pour les neuf : la tête, les épaules et le torse restent bien visibles (photo utilisable pour un transfert de mouvement) — cadrage du buste au plan américain, jamais un gros plan sur le seul visage.",
-    "Chaque image : une seule personne.",
+    `Direction de structure faciale pour cette personne uniquement : ${VARIATION_AXES[variant]}. Elle s'applique seulement aux caractéristiques non définies par les choix utilisateur. Les attributs choisis et les traits interdits ont toujours priorité : ne modifiez jamais l'âge, le genre, l'origine, la morphologie, les yeux, les cheveux, la pilosité ou un autre trait explicitement fixé.`,
+    "Créez une identité individuelle originale, sans copier de célébrité. Conservez une texture de peau réaliste et une expression naturelle, sans caricature.",
+    `Une seule personne de face, regard vers l'objectif, tête entière avec marge au-dessus, épaules et torse bien visibles jusqu'au bas de la poitrine. Une seule tenue dans le style choisi, un seul fond uni ${backgrounds[variant % backgrounds.length]}.`,
     REALISM.join(" "),
-    "Le personnage correspond exactement à la description : n'inventez aucun détail, bijou, marque ou trait qui n'y figure pas.",
+    "Livrez une photographie unique de cette seule personne, jamais une planche de propositions. N'ajoutez aucun détail, bijou, marque ou trait exclu du brief.",
   ].filter(Boolean).join("\n\n");
 }
 
@@ -159,14 +159,17 @@ export default async function (req: any) {
         signal: AbortSignal.timeout(240000),
       });
     } else {
-      const count = Math.min(Math.max(Number(body.count) || OPTION_COUNT, 1), OPTION_COUNT);
+      const variant = body.variant === undefined ? 0 : body.variant;
+      if (!Number.isInteger(variant) || variant < 0 || variant >= OPTION_COUNT) {
+        return Response.json({ error: "Proposition de personnage invalide." }, { status: 400 });
+      }
       res = await fetch("https://api.openai.com/v1/images/generations", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
         body: JSON.stringify({
           model: MODEL,
-          prompt: optionsPrompt(brief, details),
-          n: count,
+          prompt: optionsPrompt(brief, details, variant),
+          n: 1,
           size: "1024x1024",
           quality: "medium",
         }),

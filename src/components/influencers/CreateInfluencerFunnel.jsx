@@ -18,6 +18,7 @@ import {
   stepGender,
 } from "@/lib/referenceFunnel";
 import { traitDetailsEn } from "@/lib/traitDetails";
+import requestCharacterOptions from "@/components/influencers/funnel/requestCharacterOptions";
 
 // Message lisible même quand le serveur renvoie une erreur HTTP (le texte utile est dans la réponse).
 function errorText(e) {
@@ -72,15 +73,12 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
     setBusy("options");
     setError("");
     try {
-      const res = await base44.functions.invoke("generateInfluencerGpt", {
-        mode: "options",
+      const data = await requestCharacterOptions({
         brief: influencerBrief(choices, brief, brands, fullName),
         details: traitDetailsEn(choices),
       });
-      const data = res.data || {};
-      if (data.error) throw new Error(data.error);
-      if (!(data.images || []).length) throw new Error("Aucun personnage renvoyé par OpenAI.");
       setOptions(data.images);
+      setError(data.error);
     } catch (e) {
       setError(errorText(e));
     } finally {
