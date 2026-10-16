@@ -37,7 +37,15 @@ function readEntry(entry) {
   return Promise.resolve([]);
 }
 
-// Fichiers images contenus dans ce qui vient d'être déposé (dossier, sous-dossiers ou fichiers seuls).
+// Nom du dossier déposé : il porte déjà celui du personnage, on le remet juste en forme.
+function folderLabel(entries) {
+  const folders = entries.filter((entry) => entry && entry.isDirectory);
+  if (folders.length !== 1) return "";
+  return folders[0].name.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+// Fichiers images contenus dans ce qui vient d'être déposé (dossier, sous-dossiers ou fichiers seuls),
+// accompagnés du nom du dossier quand c'en est un.
 export async function filesFromDataTransfer(dataTransfer) {
   const entries = Array.from(dataTransfer.items || [])
     .filter((item) => item.kind === "file")
@@ -45,8 +53,8 @@ export async function filesFromDataTransfer(dataTransfer) {
 
   const nested = await Promise.all(entries.map(readEntry));
   const found = nested.flat().filter(isImage);
-  if (found.length) return found;
+  if (found.length) return { files: found, folderName: folderLabel(entries) };
 
   // Navigateur sans accès à l'arborescence : on retombe sur la liste classique.
-  return Array.from(dataTransfer.files || []).filter(isImage);
+  return { files: Array.from(dataTransfer.files || []).filter(isImage), folderName: "" };
 }

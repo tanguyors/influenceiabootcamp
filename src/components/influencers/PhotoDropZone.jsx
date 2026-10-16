@@ -12,7 +12,8 @@ export default function PhotoDropZone({ onFiles, count = 0 }) {
     setOver(false);
     setReading(true);
     try {
-      onFiles(await filesFromDataTransfer(e.dataTransfer));
+      const { files, folderName } = await filesFromDataTransfer(e.dataTransfer);
+      onFiles(files, folderName);
     } finally {
       setReading(false);
     }
@@ -36,8 +37,8 @@ export default function PhotoDropZone({ onFiles, count = 0 }) {
         {reading ? "Lecture du dossier…" : over ? "Déposez le dossier ici" : "Glissez le dossier de ses photos ici"}
       </p>
       <p className="mt-1 text-xs text-muted-foreground">
-        Toutes les images du dossier (et de ses sous-dossiers) sont ajoutées d'un coup
-        {count ? ` · ${count} photo(s) prête(s)` : ""}.
+        Toutes les images du dossier (et de ses sous-dossiers) sont ajoutées d'un coup, et le nom du dossier
+        devient celui du personnage{count ? ` · ${count} photo(s) prête(s)` : ""}.
       </p>
     </div>
   );

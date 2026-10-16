@@ -15,7 +15,7 @@ export default function PhotoInfluencerForm({ onCreated, submitLabel = "Créer" 
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", notes: "", files: [], previews: [] });
 
-  function addFiles(picked) {
+  function addFiles(picked, folderName = "") {
     const images = (picked || []).filter(Boolean);
     const room = MAX_PHOTOS - form.files.length;
     if (!images.length) {
@@ -30,6 +30,8 @@ export default function PhotoInfluencerForm({ onCreated, submitLabel = "Créer" 
     if (kept.length < images.length) toast({ title: `Seules les ${MAX_PHOTOS} premières photos ont été ajoutées` });
     setForm((s) => ({
       ...s,
+      // Le dossier porte déjà le nom du personnage : on le reprend d'office.
+      name: folderName || s.name,
       files: [...s.files, ...kept],
       previews: [...s.previews, ...kept.map((f) => URL.createObjectURL(f))],
     }));
@@ -104,7 +106,7 @@ export default function PhotoInfluencerForm({ onCreated, submitLabel = "Créer" 
         </div>
       </div>
       <div>
-        <Label htmlFor="photo-name">Nom</Label>
+        <Label htmlFor="photo-name">Nom <span className="font-normal text-muted-foreground">(repris du dossier déposé)</span></Label>
         <Input id="photo-name" value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} placeholder="Ex. Léa" />
       </div>
       <div>
