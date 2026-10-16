@@ -268,7 +268,7 @@ export default function Recreate() {
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span>Modèle : <strong className="text-foreground">automatique</strong></span>
-              <span>Mode : <strong className="text-foreground">{hasSourceVideo ? "cadre et mouvement de l'original, votre personnage à la place de la personne" : "adaptation sans fichier source"}</strong></span>
+              <span>Mode : <strong className="text-foreground">{hasSourceVideo ? "plan d'origine conservé : la personne principale est remplacée, les autres personnes du plan restent en place" : "adaptation sans fichier source"}</strong></span>
               <span>Durée : <strong className="text-foreground">identique à la vidéo d'origine</strong></span>
               <span>Format : <strong className="text-foreground">{form.aspect_ratio}</strong></span>
               <span>Résolution : <strong className="text-foreground">{form.resolution}</strong></span>

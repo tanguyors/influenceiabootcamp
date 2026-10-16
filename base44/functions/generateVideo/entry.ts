@@ -30,7 +30,11 @@ function moderationMessage(raw) {
 // Higgsfield imbrique l'état réel dans structuredContent.generation.
 function readJob(res) {
   const sc = (res && res.structuredContent) || {};
-  const layers = [sc, sc.generation, sc.job, sc.data, sc.result].filter((l) => l && typeof l === "object");
+  // Certaines soumissions (édition vidéo) renvoient une liste « results » : la tâche est le
+  // premier élément, jamais un champ de premier niveau.
+  const first = (v) => (Array.isArray(v) ? v[0] : v);
+  const layers = [sc, sc.generation, sc.job, sc.data, sc.result, first(sc.results), first(sc.generations)]
+    .filter((l) => l && typeof l === "object");
   const strings = collectStrings(res);
   const text = resultText(res);
 
@@ -133,6 +137,44 @@ function pickImageModel(models, seconds) {
   }).sort((a, b) => scoreModel(b) - scoreModel(a));
   if (!seconds) return usable[0] || null;
   return usable.find((m) => supportsDuration(m, seconds)) || usable[0] || null;
+}
+
+// Consigne reprise par toutes les générations à partir d'une vidéo source : le plan d'origine
+// n'est pas réinterprété, seule la personne principale change de visage.
+const KEEP_CAST = "Toutes les autres personnes présentes dans le plan (partenaire, figurants, passants, groupes et couples qui dansent) restent à l'identique : ne jamais les supprimer, les déplacer, les dupliquer ni les remplacer, et ne jamais isoler le personnage principal en plan solo ; garder ses interactions avec les personnes autour de lui, ainsi que le décor, la lumière, le cadrage et les mouvements de caméra d'origine.";
+
+// Modèles d'édition vidéo : ils reprennent le plan d'origine et n'appliquent que la consigne
+// écrite. Contrairement au transfert de mouvement — qui ne restitue qu'un seul personnage —
+// les autres personnes du plan y sont donc conservées.
+const EDIT_MODEL_ORDER = ["kling_video_edit", "seedance_2_5", "ad_multiplier_v2", "hf_mult_replace_object"];
+
+// Mode d'édition explicite de chaque modèle (le mode par défaut ne fait pas d'édition).
+const EDIT_MODEL_MODES = { seedance_2_5: "video_edit", kling_video_edit: "pro" };
+
+// Premier modèle du catalogue capable d'éditer une vidéo à partir d'images de référence.
+function pickEditModel(models) {
+  const usable = models.filter((m) => {
+    const roles = modelRoles(m);
+    return roles.includes("video_references") && roles.includes("image_references");
+  });
+  for (const id of EDIT_MODEL_ORDER) {
+    const found = usable.find((m) => String(m.id).toLowerCase() === id);
+    if (found) return found;
+  }
+  return null;
+}
+
+function editParams(model, prompt, imageMediaId, motionMediaId) {
+  return {
+    model: model.id,
+    prompt,
+    // La vidéo source n'est pas altérée : elle sert de base à l'édition.
+    medias: [
+      { value: motionMediaId, role: "video_references" },
+      { value: imageMediaId, role: "image_references" },
+    ],
+    ...(EDIT_MODEL_MODES[model.id] ? { mode: EDIT_MODEL_MODES[model.id] } : {}),
+  };
 }
 
 // Repli automatique : quand Higgsfield refuse la génération en mode référence (une personne
@@ -318,7 +360,7 @@ export default async function(req) {
     }
 
     const parts = [];
-    if (videoUrl) parts.push("Reprendre la vidéo de référence en remplaçant uniquement la personne filmée par le personnage principal : conserver à l'identique le cadrage, les mouvements de caméra, le décor, la lumière, le montage et le rythme de la vidéo ; seules l'identité et l'apparence de la personne changent.");
+    if (videoUrl) parts.push(`Reprendre la vidéo de référence en remplaçant uniquement la personne filmée par le personnage principal : conserver à l'identique le cadrage, les mouvements de caméra, le décor, la lumière, le montage et le rythme de la vidéo ; seules l'identité et l'apparence de la personne changent. ${KEEP_CAST}`);
     else if (viralVideo) parts.push(`Reprendre la direction visuelle (cadrage, mise en scène, rythme) de la vidéo de référence « ${viralVideo.title} » (${viralVideo.platform}, ${viralVideo.category}).`);
     parts.push(`Personnage principal : ${influencer.name}, conserver son visage et son apparence.`);
     if (imageUrls.length > 1) {
@@ -353,20 +395,31 @@ export default async function(req) {
       let motionMediaId = "";
       if (videoUrl) motionMediaId = await importMedia(token, videoUrl, "video");
 
-      // Remplacement de personnage : utiliser directement l'outil dédié au transfert
-      // de mouvement, sans soumettre d'abord une génération Seedance.
       let toolName = "";
       let result = null;
       if (motionMediaId) {
-        toolName = "motion_control";
-        result = await callTool(token, toolName, {
-          params: {
-            image_id: imageMediaId,
-            motion_video_id: motionMediaId,
-            resolution: resolution === "720p" ? "720p" : "1080p",
-            scene_control: "video",
-          },
-        });
+        // 1. Édition de la vidéo source : le plan entier est conservé, seule la personne
+        // principale est remplacée — les autres personnes du plan restent à leur place.
+        const editModel = pickEditModel(await listVideoModels(token));
+        if (editModel) {
+          toolName = `edit_video:${editModel.id}`;
+          result = await callTool(token, "generate_video", {
+            params: editParams(editModel, prompt, imageMediaId, motionMediaId),
+          });
+        }
+        // 2. Repli : transfert de mouvement, quand l'édition vidéo est refusée ou indisponible.
+        const editJob = result ? readJob(result) : null;
+        if (!editJob || editJob.error || editJob.status === "failed" || (!editJob.jobId && !editJob.videoUrl)) {
+          toolName = "motion_control";
+          result = await callTool(token, toolName, {
+            params: {
+              image_id: imageMediaId,
+              motion_video_id: motionMediaId,
+              resolution: resolution === "720p" ? "720p" : "1080p",
+              scene_control: "video",
+            },
+          });
+        }
       } else {
         const model = pickImageModel(await listVideoModels(token), sourceDuration);
         if (!model) throw new Error("Aucun modèle vidéo compatible n'est disponible sur votre compte Higgsfield.");
