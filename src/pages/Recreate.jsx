@@ -16,10 +16,11 @@ export default function Recreate() {
   const { toast } = useToast();
   const [params] = useSearchParams();
   const videoId = params.get("video");
+  const influencerParam = params.get("influencer") || "";
 
   const [video, setVideo] = useState(null);
   const [influencers, setInfluencers] = useState([]);
-  const [activeId, setActiveId] = useState(() => localStorage.getItem("influenceia.activeInfluencer") || "");
+  const [activeId, setActiveId] = useState(() => influencerParam || localStorage.getItem("influenceia.activeInfluencer") || "");
   const [launching, setLaunching] = useState(false);
   const [launchLabel, setLaunchLabel] = useState("");
   const [tools, setTools] = useState(null);
@@ -57,6 +58,11 @@ export default function Recreate() {
     }
   }
   useEffect(() => { loadAll(); }, [videoId]);
+
+  // Personnage transmis par l'import : il est retenu pour les prochaines visites.
+  useEffect(() => {
+    if (influencerParam) localStorage.setItem("influenceia.activeInfluencer", influencerParam);
+  }, [influencerParam]);
 
   const selectedInfluencer = influencers.find((i) => i.id === activeId);
   const hasReferenceTransfer = tools?.some((t) => /reference|motion|transfer|control|character/i.test(t.name + " " + (t.description || "")));

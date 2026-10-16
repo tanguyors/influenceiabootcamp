@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Users, Flame, Film, ArrowRight, Sparkles, Image as ImageIcon, Wand2, Download } from "lucide-react";
+import BankImportCard from "@/components/bank/BankImportCard";
 
 const steps = [
   {
@@ -65,6 +66,9 @@ export default function Dashboard() {
           </Link>
         </div>
       </section>
+
+      {/* Import depuis la banque de personnages */}
+      <BankImportCard />
 
       {/* Stats */}
       <section className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
