@@ -28,6 +28,37 @@
     "motion_reference_source": {
       "type": "string",
       "description": "Photo principale ayant servi \u00e0 pr\u00e9parer la r\u00e9f\u00e9rence de mouvement, pour invalider le cache si le personnage change"
+    },
+    "niche": {
+      "type": "string",
+      "description": "Niche principale choisie au questionnaire d'import (ex. Beaut\u00e9, Fitness)"
+    },
+    "platform": {
+      "type": "string",
+      "description": "Plateforme de pr\u00e9dilection du personnage"
+    },
+    "audience": {
+      "type": "string",
+      "description": "Public vis\u00e9 par le personnage"
+    },
+    "tone": {
+      "type": "string",
+      "description": "Ton de ses contenus"
+    },
+    "personality": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Traits de personnalit\u00e9 choisis au questionnaire"
+    },
+    "tagline": {
+      "type": "string",
+      "description": "Phrase d'accroche du personnage, g\u00e9n\u00e9r\u00e9e avec son histoire"
+    },
+    "story": {
+      "type": "string",
+      "description": "Histoire / biographie du personnage"
     }
   },
   "required": [

@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 
-export default function PhotoInfluencerForm({ onCreated }) {
+export default function PhotoInfluencerForm({ onCreated, submitLabel = "Créer" }) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", notes: "", files: [], previews: [] });
@@ -93,7 +93,7 @@ export default function PhotoInfluencerForm({ onCreated }) {
       </div>
       <div className="flex justify-end">
         <Button onClick={save} disabled={saving} className="font-semibold">
-          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} Créer
+          {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null} {submitLabel}
         </Button>
       </div>
     </div>

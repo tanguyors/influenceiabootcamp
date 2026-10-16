@@ -1,0 +1,131 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
+import { secrets } from "base44:runtime";
+
+const MODEL = "gpt-4o-mini";
+
+const SYSTEM = [
+  "Tu écris la biographie d'un influenceur pour une agence française de création de contenu.",
+  "Tu écris en français, au présent, à la troisième personne (ou au « je » uniquement dans la phrase d'accroche).",
+  "Ton style est vivant, concret et incarné : lieux, habitudes, petites anecdotes, une contradiction ou un défaut qui rend le personnage crédible. Jamais de clichés marketing creux ni de superlatifs vides.",
+  "Aucun emoji, aucun hashtag, aucune marque citée, et jamais l'idée qu'il s'agirait d'un personnage généré par IA.",
+  "N'invente aucun détail physique (taille, corpulence, couleur des yeux, tatouage, coupe de cheveux) : l'apparence est fixée par les photos de référence.",
+  "Déduis le genre uniquement du prénom et des notes fournis, sans jamais les contredire.",
+].join(" ");
+
+const SCHEMA = {
+  type: "object",
+  properties: {
+    tagline: { type: "string" },
+    story: { type: "string" },
+  },
+  required: ["tagline", "story"],
+  additionalProperties: false,
+};
+
+function clean(value: any, max: number) {
+  return String(value || "").trim().slice(0, max);
+}
+
+// Le questionnaire fournit les choix ; ils orientent l'histoire sans jamais être recopiés tels quels.
+function userPrompt(data: any) {
+  const traits = (Array.isArray(data.personality) ? data.personality : [])
+    .map((item: any) => clean(item, 60))
+    .filter(Boolean)
+    .slice(0, 8);
+
+  return [
+    `Personnage : ${data.name}.`,
+    data.notes ? `Notes déjà saisies sur son style et son univers : ${data.notes}` : "",
+    data.niche ? `Niche principale : ${data.niche}.` : "",
+    data.platform ? `Plateforme de prédilection : ${data.platform}.` : "",
+    data.audience ? `Public visé : ${data.audience}.` : "",
+    data.tone ? `Ton de ses contenus : ${data.tone}.` : "",
+    traits.length ? `Traits de personnalité à incarner : ${traits.join(", ")}.` : "",
+    data.extra ? `Détails imposés par l'utilisateur, à intégrer fidèlement : ${data.extra}` : "",
+    "",
+    "Écris son histoire en trois paragraphes, 200 à 260 mots au total :",
+    "1. Ses origines : où il ou elle a grandi, le milieu, ce qui l'a façonné.",
+    "2. Son parcours : comment il ou elle en est arrivé à créer du contenu, ce qui le rend reconnaissable, ses petits défauts ou contradictions.",
+    "3. Aujourd'hui : sa communauté, son ambition, ce qu'il ou elle veut construire ensuite.",
+    "Puis sa phrase d'accroche : une promesse courte de moins de douze mots, à la première personne, sans guillemets.",
+    "N'utilise aucun titre, aucune puce, aucune mise en forme Markdown : uniquement le texte.",
+  ].filter(Boolean).join("\n");
+}
+
+export default async function (req: any) {
+  try {
+    const base44 = createClientFromRequest(req);
+    const user = await base44.auth.me();
+    if (!user) return Response.json({ error: "Non authentifié" }, { status: 401 });
+
+    const body = await req.json().catch(() => ({}));
+    const data = {
+      name: clean(body.name, 80),
+      notes: clean(body.notes, 1500),
+      niche: clean(body.niche, 80),
+      platform: clean(body.platform, 60),
+      audience: clean(body.audience, 60),
+      tone: clean(body.tone, 60),
+      personality: body.personality,
+      extra: clean(body.extra, 800),
+    };
+
+    if (!data.name) return Response.json({ error: "Indiquez le nom du personnage." }, { status: 400 });
+    if (!data.niche) return Response.json({ error: "Choisissez au moins sa niche principale." }, { status: 400 });
+
+    const key = secrets.get("OPENAI_API_KEY");
+    if (!key) {
+      return Response.json({ error: "Clé OpenAI manquante : ajoutez le secret OPENAI_API_KEY." }, { status: 400 });
+    }
+
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model: MODEL,
+        temperature: 0.95,
+        max_tokens: 900,
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "influencer_story", strict: true, schema: SCHEMA },
+        },
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: userPrompt(data) },
+        ],
+      }),
+      signal: AbortSignal.timeout(90000),
+    });
+
+    if (!res.ok) {
+      const raw = await res.text();
+      let message = "";
+      try { message = JSON.parse(raw)?.error?.message || ""; } catch { message = raw.slice(0, 200); }
+      if (res.status === 401) {
+        return Response.json({ error: "Clé OpenAI refusée : vérifiez le secret OPENAI_API_KEY." }, { status: 400 });
+      }
+      if (res.status === 429) {
+        const quota = /quota|billing|credit/i.test(message);
+        return Response.json({
+          error: quota
+            ? "Compte OpenAI sans crédit disponible : ajoutez un moyen de paiement sur platform.openai.com, puis relancez."
+            : "Trop de requêtes OpenAI en peu de temps : réessayez dans un instant.",
+        }, { status: 400 });
+      }
+      return Response.json({ error: message || `OpenAI a refusé la génération (${res.status}).` }, { status: 502 });
+    }
+
+    const payload = await res.json();
+    const content = payload?.choices?.[0]?.message?.content || "{}";
+    let parsed: any = {};
+    try { parsed = JSON.parse(content); } catch { parsed = {}; }
+
+    const story = clean(parsed.story, 6000);
+    const tagline = clean(parsed.tagline, 200);
+    if (!story) return Response.json({ error: "OpenAI n'a renvoyé aucune histoire : relancez." }, { status: 502 });
+
+    return Response.json({ story, tagline });
+  } catch (error: any) {
+    return Response.json({ error: error.message }, { status: 500 });
+  }
+}
