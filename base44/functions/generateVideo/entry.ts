@@ -2,8 +2,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 import { getAccessToken, callTool } from "../../shared/higgsfield.ts";
 import { resultText, collectStrings } from "../../shared/mcp.ts";
 import { prepareMotionReference } from "../../shared/motionReference.ts";
-
-const VIDEO_RE = /https?:\/\/[^\s"'<>]+\.(mp4|mov|webm)(\?[^\s"'<>]*)?/i;
+import { characterPhotos, replacementModelId, replacementParams, outputVideoUrl, requestVideo } from "../../shared/characterReplacement.ts";
 
 function mapStatus(raw) {
   const s = String(raw || "").toLowerCase();
@@ -38,7 +37,7 @@ function readJob(res) {
   const strings = collectStrings(res);
   const text = resultText(res);
 
-  const found = strings.map((s) => (s.match(VIDEO_RE) || [])[0]).find(Boolean) || "";
+  const found = outputVideoUrl(res);
 
   let status = "";
   let jobId = "";
@@ -88,13 +87,7 @@ function supportsDuration(model, seconds) {
   return true;
 }
 
-// Photos du personnage, portrait principal d'abord : Higgsfield refuse le transfert de
-// mouvement quand la photo ne montre pas nettement tête, épaules et torse — une planche de
-// 9 vues, elle, n'est pas un portrait utilisable.
-function referencePhotos(influencer) {
-  const list = [influencer.reference_image, ...(Array.isArray(influencer.reference_images) ? influencer.reference_images : [])];
-  return Array.from(new Set(list)).filter(Boolean).slice(0, 8);
-}
+
 
 // Ne pas attribuer sans preuve un refus à la durée : le MCP peut omettre le motif
 // que le site Higgsfield affiche, notamment une référence au cadrage trop serré.
@@ -143,92 +136,8 @@ function pickImageModel(models, seconds) {
 // n'est pas réinterprété, seule la personne principale change de visage.
 const KEEP_CAST = "Toutes les autres personnes présentes dans le plan (partenaire, figurants, passants, groupes et couples qui dansent) restent à l'identique : ne jamais les supprimer, les déplacer, les dupliquer ni les remplacer, et ne jamais isoler le personnage principal en plan solo ; garder ses interactions avec les personnes autour de lui, ainsi que le décor, la lumière, le cadrage et les mouvements de caméra d'origine.";
 
-// Modèles d'édition vidéo : ils reprennent le plan d'origine et n'appliquent que la consigne
-// écrite. Contrairement au transfert de mouvement — qui ne restitue qu'un seul personnage —
-// les autres personnes du plan y sont donc conservées.
-const EDIT_MODEL_ORDER = ["kling_video_edit", "seedance_2_5", "ad_multiplier_v2", "hf_mult_replace_object"];
-
-// Mode d'édition explicite de chaque modèle (le mode par défaut ne fait pas d'édition).
-const EDIT_MODEL_MODES = { seedance_2_5: "video_edit", kling_video_edit: "pro" };
-
-// Premier modèle du catalogue capable d'éditer une vidéo à partir d'images de référence.
-function pickEditModel(models) {
-  const usable = models.filter((m) => {
-    const roles = modelRoles(m);
-    return roles.includes("video_references") && roles.includes("image_references");
-  });
-  for (const id of EDIT_MODEL_ORDER) {
-    const found = usable.find((m) => String(m.id).toLowerCase() === id);
-    if (found) return found;
-  }
-  return null;
-}
-
-function editParams(model, prompt, imageMediaId, motionMediaId) {
-  return {
-    model: model.id,
-    prompt,
-    // La vidéo source n'est pas altérée : elle sert de base à l'édition.
-    medias: [
-      { value: motionMediaId, role: "video_references" },
-      { value: imageMediaId, role: "image_references" },
-    ],
-    ...(EDIT_MODEL_MODES[model.id] ? { mode: EDIT_MODEL_MODES[model.id] } : {}),
-  };
-}
-
-// Repli automatique : quand Higgsfield refuse la génération en mode référence (une personne
-// réelle est détectée dans la vidéo source), la même création est relancée en transfert de
-// mouvement — décor, cadrage et mouvement de la vidéo conservés, seule la personne change.
-async function relaunchWithMotionControl(base44, token, creation) {
-  if (creation.model === "motion_control") return false;
-  try {
-    const vp = await base44.entities.ViralVideo.filter({ id: creation.viral_video_id }, { limit: 1 });
-    const viralVideo = (vp.items || [])[0];
-    if (!viralVideo || !viralVideo.video_file_uri) return false;
-
-    const ip = await base44.entities.Influencer.filter({ id: creation.influencer_id }, { limit: 1 });
-    const influencer = (ip.items || [])[0];
-    if (!influencer) return false;
-    const photos = referencePhotos(influencer);
-    if (!photos.length) return false;
-
-    const sign = async (uri) => {
-      try {
-        const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
-          file_uri: uri, expires_in: 3600,
-        });
-        return signed_url;
-      } catch { return ""; }
-    };
-    const motionPhoto = await prepareMotionReference(base44, influencer);
-    const imageUrl = await sign(motionPhoto);
-    const videoUrl = await sign(viralVideo.video_file_uri);
-    if (!imageUrl || !videoUrl) return false;
-
-    const result = await callTool(token, "motion_control", {
-      params: {
-        image_id: await importMedia(token, imageUrl, "image"),
-        motion_video_id: await importMedia(token, videoUrl, "video"),
-        resolution: creation.resolution === "720p" ? "720p" : "1080p",
-        scene_control: "video",
-      },
-    });
-    const job = readJob(result);
-    if (job.error || !job.jobId) return false;
-
-    await base44.entities.Creation.update(creation.id, {
-      status: job.videoUrl ? "ready" : "processing",
-      result_video_url: job.videoUrl,
-      higgsfield_job_id: job.jobId,
-      model: "motion_control",
-      error: "",
-    });
-    return true;
-  } catch {
-    return false;
-  }
-}
+// Aucun repli automatique vers le transfert de mouvement : il peut supprimer les
+// partenaires, et un refus ne doit jamais déclencher une nouvelle dépense.
 
 // Rafraîchit l'état des générations en cours auprès de Higgsfield.
 async function refreshProcessing(base44, token) {
@@ -251,12 +160,6 @@ async function refreshProcessing(base44, token) {
     try {
       const res = await callTool(token, "job_status", { jobId: creation.higgsfield_job_id });
       const job = readJob(res);
-      // Refus ou interruption côté Higgsfield : on relance aussitôt en transfert de mouvement
-      // (au lieu d'attendre que la tâche abandonnée expire).
-      if ((job.blocked || job.status === "failed") && await relaunchWithMotionControl(base44, token, creation)) {
-        updated++;
-        continue;
-      }
       const patch = {};
       if (job.error) { patch.status = "failed"; patch.error = job.error; }
       else if (job.videoUrl) { patch.status = "ready"; patch.result_video_url = job.videoUrl; }
@@ -309,7 +212,7 @@ export default async function(req) {
     const influencer = (infPage.items || [])[0];
     if (!influencer) return Response.json({ error: "Influenceur introuvable" }, { status: 404 });
 
-    let photoUris = referencePhotos(influencer);
+    const photoUris = characterPhotos(influencer);
     if (!photoUris.length) {
       return Response.json({ error: "Cet influenceur n'a aucune photo de référence." }, { status: 400 });
     }
@@ -324,11 +227,8 @@ export default async function(req) {
       viralVideo = (vp.items || [])[0];
     }
 
-    // Vérifier/préparer la photo AVANT de créer une tâche ou d'importer un média payant.
-    // Jamais de portrait serré ni de planche comme image de transfert de mouvement.
-    if (viralVideo?.video_file_uri) {
-      photoUris = [await prepareMotionReference(base44, influencer)];
-    }
+    // Le remplacement utilise les vraies photos du personnage, portrait compris,
+    // jamais une référence plein pied recréée pour le transfert de mouvement.
 
     // Durée : toujours celle de la vidéo d'origine (jamais un choix manuel).
     const sourceDuration = Number(viralVideo && viralVideo.duration) > 0 ? Number(viralVideo.duration) : null;
@@ -336,6 +236,7 @@ export default async function(req) {
     // Higgsfield télécharge lui-même les médias : URLs signées temporaires.
     const imageUrls = (await Promise.all(photoUris.map(async (uri) => {
       try {
+        if (/^https:\/\//i.test(uri)) return uri;
         // 3600 s est le maximum autorisé pour une URL signée.
         const { signed_url } = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
           file_uri: uri, expires_in: 3600,
@@ -360,13 +261,13 @@ export default async function(req) {
     }
 
     const parts = [];
-    if (videoUrl) parts.push(`Reprendre la vidéo de référence en remplaçant uniquement la personne filmée par le personnage principal : conserver à l'identique le cadrage, les mouvements de caméra, le décor, la lumière, le montage et le rythme de la vidéo ; seules l'identité et l'apparence de la personne changent. ${KEEP_CAST}`);
+    if (videoUrl) parts.push(`Replace ONLY the main foreground performer in the source video with the person shown in the reference photos. The FIRST image is the identity portrait; the other images show the SAME character. Use that exact face, facial markings, skin tone, hair and physical identity throughout every frame. Do not keep the original performer's face or blend the two identities. Track the SAME foreground person throughout the shot, including turns and occlusions. Preserve their original dance, pose, timing, position and interactions. Every other person must remain unchanged. Keep the original setting, lighting, framing, camera movement, cuts and duration. ${KEEP_CAST}`);
     else if (viralVideo) parts.push(`Reprendre la direction visuelle (cadrage, mise en scène, rythme) de la vidéo de référence « ${viralVideo.title} » (${viralVideo.platform}, ${viralVideo.category}).`);
     parts.push(`Personnage principal : ${influencer.name}, conserver son visage et son apparence.`);
     if (imageUrls.length > 1) {
       parts.push(`Le personnage est fourni sous ${imageUrls.length} angles différents : garder exactement le même visage, la même coiffure et la même morphologie.`);
     }
-    if (influencer.notes) parts.push(`Notes du personnage : ${influencer.notes}`);
+    if (!videoUrl && influencer.notes) parts.push(`Notes du personnage : ${influencer.notes}`);
     if (wardrobe) parts.push(`Tenue : ${wardrobe}.`);
     if (setting) parts.push(`Décor : ${setting}.`);
     if (instructions) parts.push(instructions);
@@ -376,65 +277,49 @@ export default async function(req) {
       : "Conserver exactement la durée de la vidéo d'origine.");
     const prompt = parts.join(" ");
 
-    const creation = await base44.entities.Creation.create({
-      influencer_id,
-      influencer_name: influencer.name,
-      viral_video_id: viral_video_id || "",
-      viral_video_title: viralVideo ? viralVideo.title : "",
-      status: "processing",
-      model: "",
-      duration: sourceDuration || undefined,
-      aspect_ratio: aspect_ratio || "9:16",
-      resolution: resolution || "1080p",
-      prompt,
-    });
-
+    let creation = null;
     try {
-      // 1. Import des médias : Higgsfield n'accepte que des media_id confirmés.
-      const imageMediaId = await importMedia(token, imageUrls[0], "image");
-      let motionMediaId = "";
-      if (videoUrl) motionMediaId = await importMedia(token, videoUrl, "video");
-
-      let toolName = "";
-      let result = null;
-      if (motionMediaId) {
-        // 1. Édition de la vidéo source : le plan entier est conservé, seule la personne
-        // principale est remplacée — les autres personnes du plan restent à leur place.
-        const editModel = pickEditModel(await listVideoModels(token));
-        if (editModel) {
-          toolName = `edit_video:${editModel.id}`;
-          result = await callTool(token, "generate_video", {
-            params: editParams(editModel, prompt, imageMediaId, motionMediaId),
-          });
-        }
-        // 2. Repli : transfert de mouvement, quand l'édition vidéo est refusée ou indisponible.
-        const editJob = result ? readJob(result) : null;
-        if (!editJob || editJob.error || editJob.status === "failed" || (!editJob.jobId && !editJob.videoUrl)) {
-          toolName = "motion_control";
-          result = await callTool(token, toolName, {
-            params: {
-              image_id: imageMediaId,
-              motion_video_id: motionMediaId,
-              resolution: resolution === "720p" ? "720p" : "1080p",
-              scene_control: "video",
-            },
-          });
-        }
+      let toolName;
+      let params;
+      if (videoUrl) {
+        const catalog = await callTool(token, "models_explore", { action: "get", model_id: replacementModelId });
+        if (catalog?.isError) throw new Error("Le mode de remplacement de personnage n'est pas disponible sur ce compte. Aucune génération n'a été lancée.");
+        // Portrait et photos originales sont tous transmis, pas seulement la première image.
+        const imageMediaIds = await Promise.all(imageUrls.map((url) => importMedia(token, url, "image")));
+        const videoMediaId = await importMedia(token, videoUrl, "video");
+        toolName = `character_replace:${replacementModelId}`;
+        params = replacementParams(prompt, imageMediaIds, videoMediaId, resolution);
       } else {
         const model = pickImageModel(await listVideoModels(token), sourceDuration);
         if (!model) throw new Error("Aucun modèle vidéo compatible n'est disponible sur votre compte Higgsfield.");
         toolName = `generate_video:${model.id}`;
-        result = await callTool(token, "generate_video", {
-          params: {
-            model: model.id,
-            prompt,
-            aspect_ratio: aspect_ratio || "9:16",
-            ...(sourceDuration ? { duration: sourceDuration } : {}),
-            medias: [{ value: imageMediaId, role: "image" }],
-          },
-        });
+        params = {
+          model: model.id,
+          prompt,
+          aspect_ratio: aspect_ratio || "9:16",
+          ...(sourceDuration ? { duration: sourceDuration } : {}),
+          medias: [{ value: await importMedia(token, imageUrls[0], "image"), role: "image" }],
+        };
       }
-
+      // Prévalidation sans soumission ni écriture, pour vérifier les médias et le mode.
+      if (body.action === "estimate") {
+        const estimate = await requestVideo(token, { ...params, get_cost: true });
+        if (estimate?.isError) return Response.json({ error: resultText(estimate) }, { status: 400 });
+        return Response.json({ tool: toolName, reference_count: imageUrls.length, estimate: estimate?.structuredContent || estimate });
+      }
+      creation = await base44.entities.Creation.create({
+        influencer_id,
+        influencer_name: influencer.name,
+        viral_video_id: viral_video_id || "",
+        viral_video_title: viralVideo ? viralVideo.title : "",
+        status: "processing",
+        model: toolName,
+        duration: sourceDuration || undefined,
+        aspect_ratio: aspect_ratio || "9:16",
+        resolution: resolution || "1080p",
+        prompt,
+      });
+      const result = await requestVideo(token, params);
       const job = readJob(result);
       // Un refus ne doit pas provoquer une deuxième soumission payante.
       if (job.error || job.status === "failed") {
@@ -456,8 +341,8 @@ export default async function(req) {
       });
       return Response.json({ creation_id: creation.id, status: job.videoUrl ? "ready" : "processing", tool: toolName });
     } catch (e) {
-      await base44.entities.Creation.update(creation.id, { status: "failed", error: e.message });
-      return Response.json({ error: e.message, creation_id: creation.id }, { status: 500 });
+      if (creation) await base44.entities.Creation.update(creation.id, { status: "failed", error: e.message });
+      return Response.json({ error: e.message, creation_id: creation?.id }, { status: 500 });
     }
   } catch (error) {
     return Response.json({ error: error.message }, { status: 500 });
