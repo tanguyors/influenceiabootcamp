@@ -73,7 +73,7 @@ export default function ImportInfluencerFlow({ open, onClose, onSaved }) {
             <>
               <h2 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">Un mot sur {influencer?.name}</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Répondez à ces quelques questions et nous écrirons son histoire : ses origines, son parcours, sa communauté. Vous pourrez la relire et la modifier avant de l'enregistrer.
+                Répondez à ces quelques questions et nous écrirons son histoire : ses origines, son parcours, sa communauté, en version totalement déjantée et toujours fidèle à sa niche. Vous pourrez la relire et la modifier avant de l'enregistrer.
               </p>
               <div className="mt-6">
                 <InfluencerQuestionnaire

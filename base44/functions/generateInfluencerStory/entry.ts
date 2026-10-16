@@ -6,7 +6,8 @@ const MODEL = "gpt-4o-mini";
 const SYSTEM = [
   "Tu écris la biographie d'un influenceur pour une agence française de création de contenu.",
   "Tu écris en français, au présent, à la troisième personne (ou au « je » uniquement dans la phrase d'accroche).",
-  "Ton style est vivant, concret et incarné : lieux, habitudes, petites anecdotes, une contradiction ou un défaut qui rend le personnage crédible. Jamais de clichés marketing creux ni de superlatifs vides.",
+  "Ton style est vivant, concret et complètement barré : situations absurdes, rebondissements improbables, détails délirants racontés très sérieusement, comme une anecdote qu'on n'attendait pas. Le récit doit donner envie de le lire à voix haute, jamais un CV lisse ni un résumé marketing.",
+  "La niche du personnage reste le fil rouge : chaque folie découle de son sujet, de son métier ou de sa passion, jamais d'un délire hors sujet.",
   "Aucun emoji, aucun hashtag, aucune marque citée, et jamais l'idée qu'il s'agirait d'un personnage généré par IA.",
   "N'invente aucun détail physique (taille, corpulence, couleur des yeux, tatouage, coupe de cheveux) : l'apparence est fixée par les photos de référence.",
   "Déduis le genre uniquement du prénom et des notes fournis, sans jamais les contredire.",
@@ -43,10 +44,11 @@ function userPrompt(data: any) {
     traits.length ? `Traits de personnalité à incarner : ${traits.join(", ")}.` : "",
     data.extra ? `Détails imposés par l'utilisateur, à intégrer fidèlement : ${data.extra}` : "",
     "",
-    "Écris son histoire en trois paragraphes, 200 à 260 mots au total :",
-    "1. Ses origines : où il ou elle a grandi, le milieu, ce qui l'a façonné.",
-    "2. Son parcours : comment il ou elle en est arrivé à créer du contenu, ce qui le rend reconnaissable, ses petits défauts ou contradictions.",
-    "3. Aujourd'hui : sa communauté, son ambition, ce qu'il ou elle veut construire ensuite.",
+    "Écris son histoire en trois paragraphes, 250 à 320 mots au total, en mode totalement wtf :",
+    "1. Ses origines : un lieu précis, un milieu inattendu, et un événement fondateur absurde qui l'a mis sur la voie de sa niche.",
+    "2. Son parcours : le déclic improbable qui l'a poussé à publier, puis une anecdote délirante mais racontée très sérieusement et directement liée à sa niche (un objet, un animal, un défi, une rivalité, un pari…), et la signature qui en découle.",
+    "3. Aujourd'hui : sa communauté, ses rituels bizarres, et une ambition tellement exagérée qu'elle en devient drôle tout en restant liée à sa niche.",
+    "Pousse l'absurde à fond, avec des détails concrets et un ton sérieux : pas d'humour de blague, pas de liste de qualités, pas de conclusion morale.",
     "Puis sa phrase d'accroche : une promesse courte de moins de douze mots, à la première personne, sans guillemets.",
     "N'utilise aucun titre, aucune puce, aucune mise en forme Markdown : uniquement le texte.",
   ].filter(Boolean).join("\n");
@@ -83,7 +85,7 @@ export default async function (req: any) {
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
       body: JSON.stringify({
         model: MODEL,
-        temperature: 0.95,
+        temperature: 1,
         max_tokens: 900,
         response_format: {
           type: "json_schema",
