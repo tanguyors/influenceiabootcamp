@@ -113,19 +113,6 @@ export default function Dashboard() {
         </div>
       </section>
 
-      {/* Demo notice */}
-      <div className="mt-10 flex items-start gap-3 rounded-xl border border-amber-500/25 bg-amber-500/10 p-4">
-        <div className="mt-0.5 flex h-5 w-5 flex-none items-center justify-center rounded-full bg-amber-500/20 text-[10px] font-bold text-amber-300">
-          !
-        </div>
-        <p className="text-[13px] leading-relaxed text-amber-200/90">
-          <strong>Données de démonstration.</strong> Tant qu'aucune clé Higgsfield n'est configurée
-          (page « Connexion Higgsfield ») et qu'aucune référence n'est importée, les listes
-          présentent des exemples signalés. Aucune vidéo, statistique ou connexion réseau n'est
-          inventée.
-        </p>
-      </div>
-
       <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground/60">
         <Download className="h-3.5 w-3.5" />
         Génération asynchrone · État conservé entre les visites · Pas de lancement en double
