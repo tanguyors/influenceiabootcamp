@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Users, Trash2, Check, Loader2, Image as ImageIcon, Upload, FileArchive } from "lucide-react";
+import { Plus, Users, Trash2, Check, Loader2, Image as ImageIcon, Upload } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -9,7 +9,6 @@ import SignedImage from "@/components/SignedImage";
 import CreateInfluencerFunnel from "@/components/influencers/CreateInfluencerFunnel";
 import CreateInfluencerDialog from "@/components/influencers/CreateInfluencerDialog";
 import ImportInfluencerFlow from "@/components/influencers/ImportInfluencerFlow";
-import ExportImportDialog from "@/components/influencers/ExportImportDialog";
 
 const ACTIVE_KEY = "influenceia.activeInfluencer";
 
@@ -20,7 +19,6 @@ export default function Influencers() {
   const [funnelOpen, setFunnelOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [exportOpen, setExportOpen] = useState(false);
 
   // Photos de référence d'un influenceur (les anciens n'en ont qu'une).
   const photosOf = (inf) => (Array.isArray(inf.reference_images) && inf.reference_images.length
@@ -82,9 +80,6 @@ export default function Influencers() {
       subtitle="Générez un personnage par IA ou importez vos propres photos. Plus il y a d'angles, mieux son apparence est conservée à chaque génération."
       actions={
         <div className="flex flex-wrap gap-2">
-          <Button variant="outline" onClick={() => setExportOpen(true)} className="font-semibold">
-            <FileArchive className="mr-2 h-4 w-4" /> Importer un export
-          </Button>
           <Button variant="outline" onClick={() => setImportOpen(true)} className="font-semibold">
             <Upload className="mr-2 h-4 w-4" /> Importer un influenceur
           </Button>
@@ -163,7 +158,6 @@ export default function Influencers() {
       />
       <CreateInfluencerDialog open={photosOpen} onOpenChange={setPhotosOpen} onCreated={handleCreated} />
       <ImportInfluencerFlow open={importOpen} onClose={() => setImportOpen(false)} onSaved={handleImported} />
-      <ExportImportDialog open={exportOpen} onOpenChange={setExportOpen} onCreated={handleCreated} />
     </PageShell>
   );
 }
