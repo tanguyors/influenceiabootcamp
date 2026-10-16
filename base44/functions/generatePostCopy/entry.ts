@@ -40,30 +40,32 @@ export default async function (req: any) {
       return Response.json({ error: "Cette vidéo n'est pas encore prête : attendez la fin de la génération." }, { status: 400 });
     }
 
-    const influencer = creation.influencer_id
-      ? await base44.entities.Influencer.get(creation.influencer_id).catch(() => null)
-      : null;
+    const videoUrl = clip(creation.result_video_url, 2000);
+    if (!videoUrl) {
+      return Response.json({ error: "Cette création n'a pas de fichier vidéo à analyser." }, { status: 400 });
+    }
 
+    // Le texte vient du contenu réel de la vidéo : aucune fiche de personnage n'est transmise.
     const prompt = [
-      "Tu écris le texte de publication d'une vidéo courte pour un influenceur virtuel.",
+      "Regarde la vidéo jointe (vidéo courte générée pour un influenceur virtuel) et rédige son texte de publication.",
       "",
-      `Personnage : ${clip(influencer?.name || creation.influencer_name, 80) || "influenceur"}`,
-      influencer?.notes ? `Description du personnage : ${clip(influencer.notes, 1200)}` : "",
-      influencer?.story ? `Son histoire : ${clip(influencer.story, 600)}` : "",
-      creation.prompt ? `Contenu de la vidéo : ${clip(creation.prompt, 1200)}` : "",
-      creation.viral_video_title ? `Vidéo modèle reprise : ${clip(creation.viral_video_title, 120)}` : "",
-      `Réseau visé : ${platform}`,
+      "Appuie-toi uniquement sur ce que montre la vidéo : le décor, l'action, les mouvements, la tenue, la lumière, l'ambiance, le montage.",
       "",
       "Rends uniquement ces trois textes, en français :",
-      "- hook : l'accroche affichée en première ligne, 60 caractères maximum, sans hashtag, sans emoji, sans guillemets.",
-      "- caption : 3 à 5 lignes courtes écrites dans la voix du personnage (respecte son ton et sa personnalité), 1 ou 2 emojis pertinents au maximum, en terminant par une question ou un appel à commenter.",
-      "- hashtags : 12 hashtags sur une seule ligne, séparés par des espaces, en mélangeant quelques hashtags larges (#pourtoi #fyp) et des hashtags de niche liés au personnage et au sujet de cette vidéo précise.",
+      "- hook : l'accroche affichée en première ligne, 60 caractères maximum, qui décrit ce qui se passe dans la vidéo, sans hashtag, sans emoji, sans guillemets.",
+      "- caption : 3 à 5 lignes courtes qui racontent ce que l'on voit dans cette vidéo précise, 1 ou 2 emojis au maximum, en terminant par une question ou un appel à commenter.",
+      `- hashtags : 12 hashtags sur une seule ligne, séparés par des espaces, tirés de ce que montre la vidéo (lieu, action, style, ambiance) plus quelques hashtags larges (#pourtoi #fyp).`,
       "",
-      "Contraintes : la légende doit coller à cette vidéo précise, jamais un texte générique réutilisable. N'invente aucune marque, aucun partenariat, aucun prix et aucune promesse. Pas de guillemets autour des textes, pas de titres ni de listes.",
+      `Le personnage s'appelle ${clip(creation.influencer_name, 80)} : tu peux citer ce nom une seule fois, dans les hashtags.`,
+      `Réseau visé : ${platform}.`,
+      "",
+      "Contraintes : ne t'appuie sur aucune biographie, aucune description de personnage et aucun texte de brief. N'invente aucune marque, aucun partenariat, aucun prix et aucune promesse. Pas de guillemets autour des textes, pas de titres ni de listes.",
     ].filter(Boolean).join("\n");
 
     const copy: any = await base44.asServiceRole.integrations.Core.InvokeLLM({
       prompt,
+      file_urls: [videoUrl],
+      model: "gemini_3_8_flash",
       response_json_schema: COPY_SCHEMA,
     });
 
@@ -71,7 +73,7 @@ export default async function (req: any) {
     const caption = clip(copy?.caption, 2000);
     const hashtags = clip(copy?.hashtags, 600).replace(/\n+/g, " ");
     if (!hook && !caption) {
-      return Response.json({ error: "L'IA n'a rien renvoyé : réessayez." }, { status: 502 });
+      return Response.json({ error: "L'analyse de la vidéo n'a rien renvoyé : réessayez." }, { status: 502 });
     }
     return Response.json({ hook, caption, hashtags });
   } catch (error: any) {
