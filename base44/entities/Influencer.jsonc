@@ -21,6 +21,10 @@
       },
       "description": "file_uris de toutes les photos de r\u00e9f\u00e9rence du personnage (stockage priv\u00e9)"
     },
+    "face_reference_image": {
+      "type": "string",
+      "description": "file_uri du portrait servant de r\u00e9f\u00e9rence de visage (stockage priv\u00e9)"
+    },
     "motion_reference_image": {
       "type": "string",
       "description": "file_uri de la photo individuelle au cadrage v\u00e9rifi\u00e9 pour le transfert de mouvement (stockage priv\u00e9)"
@@ -59,6 +63,43 @@
     "story": {
       "type": "string",
       "description": "Histoire / biographie du personnage"
+    },
+    "source": {
+      "type": "string",
+      "description": "Origine de l'import (ex. cashfluencer-character-bank)"
+    },
+    "source_character_id": {
+      "type": "string",
+      "description": "Identifiant du personnage dans la banque d'origine, conserv\u00e9 tel quel (z\u00e9ros initiaux compris)"
+    },
+    "source_event_id": {
+      "type": "string",
+      "description": "Identifiant de l'\u00e9v\u00e9nement d'import renvoy\u00e9 par la banque"
+    },
+    "import_id": {
+      "type": "string",
+      "description": "Identifiant stable de l'import renvoy\u00e9 par la banque (identique pour une m\u00eame r\u00e9servation)"
+    },
+    "import_key": {
+      "type": "string",
+      "description": "Cl\u00e9 unique de d\u00e9duplication : utilisateur + source + import_id"
+    },
+    "import_status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "ready"
+      ],
+      "description": "\u00c9tat de l'import : pending tant que les deux photos ne sont pas utilisables, ready ensuite"
+    },
+    "imported_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date de finalisation de l'import"
+    },
+    "profile": {
+      "type": "object",
+      "description": "Copie JSON compl\u00e8te du profil public renvoy\u00e9 par la banque"
     }
   },
   "required": [
