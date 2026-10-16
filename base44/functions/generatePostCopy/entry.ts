@@ -47,14 +47,18 @@ export default async function (req: any) {
 
     // Le texte vient du contenu réel de la vidéo : aucune fiche de personnage n'est transmise.
     const prompt = [
-      "Regarde la vidéo jointe (vidéo courte générée pour un influenceur virtuel) et rédige son texte de publication.",
+      "Regarde la vidéo jointe (vidéo courte générée pour un influenceur virtuel) et écris son texte de publication, comme le ferait un créateur de contenu qui fait des vues.",
       "",
-      "Appuie-toi uniquement sur ce que montre la vidéo : le décor, l'action, les mouvements, la tenue, la lumière, l'ambiance, le montage.",
+      "Point de départ : ce que montre réellement la vidéo (décor, action, tenue, lumière, ambiance). Ne le raconte jamais comme une description : transforme-le en texte de réseaux sociaux.",
+      "",
+      "Le ton doit être cool, spontané, actuel, avec de l'énergie : phrases très courtes, tutoiement, rythme, petites punchlines, une pointe d'humour ou de complicité. Le texte doit donner envie de regarder la vidéo et de commenter.",
+      "",
+      "À bannir : les phrases sages qui décrivent la scène (par exemple « une marche tranquille dans les rues bordées d'arbres »), les adjectifs de brochure, le vouvoiement, le ton corporate ou publicitaire sage.",
       "",
       "Rends uniquement ces trois textes, en français :",
-      "- hook : l'accroche affichée en première ligne, 60 caractères maximum, qui décrit ce qui se passe dans la vidéo, sans hashtag, sans emoji, sans guillemets.",
-      "- caption : 3 à 5 lignes courtes qui racontent ce que l'on voit dans cette vidéo précise, 1 ou 2 emojis au maximum, en terminant par une question ou un appel à commenter.",
-      `- hashtags : 12 hashtags sur une seule ligne, séparés par des espaces, tirés de ce que montre la vidéo (lieu, action, style, ambiance) plus quelques hashtags larges (#pourtoi #fyp).`,
+      "- hook : 60 caractères maximum, une phrase qui donne envie de s'arrêter sur la vidéo (curiosité, surprise, punchline) — jamais une description de la scène, sans hashtag, sans emoji, sans guillemets.",
+      "- caption : 2 à 4 lignes très courtes, ton décontracté et drôle, 3 à 5 emojis pertinents, se termine par une question courte ou un appel à commenter.",
+      `- hashtags : 12 hashtags sur une seule ligne, séparés par des espaces, dans l'air du temps (quelques larges #pourtoi #fyp plus des hashtags de niche tirés de la vidéo : lieu, action, style, ambiance).`,
       "",
       `Le personnage s'appelle ${clip(creation.influencer_name, 80)} : tu peux citer ce nom une seule fois, dans les hashtags.`,
       `Réseau visé : ${platform}.`,
