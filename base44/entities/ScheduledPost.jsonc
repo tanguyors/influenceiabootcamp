@@ -1,0 +1,103 @@
+{
+  "name": "ScheduledPost",
+  "type": "object",
+  "properties": {
+    "creation_id": {
+      "type": "string",
+      "description": "ID de la cr\u00e9ation vid\u00e9o programm\u00e9e"
+    },
+    "influencer_id": {
+      "type": "string",
+      "description": "ID de l'influenceur (d\u00e9normalis\u00e9)"
+    },
+    "influencer_name": {
+      "type": "string",
+      "description": "Nom de l'influenceur (d\u00e9normalis\u00e9)"
+    },
+    "video_url": {
+      "type": "string",
+      "description": "URL de la vid\u00e9o programm\u00e9e"
+    },
+    "platform": {
+      "type": "string",
+      "enum": [
+        "tiktok",
+        "instagram",
+        "youtube"
+      ],
+      "description": "R\u00e9seau vis\u00e9 par la publication"
+    },
+    "scheduled_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Jour de publication pr\u00e9vu (YYYY-MM-DD)"
+    },
+    "scheduled_time": {
+      "type": "string",
+      "description": "Heure de publication pr\u00e9vue (HH:MM)"
+    },
+    "hook": {
+      "type": "string",
+      "description": "Accroche g\u00e9n\u00e9r\u00e9e \u00e0 partir de la vid\u00e9o"
+    },
+    "caption": {
+      "type": "string",
+      "description": "L\u00e9gende g\u00e9n\u00e9r\u00e9e \u00e0 partir de la vid\u00e9o"
+    },
+    "hashtags": {
+      "type": "string",
+      "description": "Hashtags g\u00e9n\u00e9r\u00e9s, sur une seule ligne"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "published"
+      ],
+      "default": "planned",
+      "description": "\u00c9tat du post : pr\u00e9vu ou publi\u00e9"
+    }
+  },
+  "required": [
+    "scheduled_date",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}
