@@ -6,20 +6,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import PhotoDropZone from "@/components/influencers/PhotoDropZone";
+
+const MAX_PHOTOS = 40;
 
 export default function PhotoInfluencerForm({ onCreated, submitLabel = "Créer" }) {
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ name: "", notes: "", files: [], previews: [] });
 
-  function onFile(e) {
-    const picked = Array.from(e.target.files || []);
-    if (!picked.length) return;
+  function addFiles(picked) {
+    const images = (picked || []).filter(Boolean);
+    const room = MAX_PHOTOS - form.files.length;
+    if (!images.length) {
+      toast({ title: "Aucune image trouvée", description: "Le dossier déposé ne contient pas de photo.", variant: "destructive" });
+      return;
+    }
+    if (room <= 0) {
+      toast({ title: `Maximum ${MAX_PHOTOS} photos` });
+      return;
+    }
+    const kept = images.slice(0, room);
+    if (kept.length < images.length) toast({ title: `Seules les ${MAX_PHOTOS} premières photos ont été ajoutées` });
     setForm((s) => ({
       ...s,
-      files: [...s.files, ...picked],
-      previews: [...s.previews, ...picked.map((f) => URL.createObjectURL(f))],
+      files: [...s.files, ...kept],
+      previews: [...s.previews, ...kept.map((f) => URL.createObjectURL(f))],
     }));
+  }
+
+  function onFile(e) {
+    addFiles(Array.from(e.target.files || []));
     e.target.value = "";
   }
 
@@ -60,10 +77,11 @@ export default function PhotoInfluencerForm({ onCreated, submitLabel = "Créer" 
       <div>
         <Label>Photos de référence</Label>
         <p className="mb-2 text-xs text-muted-foreground">
-          Ajoutez plusieurs photos du personnage (visage de face, profil, plan large). Plus il y en a, mieux Higgsfield le reproduit. Stockées de façon privée (stored privately).
+          Glissez le dossier contenant ses photos (visage de face, profil, plan large) : toutes les images sont récupérées. Plus il y en a, mieux Higgsfield le reproduit. Stockées de façon privée (stored privately).
         </p>
+        <PhotoDropZone onFiles={addFiles} count={form.files.length} />
         {form.previews.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-2">
+          <div className="mb-3 mt-3 flex flex-wrap gap-2">
             {form.previews.map((src, i) => (
               <div key={src} className="relative">
                 <img src={src} alt="" className="h-20 w-20 rounded-lg object-cover" />
@@ -78,10 +96,12 @@ export default function PhotoInfluencerForm({ onCreated, submitLabel = "Créer" 
             ))}
           </div>
         )}
-        <Input type="file" accept="image/*" multiple onChange={onFile} />
-        <p className="mt-1 text-xs text-muted-foreground">
-          {form.files.length ? `${form.files.length} photo(s) sélectionnée(s)` : "Aucune photo sélectionnée"}
-        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          <Input type="file" accept="image/*" multiple onChange={onFile} className="max-w-xs" />
+          <span className="text-xs text-muted-foreground">
+            {form.files.length ? `${form.files.length} photo(s) sélectionnée(s)` : "Ou choisissez les photos une par une"}
+          </span>
+        </div>
       </div>
       <div>
         <Label htmlFor="photo-name">Nom</Label>

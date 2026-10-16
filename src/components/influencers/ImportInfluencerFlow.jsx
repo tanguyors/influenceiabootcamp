@@ -56,7 +56,7 @@ export default function ImportInfluencerFlow({ open, onClose, onSaved }) {
             <>
               <h2 className="font-heading text-2xl font-bold tracking-tight sm:text-3xl">Importez votre influenceur</h2>
               <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-                Ajoutez ses photos de référence : visage de face, profil, plan large. Juste après, quelques questions rapides nous serviront à écrire son histoire.
+                Glissez le dossier qui contient ses photos de référence (visage de face, profil, plan large) — tout est récupéré d'un coup. Juste après, quelques questions rapides nous serviront à écrire son histoire.
               </p>
               <div className="mt-6 rounded-xl border border-border bg-card p-5">
                 <PhotoInfluencerForm
