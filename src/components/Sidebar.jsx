@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, Flame, Film, Plug, Sparkles, LayoutDashboard, CalendarDays } from "lucide-react";
+import { Users, Flame, Film, Plug, Sparkles, LayoutDashboard, CalendarDays, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -8,6 +8,7 @@ const navItems = [
   { to: "/videos", label: "Banque de modèles", icon: Flame },
   { to: "/creations", label: "Mes créations", icon: Film },
   { to: "/calendrier", label: "Calendrier", icon: CalendarDays },
+  { to: "/comment-ca-marche", label: "Comment ça marche", icon: HelpCircle },
   { to: "/connexion", label: "Setup Higgsfield", icon: Plug },
 ];
 

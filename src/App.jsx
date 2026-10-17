@@ -14,6 +14,7 @@ import Influencers from '@/pages/Influencers';
 import ViralLibrary from '@/pages/ViralLibrary';
 import Creations from '@/pages/Creations';
 import Calendar from '@/pages/Calendar';
+import HowItWorks from '@/pages/HowItWorks';
 import HiggsfieldConnection from '@/pages/HiggsfieldConnection';
 import Recreate from '@/pages/Recreate';
 import Login from '@/pages/Login';
@@ -61,6 +62,7 @@ const AuthenticatedApp = () => {
           <Route path="/videos" element={<ViralLibrary />} />
           <Route path="/creations" element={<Creations />} />
           <Route path="/calendrier" element={<Calendar />} />
+          <Route path="/comment-ca-marche" element={<HowItWorks />} />
           <Route path="/connexion" element={<HiggsfieldConnection />} />
           <Route path="/recreer" element={<Recreate />} />
         </Route>
