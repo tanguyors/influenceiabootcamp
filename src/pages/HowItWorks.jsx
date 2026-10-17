@@ -1,8 +1,10 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Layers, MessageSquare, Database, Sparkles, CalendarDays, Wand2 } from "lucide-react";
-import BrandLockup from "@/components/BrandLockup";
+import { Image } from "@/components/ui/image";
 import HowDailyLoop from "@/components/how/HowDailyLoop";
 import HowPromptList from "@/components/how/HowPromptList";
+
+const BASE44_LOGO = "https://base44.com/logo_v2.svg";
 
 const pillars = [
   {
@@ -35,8 +37,6 @@ const notes = [
 export default function HowItWorks() {
   return (
     <div className="mx-auto max-w-6xl px-8 py-10">
-      <BrandLockup className="mb-10" />
-
       {/* Hero */}
       <section className="mb-12">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
@@ -66,6 +66,34 @@ export default function HowItWorks() {
           >
             Voir mon calendrier <CalendarDays className="h-4 w-4" />
           </Link>
+        </div>
+      </section>
+
+      {/* Le copilote, c'est Base44 */}
+      <section className="mb-14 rounded-xl border border-border bg-card p-6 sm:p-8">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-secondary p-3">
+            <Image
+              src={BASE44_LOGO}
+              alt="Base44"
+              fittingType="fit"
+              className="h-full w-full object-contain"
+            />
+          </div>
+          <div>
+            <h2 className="font-heading text-xl font-semibold tracking-tight">
+              Ton copilote, c'est Base44
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              L'IA qui t'accompagne tous les jours est celle de Base44, la plateforme sur laquelle
+              tourne ton studio. Tu lui parles comme à un partenaire : elle connaît tes personnages,
+              tes vidéos et ton calendrier, puis elle agit pour toi.
+            </p>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              Une bio à écrire, une accroche à trouver, la bonne heure pour poster, un planning à
+              remplir : une phrase suffit, tu valides, c'est fait.
+            </p>
+          </div>
         </div>
       </section>
 
