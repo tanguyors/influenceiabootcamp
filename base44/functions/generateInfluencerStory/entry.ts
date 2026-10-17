@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { secrets } from "base44:runtime";
-
-const MODEL = "gpt-4o-mini";
+import { clean, openAiJson } from "../../shared/openaiText.ts";
 
 const SYSTEM = [
   "Tu écris la biographie d'un influenceur pour une agence française de création de contenu.",
@@ -22,10 +20,6 @@ const SCHEMA = {
   required: ["tagline", "story"],
   additionalProperties: false,
 };
-
-function clean(value: any, max: number) {
-  return String(value || "").trim().slice(0, max);
-}
 
 // Le questionnaire fournit les choix ; ils orientent l'histoire sans jamais être recopiés tels quels.
 function userPrompt(data: any) {
@@ -75,55 +69,17 @@ export default async function (req: any) {
     if (!data.name) return Response.json({ error: "Indiquez le nom du personnage." }, { status: 400 });
     if (!data.niche) return Response.json({ error: "Choisissez au moins sa niche principale." }, { status: 400 });
 
-    const key = secrets.get("OPENAI_API_KEY");
-    if (!key) {
-      return Response.json({ error: "Clé OpenAI manquante : ajoutez le secret OPENAI_API_KEY." }, { status: 400 });
-    }
-
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: MODEL,
-        temperature: 1,
-        max_tokens: 900,
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: "influencer_story", strict: true, schema: SCHEMA },
-        },
-        messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: userPrompt(data) },
-        ],
-      }),
-      signal: AbortSignal.timeout(90000),
+    const { data: parsed, error, status } = await openAiJson({
+      schemaName: "influencer_story",
+      schema: SCHEMA,
+      system: SYSTEM,
+      user: userPrompt(data),
+      maxTokens: 900,
     });
+    if (error) return Response.json({ error }, { status: status || 502 });
 
-    if (!res.ok) {
-      const raw = await res.text();
-      let message = "";
-      try { message = JSON.parse(raw)?.error?.message || ""; } catch { message = raw.slice(0, 200); }
-      if (res.status === 401) {
-        return Response.json({ error: "Clé OpenAI refusée : vérifiez le secret OPENAI_API_KEY." }, { status: 400 });
-      }
-      if (res.status === 429) {
-        const quota = /quota|billing|credit/i.test(message);
-        return Response.json({
-          error: quota
-            ? "Compte OpenAI sans crédit disponible : ajoutez un moyen de paiement sur platform.openai.com, puis relancez."
-            : "Trop de requêtes OpenAI en peu de temps : réessayez dans un instant.",
-        }, { status: 400 });
-      }
-      return Response.json({ error: message || `OpenAI a refusé la génération (${res.status}).` }, { status: 502 });
-    }
-
-    const payload = await res.json();
-    const content = payload?.choices?.[0]?.message?.content || "{}";
-    let parsed: any = {};
-    try { parsed = JSON.parse(content); } catch { parsed = {}; }
-
-    const story = clean(parsed.story, 6000);
-    const tagline = clean(parsed.tagline, 200);
+    const story = clean(parsed?.story, 6000);
+    const tagline = clean(parsed?.tagline, 200);
     if (!story) return Response.json({ error: "OpenAI n'a renvoyé aucune histoire : relancez." }, { status: 502 });
 
     return Response.json({ story, tagline });

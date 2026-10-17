@@ -9,6 +9,7 @@ import SignedImage from "@/components/SignedImage";
 import CreateInfluencerFunnel from "@/components/influencers/CreateInfluencerFunnel";
 import CreateInfluencerDialog from "@/components/influencers/CreateInfluencerDialog";
 import ImportInfluencerFlow from "@/components/influencers/ImportInfluencerFlow";
+import InstagramBioPanel from "@/components/influencers/InstagramBioPanel";
 
 const ACTIVE_KEY = "influenceia.activeInfluencer";
 
@@ -59,6 +60,10 @@ export default function Influencers() {
         : [influencer, ...list];
     });
     if (!activeId) selectActive(influencer.id);
+  }
+
+  function handleBioUpdated(updated) {
+    setItems((s) => (s || []).map((i) => (i.id === updated.id ? updated : i)));
   }
 
   async function remove(id) {
@@ -142,7 +147,8 @@ export default function Influencers() {
                   )}
                 </div>
               </button>
-              <button onClick={() => remove(inf.id)} className="absolute bottom-3 right-3 rounded-md bg-card/80 p-1.5 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100">
+              <InstagramBioPanel influencer={inf} onUpdated={handleBioUpdated} />
+              <button onClick={() => remove(inf.id)} className="absolute right-3 top-3 rounded-md bg-card/80 p-1.5 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>

@@ -64,6 +64,10 @@
       "type": "string",
       "description": "Histoire / biographie du personnage"
     },
+    "instagram_bio": {
+      "type": "string",
+      "description": "Bio de profil Instagram g\u00e9n\u00e9r\u00e9e pour ce personnage (3 lignes, 150 caract\u00e8res max)"
+    },
     "source": {
       "type": "string",
       "description": "Origine de l'import (ex. cashfluencer-character-bank)"
