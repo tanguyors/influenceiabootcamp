@@ -1,10 +1,10 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Layers, MessageSquare, Database, Sparkles, CalendarDays, Wand2 } from "lucide-react";
 import { Image } from "@/components/ui/image";
+import Base44Logo from "@/components/Base44Logo";
 import HowDailyLoop from "@/components/how/HowDailyLoop";
 import HowPromptList from "@/components/how/HowPromptList";
 
-const BASE44_LOGO = "https://base44.com/logo_v2.svg";
 const BASE44_BRAIN = "https://media.base44.com/images/public/6acf818406c8aa81ac77512c/80857f9ba_generated_image.png";
 
 const pillars = [
@@ -76,12 +76,7 @@ export default function HowItWorks() {
           <div className="p-6 sm:p-8 lg:self-center">
             <div className="flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-secondary p-2">
-                <Image
-                  src={BASE44_LOGO}
-                  alt="Base44"
-                  fittingType="fit"
-                  className="h-full w-full object-contain"
-                />
+                <Base44Logo className="h-full w-full" />
               </div>
               <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
                 Base44 Brain

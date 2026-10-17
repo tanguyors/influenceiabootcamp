@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Flame, Loader2, Plus, Search, Sparkles } from "lucide-react";
+import { Flame, Loader2, Plus, Search } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import ReferenceCard from "@/components/library/ReferenceCard";
 import ReferenceFormDialog from "@/components/library/ReferenceFormDialog";
+import Base44Logo from "@/components/Base44Logo";
 
 const PERIODS = [
   { value: "6h", label: "6 dernières heures" },
@@ -94,15 +95,15 @@ export default function ViralLibrary() {
       {/* Le plus puissant : l'IA repère ce qui buzz */}
       <div className="mb-6 flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Sparkles className="h-4 w-4" />
+          <div className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-primary/15 p-1.5">
+            <Base44Logo className="h-full w-full" />
           </div>
           <div>
             <p className="font-heading text-sm font-semibold tracking-tight">
-              Le plus puissant : l'IA repère ce qui buzz en ce moment
+              Le plus puissant : Base44 repère ce qui buzz en ce moment
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Demande dans le chat Base44 de repérer les vidéos qui font le buzz aujourd'hui, puis colle le lien ici : le modèle rejoint ta banque et ton stock grandit à chaque trouvaille.
+              Demande à ton cerveau Base44 de trouver les vidéos qui font le buzz aujourd'hui, puis colle le lien ici : le modèle rejoint ta banque et ton stock grandit à chaque trouvaille.
             </p>
           </div>
         </div>
