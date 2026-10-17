@@ -100,7 +100,7 @@ export default function HowItWorks() {
               remplir : tu lui demandes, il sait déjà de quoi tu parles.
             </p>
           </div>
-          <div className="relative min-h-[240px] border-t border-border lg:border-l lg:border-t-0">
+          <div className="relative aspect-square w-full overflow-hidden border-t border-border lg:self-center lg:border-l lg:border-t-0">
             <Image
               src={BASE44_BRAIN}
               alt="Le cerveau Base44"
