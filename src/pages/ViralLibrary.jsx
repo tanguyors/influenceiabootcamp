@@ -100,10 +100,10 @@ export default function ViralLibrary() {
           </div>
           <div>
             <p className="font-heading text-sm font-semibold tracking-tight">
-              Le plus puissant : Base44 repère ce qui buzz en ce moment
+              Le plus puissant : ton cerveau Base44 repère ce qui buzz en ce moment
             </p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Demande à ton cerveau Base44 de trouver les vidéos qui font le buzz aujourd'hui, puis colle le lien ici : le modèle rejoint ta banque et ton stock grandit à chaque trouvaille.
+              Demande-lui de trouver les vidéos qui font le buzz aujourd'hui, puis colle le lien ici : le modèle rejoint ta banque et ton stock grandit à chaque trouvaille.
             </p>
           </div>
         </div>
