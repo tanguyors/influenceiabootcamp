@@ -12,13 +12,14 @@ import ReferenceCard from "@/components/library/ReferenceCard";
 import ReferenceFormDialog from "@/components/library/ReferenceFormDialog";
 import Base44PromptCard from "@/components/Base44PromptCard";
 import { promptGroup } from "@/lib/base44Prompts";
+import { useI18n } from "@/lib/i18n";
 
 const PERIODS = [
-  { value: "6h", label: "6 dernières heures" },
-  { value: "12h", label: "12 dernières heures" },
-  { value: "24h", label: "24 dernières heures" },
-  { value: "7j", label: "7 derniers jours" },
-  { value: "all", label: "Toutes périodes" },
+  { value: "6h", key: "library.period6h" },
+  { value: "12h", key: "library.period12h" },
+  { value: "24h", key: "library.period24h" },
+  { value: "7j", key: "library.period7d" },
+  { value: "all", key: "library.periodAll" },
 ];
 
 function periodToMs(period) {
@@ -31,6 +32,7 @@ function periodToMs(period) {
 export default function ViralLibrary() {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t, lang } = useI18n();
   const [items, setItems] = useState(null);
   const [period, setPeriod] = useState("all");
   const [q, setQ] = useState("");
@@ -64,9 +66,9 @@ export default function ViralLibrary() {
       const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file });
       await base44.entities.ViralVideo.update(video.id, { video_file_uri: file_uri });
       setItems((s) => (s || []).map((v) => (v.id === video.id ? { ...v, video_file_uri: file_uri } : v)));
-      toast({ title: "Vidéo source ajoutée", description: "Le cadre et le mouvement de ce modèle seront repris." });
+      toast({ title: t("library.sourceAdded"), description: t("library.sourceAddedDesc") });
     } catch (e) {
-      toast({ title: "Ajout impossible", description: e.message, variant: "destructive" });
+      toast({ title: t("library.addFailed"), description: e.message, variant: "destructive" });
     } finally {
       setAttachingId("");
     }
@@ -83,22 +85,22 @@ export default function ViralLibrary() {
 
   const addButton = (
     <Button onClick={() => setOpen(true)} className="font-semibold">
-      <Plus className="mr-2 h-4 w-4" /> Ajouter un modèle
+      <Plus className="mr-2 h-4 w-4" /> {t("library.add")}
     </Button>
   );
 
   return (
     <PageShell
-      title="Banque de modèles"
-      subtitle="Vos propres modèles vidéo : ajoutez les références à recréer, avec leur fichier mp4. Ce fichier permet de reprendre le cadre, la caméra et le mouvement de l'original."
+      title={t("library.title")}
+      subtitle={t("library.subtitle")}
       actions={addButton}
     >
       <Base44PromptCard
-        group={promptGroup("buzz")}
+        group={promptGroup("buzz", lang)}
         className="mb-6"
         action={
           <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="shrink-0">
-            Coller un lien
+            {t("library.pasteLink")}
           </Button>
         }
       />
@@ -107,12 +109,12 @@ export default function ViralLibrary() {
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <div className="relative min-w-[200px] flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/60" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher…" className="pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("library.search")} className="pl-9" />
         </div>
         <Select value={period} onValueChange={setPeriod}>
           <SelectTrigger className="w-[180px]"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {PERIODS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+            {PERIODS.map((p) => <SelectItem key={p.value} value={p.value}>{t(p.key)}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -123,12 +125,12 @@ export default function ViralLibrary() {
         items.length === 0 ? (
           <EmptyState
             icon={Flame}
-            title="Votre banque est vide"
-            description="Ajoutez vos propres modèles vidéo : titre et fichier mp4 pour reprendre le mouvement de la référence."
+            title={t("library.emptyTitle")}
+            description={t("library.emptyDesc")}
             action={addButton}
           />
         ) : (
-          <EmptyState icon={Flame} title="Aucun modèle" description="Ajustez les filtres pour retrouver vos modèles." />
+          <EmptyState icon={Flame} title={t("library.noMatchTitle")} description={t("library.noMatchDesc")} />
         )
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

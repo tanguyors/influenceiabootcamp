@@ -1,68 +1,51 @@
 import { Link } from "react-router-dom";
 import { Users, Flame, Film, ArrowRight, Sparkles, Image as ImageIcon, Wand2, Download } from "lucide-react";
 import BankImportCard from "@/components/bank/BankImportCard";
+import { useI18n } from "@/lib/i18n";
 
 const steps = [
-  {
-    n: "01",
-    title: "Mon influenceur",
-    desc: "Importez une image de votre personnage, nommez-le. Son visage et son apparence sont conservés pour chaque vidéo.",
-    icon: ImageIcon,
-    to: "/influenceurs",
-  },
-  {
-    n: "02",
-    title: "Une vidéo virale",
-    desc: "Parcourez une bibliothèque de références ayant percé sur TikTok, Reels et Shorts. Filtrez, importez, favorisez.",
-    icon: Flame,
-    to: "/videos",
-  },
-  {
-    n: "03",
-    title: "Ma version",
-    desc: "Reprenez la direction visuelle de la référence avec votre influenceur. Ajustez tenue, décor, lancez la génération.",
-    icon: Wand2,
-    to: "/creations",
-  },
-];
-
-const sampleStats = [
-  { label: "Influenceurs", value: "0", icon: Users },
-  { label: "Références virales", value: "0", icon: Flame },
-  { label: "Créations", value: "0", icon: Film },
+  { n: "01", titleKey: "dashboard.step1Title", descKey: "dashboard.step1Desc", icon: ImageIcon, to: "/influenceurs" },
+  { n: "02", titleKey: "dashboard.step2Title", descKey: "dashboard.step2Desc", icon: Flame, to: "/videos" },
+  { n: "03", titleKey: "dashboard.step3Title", descKey: "dashboard.step3Desc", icon: Wand2, to: "/creations" },
 ];
 
 export default function Dashboard() {
+  const { t } = useI18n();
+
+  const stats = [
+    { label: t("dashboard.statInfluencers"), value: "0", icon: Users },
+    { label: t("dashboard.statReferences"), value: "0", icon: Flame },
+    { label: t("dashboard.statCreations"), value: "0", icon: Film },
+  ];
+
   return (
     <div className="mx-auto max-w-6xl px-8 py-10">
       {/* Hero */}
       <section className="mb-12">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">
           <Sparkles className="h-3.5 w-3.5 text-primary" />
-          Parcours : Mon influenceur → Une vidéo virale → Ma version
+          {t("dashboard.badge")}
         </div>
         <h1 className="mt-5 font-heading text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-          Créez un influenceur IA,
+          {t("dashboard.title1")}
           <br />
-          <span className="text-muted-foreground">recréez les vidéos qui performent.</span>
+          <span className="text-muted-foreground">{t("dashboard.title2")}</span>
         </h1>
         <p className="mt-4 max-w-2xl text-[15px] leading-relaxed text-muted-foreground">
-          Importez l'image de votre personnage, choisissez une vidéo virale de référence, puis
-          générez votre propre version via votre serveur MCP Higgsfield. Format vertical 9:16,
-          résolution 1080p lorsque le modèle le permet.
+          {t("dashboard.lead")}
         </p>
         <div className="mt-7 flex flex-wrap gap-3">
           <Link
             to="/influenceurs"
             className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
-            Créer mon influenceur <ArrowRight className="h-4 w-4" />
+            {t("dashboard.ctaCreate")} <ArrowRight className="h-4 w-4" />
           </Link>
           <Link
             to="/videos"
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-5 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-secondary"
           >
-            Explorer les vidéos virales
+            {t("dashboard.ctaExplore")}
           </Link>
         </div>
       </section>
@@ -72,7 +55,7 @@ export default function Dashboard() {
 
       {/* Stats */}
       <section className="mb-12 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {sampleStats.map((s) => {
+        {stats.map((s) => {
           const Icon = s.icon;
           return (
             <div key={s.label} className="rounded-xl border border-border bg-card p-5">
@@ -88,7 +71,7 @@ export default function Dashboard() {
 
       {/* Steps */}
       <section>
-        <h2 className="mb-5 font-heading text-xl font-semibold tracking-tight">Le parcours en 3 étapes</h2>
+        <h2 className="mb-5 font-heading text-xl font-semibold tracking-tight">{t("dashboard.stepsTitle")}</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {steps.map((s) => {
             const Icon = s.icon;
@@ -102,10 +85,10 @@ export default function Dashboard() {
                   <span className="font-mono text-xs text-muted-foreground/60">{s.n}</span>
                   <Icon className="h-5 w-5 text-muted-foreground transition-colors group-hover:text-primary" />
                 </div>
-                <h3 className="mt-4 font-heading text-lg font-semibold tracking-tight">{s.title}</h3>
-                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{s.desc}</p>
+                <h3 className="mt-4 font-heading text-lg font-semibold tracking-tight">{t(s.titleKey)}</h3>
+                <p className="mt-2 flex-1 text-sm leading-relaxed text-muted-foreground">{t(s.descKey)}</p>
                 <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-primary">
-                  Ouvrir <ArrowRight className="h-3.5 w-3.5" />
+                  {t("dashboard.open")} <ArrowRight className="h-3.5 w-3.5" />
                 </span>
               </Link>
             );
@@ -115,7 +98,7 @@ export default function Dashboard() {
 
       <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground/60">
         <Download className="h-3.5 w-3.5" />
-        Génération asynchrone · État conservé entre les visites · Pas de lancement en double
+        {t("dashboard.footer")}
       </div>
     </div>
   );

@@ -7,13 +7,10 @@ import CalendarGrid, { dayKey, monthCells } from "@/components/calendar/Calendar
 import PostDetailDialog from "@/components/calendar/PostDetailDialog";
 import Base44PromptCard from "@/components/Base44PromptCard";
 import { promptGroup } from "@/lib/base44Prompts";
-
-const MONTHS = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre",
-];
+import { useI18n } from "@/lib/i18n";
 
 export default function Calendar() {
+  const { t, lang, locale } = useI18n();
   const [cursor, setCursor] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -55,24 +52,26 @@ export default function Calendar() {
     });
   }
 
+  const monthLabel = useMemo(
+    () => new Intl.DateTimeFormat(locale, { month: "long" }).format(new Date(cursor.year, cursor.month, 1)),
+    [cursor, locale]
+  );
+
   return (
-    <PageShell
-      title="Calendrier"
-      subtitle="Vos publications planifiées, en lecture seule : l'accroche, la légende et les hashtags se rédigent depuis le chat, à partir de la vidéo."
-    >
-      <Base44PromptCard group={promptGroup("planning")} className="mb-6" />
+    <PageShell title={t("calendar.title")} subtitle={t("calendar.subtitle")}>
+      <Base44PromptCard group={promptGroup("planning", lang)} className="mb-6" />
 
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-1">
-          <Button variant="outline" size="icon" onClick={() => shift(-1)} aria-label="Mois précédent">
+          <Button variant="outline" size="icon" onClick={() => shift(-1)} aria-label={t("calendar.prevMonth")}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="outline" size="icon" onClick={() => shift(1)} aria-label="Mois suivant">
+          <Button variant="outline" size="icon" onClick={() => shift(1)} aria-label={t("calendar.nextMonth")}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
         <h2 className="font-heading text-lg font-semibold capitalize tracking-tight">
-          {MONTHS[cursor.month]} {cursor.year}
+          {monthLabel} {cursor.year}
         </h2>
         <Button
           variant="ghost"
@@ -82,7 +81,7 @@ export default function Calendar() {
             setCursor({ year: now.getFullYear(), month: now.getMonth() });
           }}
         >
-          Aujourd'hui
+          {t("calendar.today")}
         </Button>
       </div>
 

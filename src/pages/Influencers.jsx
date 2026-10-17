@@ -12,11 +12,13 @@ import ImportInfluencerFlow from "@/components/influencers/ImportInfluencerFlow"
 import InstagramBioPanel from "@/components/influencers/InstagramBioPanel";
 import Base44PromptCard from "@/components/Base44PromptCard";
 import { promptGroup } from "@/lib/base44Prompts";
+import { useI18n } from "@/lib/i18n";
 
 const ACTIVE_KEY = "influenceia.activeInfluencer";
 
 export default function Influencers() {
   const { toast } = useToast();
+  const { t, lang } = useI18n();
   const [items, setItems] = useState(null);
   const [activeId, setActiveId] = useState(() => localStorage.getItem(ACTIVE_KEY) || "");
   const [funnelOpen, setFunnelOpen] = useState(false);
@@ -49,7 +51,7 @@ export default function Influencers() {
     selectActive(created.id);
     setFunnelOpen(false);
     setPhotosOpen(false);
-    toast({ title: "Influenceur créé" });
+    toast({ title: t("influencers.created") });
   }
 
   // Import : la fiche est d'abord créée avec ses photos, puis complétée par le
@@ -69,13 +71,13 @@ export default function Influencers() {
   }
 
   async function remove(id) {
-    if (!confirm("Supprimer cet influenceur ?")) return;
+    if (!confirm(t("influencers.deleteConfirm"))) return;
     try {
       await base44.entities.Influencer.delete(id);
       setItems((s) => (s || []).filter((i) => i.id !== id));
       if (activeId === id) { setActiveId(""); localStorage.removeItem(ACTIVE_KEY); }
     } catch (e) {
-      toast({ title: "Suppression impossible", variant: "destructive" });
+      toast({ title: t("influencers.deleteFailed"), variant: "destructive" });
     }
   }
 
@@ -83,29 +85,29 @@ export default function Influencers() {
 
   return (
     <PageShell
-      title="Mes influenceurs"
-      subtitle="Générez un personnage par IA ou importez vos propres photos. Plus il y a d'angles, mieux son apparence est conservée à chaque génération."
+      title={t("influencers.title")}
+      subtitle={t("influencers.subtitle")}
       actions={
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={() => setImportOpen(true)} className="font-semibold">
-            <Upload className="mr-2 h-4 w-4" /> Importer un influenceur
+            <Upload className="mr-2 h-4 w-4" /> {t("influencers.import")}
           </Button>
           <Button onClick={() => setFunnelOpen(true)} className="font-semibold">
-            <Plus className="mr-2 h-4 w-4" /> Créer ma star
+            <Plus className="mr-2 h-4 w-4" /> {t("influencers.create")}
           </Button>
         </div>
       }
     >
-      <Base44PromptCard group={promptGroup("bio")} className="mb-6" />
+      <Base44PromptCard group={promptGroup("bio", lang)} className="mb-6" />
 
       {items === null ? (
         <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : list.length === 0 ? (
         <EmptyState
           icon={Users}
-          title="Aucun influenceur pour le moment"
-          description="Créez votre personnage en quelques choix, ou importez vos propres photos. Il sera réutilisable à chaque génération."
-          action={<Button onClick={() => setFunnelOpen(true)} className="font-semibold"><Plus className="mr-2 h-4 w-4" /> Créer mon premier influenceur</Button>}
+          title={t("influencers.emptyTitle")}
+          description={t("influencers.emptyDesc")}
+          action={<Button onClick={() => setFunnelOpen(true)} className="font-semibold"><Plus className="mr-2 h-4 w-4" /> {t("influencers.emptyAction")}</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -120,7 +122,7 @@ export default function Influencers() {
                   )}
                   {photosOf(inf).length > 1 && (
                     <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {photosOf(inf).length} photos
+                      {t("influencers.photos", { n: photosOf(inf).length })}
                     </span>
                   )}
                   {activeId === inf.id && (

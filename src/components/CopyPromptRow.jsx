@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { useI18n } from "@/lib/i18n";
 
 export default function CopyPromptRow({ text }) {
+  const { t } = useI18n();
   const [copied, setCopied] = useState(false);
 
   async function copy() {
@@ -23,7 +25,7 @@ export default function CopyPromptRow({ text }) {
       <span className="text-sm leading-relaxed text-foreground">{text}</span>
       <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground group-hover:text-primary">
         {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-        {copied ? "Copié" : "Copier"}
+        {copied ? t("common.copied") : t("common.copy")}
       </span>
     </button>
   );

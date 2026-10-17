@@ -7,17 +7,19 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import Base44PromptCard from "@/components/Base44PromptCard";
 import { promptGroup } from "@/lib/base44Prompts";
+import { useI18n } from "@/lib/i18n";
 
 const STATUS = {
-  draft: { label: "Brouillon", icon: Clock, cls: "text-muted-foreground bg-secondary" },
-  pending: { label: "En file d'attente", icon: Clock, cls: "text-amber-300 bg-amber-500/15" },
-  processing: { label: "Génération…", icon: Loader2, cls: "text-sky-300 bg-sky-500/15", spin: true },
-  ready: { label: "Prête", icon: CheckCircle2, cls: "text-primary bg-primary/15" },
-  failed: { label: "Échec", icon: XCircle, cls: "text-red-300 bg-red-500/15" },
+  draft: { key: "creations.statusDraft", icon: Clock, cls: "text-muted-foreground bg-secondary" },
+  pending: { key: "creations.statusPending", icon: Clock, cls: "text-amber-300 bg-amber-500/15" },
+  processing: { key: "creations.statusProcessing", icon: Loader2, cls: "text-sky-300 bg-sky-500/15", spin: true },
+  ready: { key: "creations.statusReady", icon: CheckCircle2, cls: "text-primary bg-primary/15" },
+  failed: { key: "creations.statusFailed", icon: XCircle, cls: "text-red-300 bg-red-500/15" },
 };
 
 export default function Creations() {
   const { toast } = useToast();
+  const { t, lang, locale } = useI18n();
   const [items, setItems] = useState(null);
 
   async function load() {
@@ -38,23 +40,23 @@ export default function Creations() {
   }
   useEffect(() => {
     load();
-    const t = setInterval(load, 8000);
-    return () => clearInterval(t);
+    const timer = setInterval(load, 8000);
+    return () => clearInterval(timer);
   }, []);
 
   const list = items || [];
 
   return (
-    <PageShell title="Mes créations" subtitle="Vidéos générées et générations en cours. L'état réel est conservé entre vos visites.">
-      <Base44PromptCard group={promptGroup("textes")} className="mb-6" />
+    <PageShell title={t("creations.title")} subtitle={t("creations.subtitle")}>
+      <Base44PromptCard group={promptGroup("textes", lang)} className="mb-6" />
 
       {items === null ? (
         <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : list.length === 0 ? (
         <EmptyState
           icon={Film}
-          title="Aucune création"
-          description="Choisissez une vidéo virale dans la bibliothèque, sélectionnez votre influenceur, puis lancez la génération."
+          title={t("creations.emptyTitle")}
+          description={t("creations.emptyDesc")}
         />
       ) : (
         <div className="space-y-4">
@@ -75,28 +77,28 @@ export default function Creations() {
                 <div className="flex-1">
                   <div className="flex items-center gap-2">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${st.cls}`}>
-                      <Icon className={`h-3 w-3 ${st.spin ? "animate-spin" : ""}`} /> {st.label}
+                      <Icon className={`h-3 w-3 ${st.spin ? "animate-spin" : ""}`} /> {t(st.key)}
                     </span>
-                    <span className="text-xs text-muted-foreground">{new Date(c.created_date).toLocaleString("fr-FR")}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(c.created_date).toLocaleString(locale)}</span>
                   </div>
-                  <h3 className="mt-2 font-heading text-base font-semibold tracking-tight">{c.prompt || "Génération"}</h3>
+                  <h3 className="mt-2 font-heading text-base font-semibold tracking-tight">{c.prompt || t("creations.generation")}</h3>
                   <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                    {c.model && <span>Modèle : {c.model}</span>}
-                    {c.duration && <span>Durée : {c.duration}s</span>}
-                    {c.aspect_ratio && <span>Format : {c.aspect_ratio}</span>}
-                    {c.resolution && <span>Résolution : {c.resolution}</span>}
-                    {c.is_upscaled && <span className="text-amber-300">mise à l'échelle</span>}
+                    {c.model && <span>{t("creations.model")} : {c.model}</span>}
+                    {c.duration && <span>{t("creations.duration")} : {c.duration}s</span>}
+                    {c.aspect_ratio && <span>{t("creations.format")} : {c.aspect_ratio}</span>}
+                    {c.resolution && <span>{t("creations.resolution")} : {c.resolution}</span>}
+                    {c.is_upscaled && <span className="text-amber-300">{t("creations.upscaled")}</span>}
                   </div>
                   {c.error && <p className="mt-2 flex items-center gap-1.5 text-xs text-red-300"><AlertCircle className="h-3.5 w-3.5" />{c.error}</p>}
                   <div className="mt-3 flex gap-2">
                     {c.result_video_url && c.status === "ready" && (
                       <a href={c.result_video_url} download className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium transition-colors hover:bg-secondary">
-                        <Download className="h-3.5 w-3.5" /> Télécharger
+                        <Download className="h-3.5 w-3.5" /> {t("creations.download")}
                       </a>
                     )}
                     {c.status === "ready" && (
-                      <Button variant="outline" size="sm" onClick={() => toast({ title: "Variante bientôt disponible" })}>
-                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Créer une variante
+                      <Button variant="outline" size="sm" onClick={() => toast({ title: t("creations.variantSoon") })}>
+                        <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> {t("creations.variant")}
                       </Button>
                     )}
                   </div>

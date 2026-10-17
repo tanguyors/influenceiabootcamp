@@ -1,11 +1,12 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import CopyPromptRow from "@/components/CopyPromptRow";
 import { platformOf } from "@/lib/postPlatforms";
+import { useI18n } from "@/lib/i18n";
 
-function formatDay(value) {
-  if (!value) return "Publication";
+function formatDay(value, locale, fallback) {
+  if (!value) return fallback;
   const [year, month, day] = value.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("fr-FR", {
+  return new Date(year, month - 1, day).toLocaleDateString(locale, {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -15,16 +16,18 @@ function formatDay(value) {
 
 // Lecture seule : on consulte ce qui est prévu, on ne remplit plus de formulaire.
 export default function PostDetailDialog({ open, onOpenChange, date, posts }) {
+  const { t, locale } = useI18n();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="capitalize">{formatDay(date)}</DialogTitle>
+          <DialogTitle className="capitalize">{formatDay(date, locale, t("calendar.publication"))}</DialogTitle>
         </DialogHeader>
 
         {posts.length === 0 ? (
           <p className="rounded-lg border border-border bg-secondary/40 p-3 text-sm leading-relaxed text-muted-foreground">
-            Aucune publication prévue ce jour-là. Demande au chat Base44 quelle vidéo publier ici : il remplit ton planning pour toi.
+            {t("calendar.emptyDay")}
           </p>
         ) : (
           <div className="space-y-4">
@@ -45,12 +48,12 @@ export default function PostDetailDialog({ open, onOpenChange, date, posts }) {
                           : "ml-auto rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-muted-foreground"
                       }
                     >
-                      {post.status === "published" ? "Publié" : "Prévu"}
+                      {post.status === "published" ? t("calendar.published") : t("calendar.planned")}
                     </span>
                   </div>
 
                   {post.influencer_name && (
-                    <p className="text-xs text-muted-foreground">Personnage : {post.influencer_name}</p>
+                    <p className="text-xs text-muted-foreground">{t("calendar.character", { name: post.influencer_name })}</p>
                   )}
 
                   {post.video_url && (
@@ -69,9 +72,7 @@ export default function PostDetailDialog({ open, onOpenChange, date, posts }) {
                   {post.hashtags && <CopyPromptRow text={post.hashtags} />}
 
                   {!post.hook && !post.caption && !post.hashtags && (
-                    <p className="text-sm text-muted-foreground">
-                      Pas encore de texte : demande au chat Base44 d'écrire l'accroche et la légende à partir de la vidéo.
-                    </p>
+                    <p className="text-sm text-muted-foreground">{t("calendar.noText")}</p>
                   )}
                 </div>
               );
