@@ -5,6 +5,8 @@ import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
 import CalendarGrid, { dayKey, monthCells } from "@/components/calendar/CalendarGrid";
 import PostComposer from "@/components/calendar/PostComposer";
+import Base44PromptCard from "@/components/Base44PromptCard";
+import { promptGroup } from "@/lib/base44Prompts";
 
 const MONTHS = [
   "janvier", "février", "mars", "avril", "mai", "juin",
@@ -65,6 +67,8 @@ export default function Calendar() {
         </Button>
       }
     >
+      <Base44PromptCard group={promptGroup("planning")} className="mb-6" />
+
       <div className="mb-4 flex items-center justify-between gap-3">
         <div className="flex items-center gap-1">
           <Button variant="outline" size="icon" onClick={() => shift(-1)} aria-label="Mois précédent">

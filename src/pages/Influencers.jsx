@@ -10,6 +10,8 @@ import CreateInfluencerFunnel from "@/components/influencers/CreateInfluencerFun
 import CreateInfluencerDialog from "@/components/influencers/CreateInfluencerDialog";
 import ImportInfluencerFlow from "@/components/influencers/ImportInfluencerFlow";
 import InstagramBioPanel from "@/components/influencers/InstagramBioPanel";
+import Base44PromptCard from "@/components/Base44PromptCard";
+import { promptGroup } from "@/lib/base44Prompts";
 
 const ACTIVE_KEY = "influenceia.activeInfluencer";
 
@@ -94,6 +96,8 @@ export default function Influencers() {
         </div>
       }
     >
+      <Base44PromptCard group={promptGroup("bio")} className="mb-6" />
+
       {items === null ? (
         <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : list.length === 0 ? (

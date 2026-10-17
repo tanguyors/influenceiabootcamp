@@ -5,6 +5,8 @@ import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
+import Base44PromptCard from "@/components/Base44PromptCard";
+import { promptGroup } from "@/lib/base44Prompts";
 
 const STATUS = {
   draft: { label: "Brouillon", icon: Clock, cls: "text-muted-foreground bg-secondary" },
@@ -44,6 +46,8 @@ export default function Creations() {
 
   return (
     <PageShell title="Mes créations" subtitle="Vidéos générées et générations en cours. L'état réel est conservé entre vos visites.">
+      <Base44PromptCard group={promptGroup("textes")} className="mb-6" />
+
       {items === null ? (
         <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : list.length === 0 ? (

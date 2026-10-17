@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import ReferenceCard from "@/components/library/ReferenceCard";
 import ReferenceFormDialog from "@/components/library/ReferenceFormDialog";
-import Base44Logo from "@/components/Base44Logo";
+import Base44PromptCard from "@/components/Base44PromptCard";
+import { promptGroup } from "@/lib/base44Prompts";
 
 const PERIODS = [
   { value: "6h", label: "6 dernières heures" },
@@ -92,25 +93,15 @@ export default function ViralLibrary() {
       subtitle="Vos propres modèles vidéo : ajoutez les références à recréer, avec leur fichier mp4. Ce fichier permet de reprendre le cadre, la caméra et le mouvement de l'original."
       actions={addButton}
     >
-      {/* Le plus puissant : l'IA repère ce qui buzz */}
-      <div className="mb-6 flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-start gap-3">
-          <div className="mt-0.5 flex h-9 w-9 flex-none items-center justify-center rounded-lg bg-primary/15 p-1.5">
-            <Base44Logo className="h-full w-full" />
-          </div>
-          <div>
-            <p className="font-heading text-sm font-semibold tracking-tight">
-              Le plus puissant : ton cerveau Base44 repère ce qui buzz en ce moment
-            </p>
-            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-              Demande-lui de trouver les vidéos qui font le buzz aujourd'hui, puis colle le lien ici : le modèle rejoint ta banque et ton stock grandit à chaque trouvaille.
-            </p>
-          </div>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="shrink-0">
-          Coller un lien
-        </Button>
-      </div>
+      <Base44PromptCard
+        group={promptGroup("buzz")}
+        className="mb-6"
+        action={
+          <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="shrink-0">
+            Coller un lien
+          </Button>
+        }
+      />
 
       {/* Filters */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
