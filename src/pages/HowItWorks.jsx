@@ -5,6 +5,7 @@ import HowDailyLoop from "@/components/how/HowDailyLoop";
 import HowPromptList from "@/components/how/HowPromptList";
 
 const BASE44_LOGO = "https://base44.com/logo_v2.svg";
+const BASE44_BRAIN = "https://media.base44.com/images/public/6acf818406c8aa81ac77512c/80857f9ba_generated_image.png";
 
 const pillars = [
   {
@@ -69,30 +70,43 @@ export default function HowItWorks() {
         </div>
       </section>
 
-      {/* Le copilote, c'est Base44 */}
-      <section className="mb-14 rounded-xl border border-border bg-card p-6 sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-secondary p-3">
-            <Image
-              src={BASE44_LOGO}
-              alt="Base44"
-              fittingType="fit"
-              className="h-full w-full object-contain"
-            />
-          </div>
-          <div>
-            <h2 className="font-heading text-xl font-semibold tracking-tight">
-              Ton copilote, c'est Base44
+      {/* Le cerveau de tout ça, c'est Base44 */}
+      <section className="mb-14 overflow-hidden rounded-xl border border-border bg-card">
+        <div className="grid lg:grid-cols-[1.15fr_1fr]">
+          <div className="p-6 sm:p-8 lg:self-center">
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-secondary p-2">
+                <Image
+                  src={BASE44_LOGO}
+                  alt="Base44"
+                  fittingType="fit"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-primary">
+                Base44 Brain
+              </span>
+            </div>
+            <h2 className="mt-5 font-heading text-2xl font-semibold leading-tight tracking-tight sm:text-3xl">
+              Ton copilote, et le cerveau de tout ça
             </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              L'IA qui t'accompagne tous les jours est celle de Base44, la plateforme sur laquelle
-              tourne ton studio. Tu lui parles comme à un partenaire : elle connaît tes personnages,
-              tes vidéos et ton calendrier, puis elle agit pour toi.
+            <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
+              Le cerveau qui fait tourner InfluenceIA, c'est Base44 : la même IA que celle de la
+              plateforme derrière ton studio. C'est lui qui garde en tête tes personnages, tes modèles
+              viraux, tes créations et ton calendrier, et qui réfléchit à ta place.
             </p>
-            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
               Une bio à écrire, une accroche à trouver, la bonne heure pour poster, un planning à
-              remplir : une phrase suffit, tu valides, c'est fait.
+              remplir : tu lui demandes, il sait déjà de quoi tu parles.
             </p>
+          </div>
+          <div className="relative min-h-[240px] border-t border-border lg:border-l lg:border-t-0">
+            <Image
+              src={BASE44_BRAIN}
+              alt="Le cerveau Base44"
+              fittingType="cover"
+              className="h-full w-full"
+            />
           </div>
         </div>
       </section>
