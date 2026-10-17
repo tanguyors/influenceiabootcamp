@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { ArrowRight, Layers, MessageSquare, Database, Sparkles, CalendarDays, Wand2 } from "lucide-react";
+import BrandLockup from "@/components/BrandLockup";
 import HowDailyLoop from "@/components/how/HowDailyLoop";
 import HowPromptList from "@/components/how/HowPromptList";
 
@@ -34,6 +35,8 @@ const notes = [
 export default function HowItWorks() {
   return (
     <div className="mx-auto max-w-6xl px-8 py-10">
+      <BrandLockup className="mb-10" />
+
       {/* Hero */}
       <section className="mb-12">
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-muted-foreground">

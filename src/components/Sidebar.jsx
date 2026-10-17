@@ -1,6 +1,7 @@
 import { NavLink } from "react-router-dom";
-import { Users, Flame, Film, Plug, Sparkles, LayoutDashboard, CalendarDays, HelpCircle } from "lucide-react";
+import { Users, Flame, Film, Plug, LayoutDashboard, CalendarDays, HelpCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import BrandLockup from "@/components/BrandLockup";
 
 const navItems = [
   { to: "/", label: "Tableau de bord", icon: LayoutDashboard, end: true },
@@ -15,14 +16,8 @@ const navItems = [
 export default function Sidebar() {
   return (
     <aside className="flex h-full w-64 flex-col border-r border-border bg-card text-foreground">
-      <div className="flex items-center gap-2.5 border-b border-border px-6 py-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <Sparkles className="h-5 w-5" />
-        </div>
-        <div className="leading-tight">
-          <div className="font-heading text-[15px] font-semibold tracking-tight">InfluenceIA</div>
-          <div className="text-[11px] text-muted-foreground">Influenceur IA · Vidéos virales</div>
-        </div>
+      <div className="border-b border-border px-6 py-6">
+        <BrandLockup />
       </div>
 
       <nav className="flex-1 space-y-1 px-3 py-4">
