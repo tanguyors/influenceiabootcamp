@@ -68,6 +68,11 @@ export const TRANSLATIONS = {
     "library.sourceAdded": "Vidéo source ajoutée",
     "library.sourceAddedDesc": "Le cadre et le mouvement de ce modèle seront repris.",
     "library.addFailed": "Ajout impossible",
+    "library.installTitle": "Modèles livrés avec l'app",
+    "library.installDesc": "Les modèles de référence de l'app ne sont pas encore installés dans cette copie. Installez-les une fois : ils rejoignent votre banque avec leur fichier vidéo, prêts pour la recréation.",
+    "library.installCta": "Installer les modèles",
+    "library.installWorking": "Installation en cours…",
+    "library.installRunning": "Installation… {done}/{total}",
 
     "creations.title": "Mes créations",
     "creations.subtitle": "Vidéos générées et générations en cours. L'état réel est conservé entre vos visites.",
@@ -212,6 +217,11 @@ export const TRANSLATIONS = {
     "library.sourceAdded": "Source video added",
     "library.sourceAddedDesc": "This model's framing and motion will be reused.",
     "library.addFailed": "Could not add",
+    "library.installTitle": "Models shipped with the app",
+    "library.installDesc": "The app's reference models are not installed in this copy yet. Install them once: they join your library with their video file, ready to recreate.",
+    "library.installCta": "Install the models",
+    "library.installWorking": "Installing…",
+    "library.installRunning": "Installing… {done}/{total}",
 
     "creations.title": "My creations",
     "creations.subtitle": "Generated videos and generations in progress. The real state is kept between your visits.",

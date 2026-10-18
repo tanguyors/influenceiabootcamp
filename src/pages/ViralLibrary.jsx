@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/components/ui/use-toast";
 import ReferenceCard from "@/components/library/ReferenceCard";
 import LibraryImportCard from "@/components/library/LibraryImportCard";
+import ModelsInstaller from "@/components/library/ModelsInstaller";
 import Base44PromptCard from "@/components/Base44PromptCard";
 import { promptGroup } from "@/lib/base44Prompts";
 import { useI18n } from "@/lib/i18n";
@@ -92,6 +93,8 @@ export default function ViralLibrary() {
         title={t("library.add")}
         onCreated={(created) => setItems((s) => [created, ...(s || [])])}
       />
+
+      {items && items.length === 0 && <ModelsInstaller onProgress={load} />}
 
       {/* Filters */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
