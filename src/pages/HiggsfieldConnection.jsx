@@ -4,6 +4,7 @@ import { base44 } from "@/api/base44Client";
 import PageShell from "@/components/PageShell";
 import AccountSetupStep from "@/components/higgsfield/AccountSetupStep";
 import ConnectionStep from "@/components/higgsfield/ConnectionStep";
+import McpSetupGuide from "@/components/higgsfield/McpSetupGuide";
 import { useToast } from "@/components/ui/use-toast";
 
 // Lien d'affiliation utilisé à l'étape 1.
@@ -114,7 +115,7 @@ export default function HiggsfieldConnection() {
   return (
     <PageShell
       title="Setup Higgsfield"
-      subtitle="Deux étapes : créez votre compte Higgsfield, puis connectez-le. L'application utilise ensuite le serveur MCP avec votre compte, sans clé API."
+      subtitle="Deux étapes : créez votre compte Higgsfield, puis connectez-le. La connexion MCP se fait depuis l'application publiée, hors Base44, et sans clé API."
     >
       <div className="grid gap-5 lg:grid-cols-2">
         <AccountSetupStep
@@ -133,15 +134,7 @@ export default function HiggsfieldConnection() {
         />
       </div>
 
-      <div className="mt-5 rounded-2xl border border-border bg-card p-6">
-        <h3 className="font-heading text-sm font-semibold tracking-tight">Comment ça marche</h3>
-        <ol className="mt-3 space-y-2.5 text-xs leading-relaxed text-muted-foreground">
-          <li><strong className="text-foreground">1.</strong> Vous créez votre compte Higgsfield depuis notre lien.</li>
-          <li><strong className="text-foreground">2.</strong> Vous autorisez l'application une seule fois, puis le serveur MCP devient accessible avec votre offre en cours.</li>
-          <li><strong className="text-foreground">3.</strong> L'application détecte automatiquement votre offre et vos crédits — aucune clé API à créer.</li>
-        </ol>
-        <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">Les jetons d'accès sont stockés côté serveur et ne sont jamais exposés au navigateur.</p>
-      </div>
+      <McpSetupGuide className="mt-5" />
     </PageShell>
   );
 }

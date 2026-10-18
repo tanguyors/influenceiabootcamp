@@ -75,9 +75,13 @@ export default function ConnectionStep({ account, balance, loading, connecting, 
             {connecting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
             {connecting ? "Redirection…" : "Connecter mon compte Higgsfield"}
           </Button>
-          {locked && (
+          {locked ? (
             <p className="mt-3 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-center text-[11px] leading-relaxed text-muted-foreground">
               Terminez d'abord l'étape 1 : créez votre compte Higgsfield pour débloquer la connexion.
+            </p>
+          ) : (
+            <p className="mt-3 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-center text-[11px] leading-relaxed text-muted-foreground">
+              À faire depuis l'application publiée, hors de l'aperçu Base44.
             </p>
           )}
         </>
