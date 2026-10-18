@@ -4,7 +4,6 @@ import { base44 } from "@/api/base44Client";
 import PageShell from "@/components/PageShell";
 import AccountSetupStep from "@/components/higgsfield/AccountSetupStep";
 import ConnectionStep from "@/components/higgsfield/ConnectionStep";
-import McpToolsCard from "@/components/higgsfield/McpToolsCard";
 import { useToast } from "@/components/ui/use-toast";
 
 // Lien d'affiliation utilisé à l'étape 1.
@@ -14,7 +13,6 @@ export default function HiggsfieldConnection() {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [account, setAccount] = useState(null); // null | { connected, account, mcp_url }
-  const [tools, setTools] = useState(null); // null | []
   const [balance, setBalance] = useState(null); // { credits, plan }
   const [loading, setLoading] = useState(false);
   const [connecting, setConnecting] = useState(false);
@@ -50,17 +48,17 @@ export default function HiggsfieldConnection() {
     }
   }
 
-  async function loadTools() {
+  // État du compte connecté : offre, crédits et URL du serveur MCP.
+  async function refreshAccount() {
     setLoading(true);
     try {
       const res = await base44.functions.invoke("higgsfieldGateway", {});
       const data = res.data || {};
       setAccount((s) => ({ ...(s || {}), connected: Boolean(data.connected), mcp_url: data.mcp_url }));
-      setTools(data.tools || []);
       setBalance(data.balance || null);
       if (!data.connected && data.message) toast({ title: "Serveur MCP injoignable", description: data.message, variant: "destructive" });
     } catch (e) {
-      setTools([]);
+      // L'état précédent reste affiché.
     } finally {
       setLoading(false);
     }
@@ -79,7 +77,7 @@ export default function HiggsfieldConnection() {
       searchParams.delete("higgsfield_error");
       setSearchParams(searchParams, { replace: true });
     }
-    (async () => { await loadAccountCreated(); await loadStatus(); await loadTools(); })();
+    (async () => { await loadAccountCreated(); await loadStatus(); await refreshAccount(); })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -104,7 +102,6 @@ export default function HiggsfieldConnection() {
     setConnecting(true);
     try {
       await base44.functions.invoke("higgsfieldConnect", { action: "disconnect" });
-      setTools([]);
       await loadStatus();
       toast({ title: "Compte Higgsfield déconnecté" });
     } catch (e) {
@@ -119,41 +116,31 @@ export default function HiggsfieldConnection() {
       title="Setup Higgsfield"
       subtitle="Deux étapes : créez votre compte Higgsfield, puis connectez-le. L'application utilise ensuite le serveur MCP avec votre compte, sans clé API."
     >
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Setup en deux étapes */}
-        <div className="lg:col-span-1">
-          <div className="space-y-4">
-            <AccountSetupStep
-              done={Boolean(account?.connected) || Boolean(accountCreated)}
-              onOpen={openAccountCreation}
-            />
-            <ConnectionStep
-              account={account}
-              balance={balance}
-              loading={loading}
-              connecting={connecting}
-              locked={accountCreated === null || !accountCreated}
-              onConnect={connect}
-              onDisconnect={disconnect}
-              onRefresh={loadTools}
-            />
-          </div>
+      <div className="grid gap-5 lg:grid-cols-2">
+        <AccountSetupStep
+          done={Boolean(account?.connected) || Boolean(accountCreated)}
+          onOpen={openAccountCreation}
+        />
+        <ConnectionStep
+          account={account}
+          balance={balance}
+          loading={loading}
+          connecting={connecting}
+          locked={accountCreated === null || !accountCreated}
+          onConnect={connect}
+          onDisconnect={disconnect}
+          onRefresh={refreshAccount}
+        />
+      </div>
 
-          <div className="mt-4 rounded-xl border border-border bg-card p-6">
-            <h3 className="font-heading text-sm font-semibold tracking-tight">Comment ça marche</h3>
-            <ol className="mt-3 space-y-2.5 text-xs leading-relaxed text-muted-foreground">
-              <li><strong className="text-foreground">1.</strong> Vous créez votre compte Higgsfield depuis notre lien.</li>
-              <li><strong className="text-foreground">2.</strong> Vous autorisez l'application une seule fois, puis le serveur MCP devient accessible avec votre offre en cours.</li>
-              <li><strong className="text-foreground">3.</strong> Les outils de génération disponibles sont détectés automatiquement — aucune clé API à créer.</li>
-            </ol>
-            <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">Les jetons d'accès sont stockés côté serveur et ne sont jamais exposés au navigateur.</p>
-          </div>
-        </div>
-
-        {/* Outils */}
-        <div className="lg:col-span-2">
-          <McpToolsCard tools={tools} connected={Boolean(account?.connected)} />
-        </div>
+      <div className="mt-5 rounded-2xl border border-border bg-card p-6">
+        <h3 className="font-heading text-sm font-semibold tracking-tight">Comment ça marche</h3>
+        <ol className="mt-3 space-y-2.5 text-xs leading-relaxed text-muted-foreground">
+          <li><strong className="text-foreground">1.</strong> Vous créez votre compte Higgsfield depuis notre lien.</li>
+          <li><strong className="text-foreground">2.</strong> Vous autorisez l'application une seule fois, puis le serveur MCP devient accessible avec votre offre en cours.</li>
+          <li><strong className="text-foreground">3.</strong> L'application détecte automatiquement votre offre et vos crédits — aucune clé API à créer.</li>
+        </ol>
+        <p className="mt-3 text-xs leading-relaxed text-muted-foreground/80">Les jetons d'accès sont stockés côté serveur et ne sont jamais exposés au navigateur.</p>
       </div>
     </PageShell>
   );

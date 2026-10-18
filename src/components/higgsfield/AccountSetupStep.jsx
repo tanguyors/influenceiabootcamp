@@ -1,4 +1,4 @@
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import SetupStepCard from "@/components/higgsfield/SetupStepCard";
 
@@ -7,6 +7,7 @@ export default function AccountSetupStep({ done, onOpen }) {
   return (
     <SetupStepCard
       num={1}
+      icon={UserPlus}
       done={done}
       title="Créer votre compte Higgsfield"
       text={
@@ -15,12 +16,16 @@ export default function AccountSetupStep({ done, onOpen }) {
           : "Pas encore de compte ? Créez-le en un clic : vous partez sur la bonne offre et vous soutenez l'application."
       }
     >
-      <Button onClick={onOpen} variant={done ? "ghost" : "default"} className="w-full font-semibold">
+      <Button
+        onClick={onOpen}
+        variant={done ? "outline" : "default"}
+        className="h-11 w-full rounded-xl font-semibold"
+      >
         <ExternalLink className="mr-2 h-4 w-4" />
         {done ? "Ouvrir Higgsfield" : "Créer mon compte Higgsfield"}
       </Button>
       {!done && (
-        <p className="mt-2 text-center text-[11px] text-muted-foreground">
+        <p className="mt-3 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-center text-[11px] leading-relaxed text-muted-foreground">
           Obligatoire : l'étape 2 se débloque juste après.
         </p>
       )}
