@@ -1,7 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { secrets } from "base44:runtime";
 
-const MODEL = "gpt-image-1";
 const MAX_SHEETS = 4;
 const OPTION_COUNT = 9;
 
@@ -126,24 +124,20 @@ function sheetPrompt(brief: string, details: string[]) {
   ].filter(Boolean).join("\n\n");
 }
 
-// Les images reviennent en base64 : on les dépose dans le stockage privé par lots de six.
-async function storeImages(base44: any, payload: any) {
-  const parts: string[] = (payload?.data || [])
-    .map((item: any) => (item && item.b64_json) || "")
-    .filter(Boolean);
+// L'IA de la plateforme renvoie une URL : on recopie l'image dans le stockage privé du personnage,
+// parce que les références d'un influenceur ne doivent jamais être exposées publiquement.
+async function storeGenerated(base44: any, urls: string[], prefix: string) {
   const images: string[] = [];
-  for (let start = 0; start < parts.length; start += 6) {
-    const batch = await Promise.allSettled(
-      parts.slice(start, start + 6).map(async (b64, offset) => {
-        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-        const file = new File([bytes], `influenceur-openai-${start + offset + 1}.png`, { type: "image/png" });
-        const upload = await base44.asServiceRole.integrations.Core.UploadPrivateFile({ file });
-        return upload && upload.file_uri ? upload.file_uri : "";
-      })
-    );
-    for (const result of batch) {
-      if (result.status === "fulfilled" && result.value) images.push(result.value);
-    }
+  for (const [index, url] of urls.entries()) {
+    const response = await fetch(url, { signal: AbortSignal.timeout(120000) });
+    if (!response.ok) continue;
+    const mime = response.headers.get("content-type")?.split(";")[0] || "image/png";
+    const extension = mime === "image/jpeg" ? "jpg" : mime === "image/webp" ? "webp" : "png";
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const upload = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
+      file: new File([bytes], `${prefix}-${index + 1}.${extension}`, { type: mime }),
+    });
+    if (upload && upload.file_uri) images.push(upload.file_uri);
   }
   return images;
 }
@@ -167,15 +161,8 @@ export default async function (req: any) {
       .filter(Boolean)
       .slice(0, 24);
 
-    // Famille de la proposition, renvoyée pour l'étiquette affichée sous le portrait.
-    let styleLabel = "";
+    const ai = base44.asServiceRole.integrations.Core;
 
-    const key = secrets.get("OPENAI_API_KEY");
-    if (!key) {
-      return Response.json({ error: "Clé OpenAI manquante : ajoutez le secret OPENAI_API_KEY." }, { status: 400 });
-    }
-
-    let res: Response;
     if (mode === "sheet") {
       const reference = String(body.reference_image || "").trim();
       if (!reference) {
@@ -185,72 +172,28 @@ export default async function (req: any) {
 
       // Le personnage retenu est relu depuis le stockage privé puis envoyé comme référence :
       // c'est ce qui garantit la fidélité du visage sur la planche.
-      const signed = await base44.asServiceRole.integrations.Core.CreateFileSignedUrl({
-        file_uri: reference,
-        expires_in: 600,
-      });
-      const fileRes = await fetch(signed.signed_url, { signal: AbortSignal.timeout(60000) });
-      if (!fileRes.ok) {
-        return Response.json({ error: "Personnage de référence introuvable : relancez la génération." }, { status: 400 });
+      const signed = await ai.CreateFileSignedUrl({ file_uri: reference, expires_in: 600 });
+      const prompt = sheetPrompt(brief, details);
+      const sheets: string[] = [];
+      for (let index = 0; index < count; index++) {
+        const { url } = await ai.GenerateImage({ prompt, existing_image_urls: [signed.signed_url] });
+        sheets.push(...(await storeGenerated(base44, [url], `planche-${index + 1}`)));
       }
-      const bytes = new Uint8Array(await fileRes.arrayBuffer());
-
-      const form = new FormData();
-      form.append("model", MODEL);
-      form.append("image", new Blob([bytes], { type: "image/png" }), "reference.png");
-      form.append("prompt", sheetPrompt(brief, details));
-      form.append("n", String(count));
-      form.append("size", "1024x1536");
-      form.append("quality", "medium");
-
-      res = await fetch("https://api.openai.com/v1/images/edits", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${key}` },
-        body: form,
-        signal: AbortSignal.timeout(240000),
-      });
-    } else {
-      const variant = body.variant === undefined ? 0 : body.variant;
-      if (!Number.isInteger(variant) || variant < 0 || variant >= OPTION_COUNT) {
-        return Response.json({ error: "Proposition de personnage invalide." }, { status: 400 });
-      }
-      styleLabel = VARIATION_STYLES[variant].label;
-      res = await fetch("https://api.openai.com/v1/images/generations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-        body: JSON.stringify({
-          model: MODEL,
-          prompt: optionsPrompt(brief, details, variant),
-          n: 1,
-          size: "1024x1024",
-          quality: "medium",
-        }),
-        signal: AbortSignal.timeout(280000),
-      });
+      if (!sheets.length) return Response.json({ error: "L'IA n'a renvoyé aucune planche : relancez." }, { status: 502 });
+      return Response.json({ images: sheets });
     }
 
-    if (!res.ok) {
-      const detail = await res.text();
-      let message = "";
-      try { message = JSON.parse(detail)?.error?.message || ""; } catch { message = detail.slice(0, 200); }
-      if (res.status === 401) {
-        return Response.json({ error: "Clé OpenAI refusée : vérifiez le secret OPENAI_API_KEY." }, { status: 400 });
-      }
-      if (res.status === 429) {
-        const quota = /quota|billing|credit/i.test(message);
-        return Response.json({
-          error: quota
-            ? "Compte OpenAI sans crédit disponible : ajoutez un moyen de paiement sur platform.openai.com, puis relancez."
-            : "Trop de requêtes OpenAI en peu de temps : réessayez dans un instant.",
-        }, { status: 400 });
-      }
-      return Response.json({ error: message || `OpenAI a refusé la génération (${res.status}).` }, { status: 502 });
+    const variant = body.variant === undefined ? 0 : body.variant;
+    if (!Number.isInteger(variant) || variant < 0 || variant >= OPTION_COUNT) {
+      return Response.json({ error: "Proposition de personnage invalide." }, { status: 400 });
     }
 
-    const payload = await res.json();
-    const images = await storeImages(base44, payload);
-    if (!images.length) return Response.json({ error: "OpenAI n'a renvoyé aucune image." }, { status: 502 });
-    return Response.json(styleLabel ? { images, style: styleLabel } : { images });
+    // Famille de la proposition, renvoyée pour l'étiquette affichée sous le portrait.
+    const styleLabel = VARIATION_STYLES[variant].label;
+    const option = await ai.GenerateImage({ prompt: optionsPrompt(brief, details, variant) });
+    const portraits = await storeGenerated(base44, [option.url], "portrait");
+    if (!portraits.length) return Response.json({ error: "L'IA n'a renvoyé aucun portrait : relancez." }, { status: 502 });
+    return Response.json({ images: portraits, style: styleLabel });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }

@@ -16,7 +16,7 @@ export default async function requestCharacterOptions(payload) {
           variant: start + offset,
         });
         if (data?.error) throw new Error(data.error);
-        if (data?.images?.length !== 1) throw new Error("Aucun portrait individuel renvoyé par OpenAI.");
+        if (data?.images?.length !== 1) throw new Error("Aucun portrait individuel renvoyé par l'IA.");
         return { uri: data.images[0], style: data.style || "" };
       })
     );

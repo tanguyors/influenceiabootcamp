@@ -57,7 +57,7 @@ export default function FunnelRecapStep({ traits, busy, brief, sheets, onChange,
           Voir 9 personnages
         </Button>
         <span className="text-xs text-muted-foreground/80">
-          9 propositions, puis {sheets} planche(s) de 9 vues du personnage retenu, facturées sur votre compte OpenAI
+          9 propositions, puis {sheets} planche(s) de 9 vues du personnage retenu, générées par l'IA incluse dans Base44
         </span>
       </div>
     </div>

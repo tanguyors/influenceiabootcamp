@@ -1,5 +1,3 @@
-import { secrets } from "base44:runtime";
-
 // Serveur MCP distant Higgsfield : l'authentification se fait par OAuth avec le
 // compte Higgsfield de l'utilisateur (aucune clé API).
 const DEFAULT_MCP_URL = "https://mcp.higgsfield.ai/mcp";
@@ -8,7 +6,7 @@ const CLIENT_NAME = "InfluenceIA";
 export const SCOPES = "openid email offline_access";
 
 export function getMcpUrl() {
-  return (secrets.get("HIGGSFIELD_MCP_URL") || DEFAULT_MCP_URL).replace(/\/$/, "");
+  return DEFAULT_MCP_URL;
 }
 
 /* ------------------------------- OAuth ---------------------------------- */

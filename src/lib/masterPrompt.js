@@ -43,8 +43,8 @@ export const MASTER_PROMPT = {
 - downloadViralVideo : récupération de la vidéo source (mp4) et de sa vignette depuis un lien, stockage privé.
 - generateVideo : préparation des références du personnage, envoi de la tâche à Higgsfield, suivi de l'état, marquage en échec des tâches bloquées, estimation du coût.
 - generatePostCopy : analyse visuelle de la vidéo (décor, ambiance, tenue) et génération de l'accroche, de la légende et des hashtags, ton direct et typé réseaux sociaux.
-- Deux secrets côté serveur, jamais dans le navigateur : la clé OpenAI (personnages, textes, visuels) et la clé Apify (recherche et récupération des vidéos virales).
-- Modules serveur partagés : higgsfield (OAuth et appels MCP), mcp (transport), characterReplacement, motionReference, motionFraming, openaiText — plus les outils internes de diagnostic Higgsfield gardés en fonctions séparées (hfProbe, hfShape, hfJobProbe, hfDebug) et un outil de recherche de vidéos virales (viralScraper).
+- Aucune clé ni aucun compte externe à fournir : tout passe par l'IA incluse dans Base44, appelée côté serveur et facturée en crédits d'intégration sur le compte Base44 du propriétaire de l'app — InvokeLLM pour les textes (histoire, bio, accroche, légende, hashtags) et l'analyse visuelle, GenerateImage pour les portraits, les planches de 9 vues et la photo plein pied du transfert de mouvement.
+- Modules serveur partagés : higgsfield (OAuth et appels MCP), mcp (transport), characterReplacement, motionReference, motionFraming, aiText — plus les outils internes de diagnostic Higgsfield gardés en fonctions séparées (hfProbe, hfShape, hfJobProbe, hfDebug).
 
 5. GÉNÉRATION VIDÉO (le cœur du produit)
 - Écran /recreer avec la vidéo de référence : la référence et mon influenceur côte à côte en 9:16, sélecteur d'influenceur avec le choix mémorisé, alerte si le compte Higgsfield n'est pas connecté, alerte et blocage si le solde de crédits est nul, bandeau expliquant le mode utilisé.
@@ -67,7 +67,7 @@ export const MASTER_PROMPT = {
 - Résultat : le personnage importé avec ses photos, prêt à générer ; import atomique et sans doublon, une même réservation ne crée jamais deux personnages.
 
 8. MISE EN ROUTE DE CHAQUE COPIE
-- Ajouter les secrets OPENAI_API_KEY et APIFY_TOKEN côté serveur, puis suivre le setup Higgsfield en deux étapes depuis la page de connexion : créer son compte Higgsfield avec le lien d'affiliation https://higgsfield.ai?fpr=thibault-e42228 (à conserver tel quel, c'est lui qui alimente le bouton « Créer mon compte Higgsfield »), puis autoriser la connexion. Les jetons restent côté serveur et aucune clé API n'est demandée à l'utilisateur.
+- Aucun secret n'est demandé : pas de clé OpenAI, pas de clé Apify, pas de client OAuth Higgsfield à saisir (le client est enregistré automatiquement en PKCE et l'URL MCP est une constante du code). Suivre seulement le setup Higgsfield en deux étapes depuis la page de connexion : créer son compte Higgsfield avec le lien d'affiliation https://higgsfield.ai?fpr=thibault-e42228 (à conserver tel quel, c'est lui qui alimente le bouton « Créer mon compte Higgsfield »), puis autoriser la connexion. Les jetons restent côté serveur, et la génération tourne sur l'IA incluse dans Base44.
 
 9. PARCOURS DE CRÉATION EN 24 ÉTAPES (contenu exact, aligné sur le funnel de référence)
 Mêmes sections, mêmes intitulés, mêmes choix, mêmes visuels : cartes illustrées, grandes options avec icône, ou vignettes d'icônes, dans cet ordre.
@@ -142,8 +142,8 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - downloadViralVideo: fetch the source video (mp4) and its thumbnail from a link, private storage.
 - generateVideo: prepare the character references, submit the Higgsfield job, track its status, mark stalled jobs as failed, estimate the cost.
 - generatePostCopy: visual analysis of the video (setting, mood, outfit) and generation of the hook, the caption and the hashtags, in a direct social-media tone.
-- Two server-side secrets, never in the browser: the OpenAI key (characters, texts, visuals) and the Apify key (finding and fetching viral videos).
-- Shared server modules: higgsfield (OAuth and MCP calls), mcp (transport), characterReplacement, motionReference, motionFraming, openaiText - plus the internal Higgsfield diagnostic helpers kept as separate functions (hfProbe, hfShape, hfJobProbe, hfDebug) and a viral-video research tool (viralScraper).
+- No key and no third-party account to provide: everything runs on Base44's built-in AI, called server-side and billed as integration credits on the app owner's Base44 account - InvokeLLM for texts (story, bio, hook, caption, hashtags) and visual analysis, GenerateImage for portraits, the 9-view sheets and the full-body motion-transfer photo.
+- Shared server modules: higgsfield (OAuth and MCP calls), mcp (transport), characterReplacement, motionReference, motionFraming, aiText - plus the internal Higgsfield diagnostic helpers kept as separate functions (hfProbe, hfShape, hfJobProbe, hfDebug).
 
 5. VIDEO GENERATION (the core of the product)
 - /recreer screen with the reference video: the reference and my influencer side by side in 9:16, influencer picker with the choice remembered, warning if the Higgsfield account is not connected, warning and blocking when the credit balance is zero, banner explaining the mode being used.
@@ -166,7 +166,7 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - Result: the imported character with its photos, ready to generate; atomic import with no duplicates, the same reservation never creates two characters.
 
 8. SETUP FOR EVERY COPY
-- Add the OPENAI_API_KEY and APIFY_TOKEN secrets server-side, then follow the two-step Higgsfield setup from the connection page: create your Higgsfield account through the affiliate link https://higgsfield.ai?fpr=thibault-e42228 (keep it as is, it is what backs the "Create my Higgsfield account" button), then authorise the connection. Tokens stay server-side and the user is never asked for an API key.
+- No secret is requested: no OpenAI key, no Apify key, no Higgsfield OAuth client to enter (the client registers itself in PKCE and the MCP URL is a constant in the code). Only follow the two-step Higgsfield setup from the connection page: create your Higgsfield account through the affiliate link https://higgsfield.ai?fpr=thibault-e42228 (keep it as is, it is what backs the "Create my Higgsfield account" button), then authorise the connection. Tokens stay server-side, and generation runs on Base44's built-in AI.
 
 9. CREATION FUNNEL IN 24 STEPS (exact content, aligned on the reference funnel)
 Same sections, same titles, same choices, same visuals: illustrated cards, large options with an icon, or icon tiles, in this order.

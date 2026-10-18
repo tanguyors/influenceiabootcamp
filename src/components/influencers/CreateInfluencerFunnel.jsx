@@ -101,7 +101,7 @@ export default function CreateInfluencerFunnel({ open, onClose, onCreated, onImp
       });
       const data = res.data || {};
       if (data.error) throw new Error(data.error);
-      if (!(data.images || []).length) throw new Error("Aucune planche renvoyée par OpenAI.");
+      if (!(data.images || []).length) throw new Error("Aucune planche renvoyée par l'IA.");
       setImages(data.images);
     } catch (e) {
       setError(errorText(e));

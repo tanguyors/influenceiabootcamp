@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { clean, openAiJson } from "../../shared/openaiText.ts";
+import { aiJson, clean } from "../../shared/aiText.ts";
 
 const SYSTEM = [
   "Tu écris la biographie d'un influenceur pour une agence française de création de contenu.",
@@ -69,18 +69,16 @@ export default async function (req: any) {
     if (!data.name) return Response.json({ error: "Indiquez le nom du personnage." }, { status: 400 });
     if (!data.niche) return Response.json({ error: "Choisissez au moins sa niche principale." }, { status: 400 });
 
-    const { data: parsed, error, status } = await openAiJson({
-      schemaName: "influencer_story",
+    const { data: parsed, error, status } = await aiJson(base44, {
       schema: SCHEMA,
       system: SYSTEM,
       user: userPrompt(data),
-      maxTokens: 900,
     });
     if (error) return Response.json({ error }, { status: status || 502 });
 
     const story = clean(parsed?.story, 6000);
     const tagline = clean(parsed?.tagline, 200);
-    if (!story) return Response.json({ error: "OpenAI n'a renvoyé aucune histoire : relancez." }, { status: 502 });
+    if (!story) return Response.json({ error: "L'IA n'a renvoyé aucune histoire : relancez." }, { status: 502 });
 
     return Response.json({ story, tagline });
   } catch (error: any) {

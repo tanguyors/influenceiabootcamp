@@ -9,7 +9,7 @@ export default function FunnelResult({ images, name, phase = "sheet", saving, on
       <div className="py-24 text-center">
         <Loader2 className="mx-auto h-8 w-8 animate-spin text-primary" />
         <h2 className="mt-6 font-heading text-2xl font-semibold tracking-tight">
-          {proposing ? "OpenAI imagine 9 personnages" : `OpenAI compose la planche de ${name || "votre star"}`}…
+          {proposing ? "L'IA imagine 9 personnages" : `L'IA compose la planche de ${name || "votre star"}`}…
         </h2>
         <p className="mt-2 text-sm text-muted-foreground">
           {proposing

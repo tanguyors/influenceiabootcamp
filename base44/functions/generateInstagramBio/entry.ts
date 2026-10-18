@@ -1,5 +1,5 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
-import { clean, openAiJson } from "../../shared/openaiText.ts";
+import { aiJson, clean } from "../../shared/aiText.ts";
 
 const SYSTEM = [
   "Tu écris la biographie de profil Instagram d'un influenceur pour une agence française de création de contenu.",
@@ -63,18 +63,15 @@ export default async function(req: any) {
       return Response.json({ error: "Complétez d'abord sa niche ou son histoire." }, { status: 400 });
     }
 
-    const { data: parsed, error, status } = await openAiJson({
-      schemaName: "influencer_instagram_bio",
+    const { data: parsed, error, status } = await aiJson(base44, {
       schema: SCHEMA,
       system: SYSTEM,
       user: userPrompt(influencer),
-      maxTokens: 400,
-      timeoutMs: 60000,
     });
     if (error) return Response.json({ error }, { status: status || 502 });
 
     const bio = fitBio(clean(parsed?.bio, 400));
-    if (!bio) return Response.json({ error: "OpenAI n'a renvoyé aucune bio : relancez." }, { status: 502 });
+    if (!bio) return Response.json({ error: "L'IA n'a renvoyé aucune bio : relancez." }, { status: 502 });
 
     await base44.entities.Influencer.update(influencer.id, { instagram_bio: bio });
     return Response.json({ instagram_bio: bio });
