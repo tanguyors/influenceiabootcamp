@@ -8,27 +8,33 @@ import { useToast } from "@/components/ui/use-toast";
 import SignedImage from "@/components/SignedImage";
 import { signedUrlFor } from "@/lib/signedFiles";
 import { useI18n } from "@/lib/i18n";
+import { cardPhotosOf } from "@/lib/influencerPhotos";
 
-// Retouche d'une photo du personnage par l'IA : la photo actuelle sert de référence,
-// la consigne décrit la modification souhaitée.
-export default function PhotoEditDialog({ open, onOpenChange, influencer, target, uri, onUpdated }) {
+// Retouche IA d'un personnage : la consigne s'applique à ses photos de référence
+// (visage + plan en pied), qui sont toutes remplacées.
+export default function PhotoEditDialog({ open, onOpenChange, influencer, onUpdated }) {
   const { toast } = useToast();
   const { t } = useI18n();
   const [instruction, setInstruction] = useState("");
   const [busy, setBusy] = useState(false);
 
+  const photos = cardPhotosOf(influencer);
+  // Les deux visuels du personnage, sans doublon si une seule photo existe.
+  const targets = [{ role: "face", uri: photos.face }, { role: "body", uri: photos.body }]
+    .filter((item, index, list) => item.uri && list.findIndex((other) => other.uri === item.uri) === index);
+
   async function submit() {
-    const text = instruction.trim();
-    if (!text) return;
+    const value = instruction.trim();
+    if (!value) return;
     setBusy(true);
     try {
-      const photoUrl = await signedUrlFor(uri);
-      if (!photoUrl) throw new Error(t("photoEdit.failed"));
+      const signed = await Promise.all(targets.map(async (item) => ({ ...item, url: await signedUrlFor(item.uri) })));
+      const payload = signed.filter((item) => item.url);
+      if (!payload.length) throw new Error(t("photoEdit.failed"));
       const res = await base44.functions.invoke("editInfluencerPhoto", {
         influencer_id: influencer.id,
-        photo_uri: uri,
-        photo_url: photoUrl,
-        instruction: text,
+        instruction: value,
+        photos: payload,
       });
       const data = res.data || {};
       if (data.error) throw new Error(data.error);
@@ -43,7 +49,7 @@ export default function PhotoEditDialog({ open, onOpenChange, influencer, target
     }
   }
 
-  if (!influencer || !uri) return null;
+  if (!influencer) return null;
 
   return (
     <Dialog open={open} onOpenChange={(value) => { if (!busy) onOpenChange(value); }}>
@@ -53,9 +59,13 @@ export default function PhotoEditDialog({ open, onOpenChange, influencer, target
         </DialogHeader>
 
         <div className="flex gap-3">
-          <SignedImage src={uri} fittingType="fit" className="h-32 w-24 shrink-0 rounded-lg border border-border bg-secondary" />
+          <div className="flex shrink-0 gap-2">
+            {targets.map((item) => (
+              <SignedImage key={item.uri} src={item.uri} fittingType="fit" className="h-28 w-20 rounded-lg border border-border bg-secondary" />
+            ))}
+          </div>
           <p className="text-xs leading-relaxed text-muted-foreground">
-            {influencer.name} · {target === "face" ? t("photoEdit.faceHint") : t("photoEdit.bodyHint")}
+            {influencer.name} · {t("photoEdit.hint")}
           </p>
         </div>
 

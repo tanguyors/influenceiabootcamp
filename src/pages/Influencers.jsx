@@ -45,6 +45,12 @@ export default function Influencers() {
     localStorage.setItem(ACTIVE_KEY, id);
   }
 
+  // Retouche IA : la consigne s'applique aux deux photos du personnage.
+  function openEdit(id) {
+    selectActive(id);
+    setEdit({ id });
+  }
+
   function handleCreated(created) {
     setItems((s) => [created, ...(s || [])]);
     selectActive(created.id);
@@ -115,13 +121,13 @@ export default function Influencers() {
                   uri={photos.face}
                   label={t("influencers.face")}
                   onSelect={() => selectActive(inf.id)}
-                  onModify={() => { selectActive(inf.id); setEdit({ id: inf.id, target: "face", uri: photos.face }); }}
+                  onModify={() => openEdit(inf.id)}
                 />
                 <InfluencerPhotoPane
                   uri={photos.body}
                   label={t("influencers.fullBody")}
                   onSelect={() => selectActive(inf.id)}
-                  onModify={() => { selectActive(inf.id); setEdit({ id: inf.id, target: "body", uri: photos.body }); }}
+                  onModify={() => openEdit(inf.id)}
                 />
                 {photosOf(inf).length > 1 && (
                   <span className="absolute left-3 top-3 z-10 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
@@ -179,8 +185,6 @@ export default function Influencers() {
         open={Boolean(edit)}
         onOpenChange={(value) => { if (!value) setEdit(null); }}
         influencer={list.find((item) => item.id === edit?.id)}
-        target={edit?.target}
-        uri={edit?.uri}
         onUpdated={handleInfluencerUpdated}
       />
     </PageShell>
