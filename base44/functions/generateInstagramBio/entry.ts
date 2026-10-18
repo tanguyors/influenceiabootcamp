@@ -3,8 +3,8 @@ import { aiJson, clean } from "../../shared/aiText.ts";
 
 const SYSTEM = [
   "Tu écris la biographie de profil Instagram d'un influenceur pour une agence française de création de contenu.",
-  "Tu écris en français, à la première personne du singulier, comme le personnage qui remplit lui-même son profil : tout le texte est en français, jamais en anglais.",
-  "Format impératif : 3 lignes maximum séparées par des retours à la ligne, et 150 caractères au total au maximum (la limite Instagram).",
+  "Tu produis les deux versions du même texte, à la première personne du singulier, comme le personnage qui remplit lui-même son profil : la version française dans `bio_fr`, et sa traduction anglaise fidèle dans `bio_en` (anglais naturel de réseaux sociaux, même ton, mêmes emojis, jamais du mot à mot).",
+  "Format impératif pour chaque version : 3 lignes maximum séparées par des retours à la ligne, et 150 caractères au total au maximum (la limite Instagram).",
   "Structure : une accroche courte, une ligne qui dit ce qu'il fait et pour qui, une ligne de promesse ou d'appel à l'action.",
   "Style : punchy, cool, direct, typé réseaux sociaux, jamais corporate ni lisse.",
   "2 à 4 emojis pertinents et pas un de plus, aucun hashtag, aucun lien.",
@@ -14,8 +14,8 @@ const SYSTEM = [
 
 const SCHEMA = {
   type: "object",
-  properties: { bio: { type: "string" } },
-  required: ["bio"],
+  properties: { bio_fr: { type: "string" }, bio_en: { type: "string" } },
+  required: ["bio_fr", "bio_en"],
   additionalProperties: false,
 };
 
@@ -70,11 +70,12 @@ export default async function(req: any) {
     });
     if (error) return Response.json({ error }, { status: status || 502 });
 
-    const bio = fitBio(clean(parsed?.bio, 400));
-    if (!bio) return Response.json({ error: "L'IA n'a renvoyé aucune bio : relancez." }, { status: 502 });
+    const bioFr = fitBio(clean(parsed?.bio_fr, 400));
+    const bioEn = fitBio(clean(parsed?.bio_en, 400));
+    if (!bioFr || !bioEn) return Response.json({ error: "L'IA n'a renvoyé aucune bio : relancez." }, { status: 502 });
 
-    await base44.entities.Influencer.update(influencer.id, { instagram_bio: bio });
-    return Response.json({ instagram_bio: bio });
+    await base44.entities.Influencer.update(influencer.id, { instagram_bio: bioFr, instagram_bio_en: bioEn });
+    return Response.json({ instagram_bio: bioFr, instagram_bio_en: bioEn });
   } catch (error: any) {
     return Response.json({ error: error.message }, { status: 500 });
   }
