@@ -4,9 +4,7 @@ import { base44 } from "@/api/base44Client";
 import { Loader2, ArrowLeft, Wand2, Info, Image as ImageIcon, Film, FileVideo, AlertTriangle } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import SignedImage from "@/components/SignedImage";
@@ -29,9 +27,6 @@ export default function Recreate() {
   const [form, setForm] = useState({
     aspect_ratio: "9:16",
     resolution: "1080p",
-    wardrobe: "",
-    setting: "",
-    instructions: "",
   });
 
   async function loadAll() {
@@ -85,9 +80,6 @@ export default function Recreate() {
         viral_video_id: video.id,
         aspect_ratio: form.aspect_ratio,
         resolution: form.resolution,
-        wardrobe: form.wardrobe.trim(),
-        setting: form.setting.trim(),
-        instructions: form.instructions.trim(),
       });
       toast({ title: "Génération lancée", description: "Suivez l'état dans Mes créations." });
       navigate("/creations");
@@ -231,22 +223,8 @@ export default function Recreate() {
                 <Label className="text-xs">Résolution</Label>
                 <Select value={form.resolution} onValueChange={(v) => setForm((s) => ({ ...s, resolution: v }))}>
                   <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>{["1080p", "720p", "4k"].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
+                  <SelectContent>{["1080p", "720p"].map((r) => <SelectItem key={r} value={r}>{r}</SelectItem>)}</SelectContent>
                 </Select>
-              </div>
-            </div>
-            <div className="mt-3 space-y-3">
-              <div>
-                <Label className="text-xs">Tenue</Label>
-                <Input value={form.wardrobe} onChange={(e) => setForm((s) => ({ ...s, wardrobe: e.target.value }))} placeholder="Ex. jean et t-shirt blanc" className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Décor</Label>
-                <Input value={form.setting} onChange={(e) => setForm((s) => ({ ...s, setting: e.target.value }))} placeholder="Ex. rue de ville au coucher du soleil" className="mt-1" />
-              </div>
-              <div>
-                <Label className="text-xs">Instructions complémentaires</Label>
-                <Textarea value={form.instructions} onChange={(e) => setForm((s) => ({ ...s, instructions: e.target.value }))} placeholder="Mouvement, ambiance, détails…" rows={3} className="mt-1" />
               </div>
             </div>
           </div>
