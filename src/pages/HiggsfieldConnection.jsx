@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/use-toast";
 
 // Lien d'affiliation utilisé à l'étape 1.
 const AFFILIATE_URL = "https://higgsfield.ai?fpr=thibault-e42228";
+// Déconnexion du site Higgsfield : utile quand la connexion s'ouvre sur un autre compte.
+const HIGGSFIELD_LOGOUT_URL = "https://higgsfield.ai/auth/logout";
 
 export default function HiggsfieldConnection() {
   const { toast } = useToast();
@@ -48,6 +50,11 @@ export default function HiggsfieldConnection() {
     } catch (e) {
       // L'étape reste validée pour la session en cours.
     }
+  }
+
+  // On se déconnecte du site Higgsfield pour que la prochaine connexion reparte sur le bon compte.
+  function openHiggsfieldLogout() {
+    window.open(HIGGSFIELD_LOGOUT_URL, "_blank", "noopener,noreferrer");
   }
 
   // État du compte connecté : offre, crédits et URL du serveur MCP.
@@ -122,6 +129,7 @@ export default function HiggsfieldConnection() {
         <AccountSetupStep
           done={Boolean(account?.connected) || Boolean(accountCreated)}
           onOpen={openAccountCreation}
+          onLogout={openHiggsfieldLogout}
         />
 
         <McpSetupGuide className="space-y-5" />
