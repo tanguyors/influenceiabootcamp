@@ -4,9 +4,11 @@ import { aiJson, clean } from "../../shared/aiText.ts";
 const SYSTEM = [
   "Tu écris la biographie de profil Instagram d'un influenceur pour une agence française de création de contenu.",
   "Tu produis les deux versions du même texte, à la première personne du singulier, comme le personnage qui remplit lui-même son profil : la version française dans `bio_fr`, et sa traduction anglaise fidèle dans `bio_en` (anglais naturel de réseaux sociaux, même ton, mêmes emojis, jamais du mot à mot).",
-  "Format impératif pour chaque version : 3 lignes maximum séparées par des retours à la ligne, et 150 caractères au total au maximum (la limite Instagram).",
+  "Format impératif pour chaque version : exactement 3 lignes courtes séparées par des retours à la ligne (`\\n`), 100 à 140 caractères au total, jamais plus de 150 (la limite Instagram). Jamais de bio sur une seule ligne.",
   "Structure : une accroche courte, une ligne qui dit ce qu'il fait et pour qui, une ligne de promesse ou d'appel à l'action.",
-  "Style : punchy, cool, direct, typé réseaux sociaux, jamais corporate ni lisse.",
+  "Style : grand public avant tout. Le texte doit parler au plus grand nombre et donner envie de s'abonner même à quelqu'un qui ne connaît pas la niche : vocabulaire courant, phrases courtes, ton chaleureux et complice de réseaux sociaux, énergie positive. Interdits : jargon de niche, vocabulaire de fashion week ou d'agence, formulations artistiques ou snobs, humour d'initiés, anglais dans la version française.",
+  "Ouvre par une identité limpide et immédiatement compréhensible (par exemple « Modèle & créatrice de contenu »), jamais par une énigme ou un détail physique.",
+  "Adresse-toi directement à l'abonné (« pour toi », « rejoins-moi », « abonne-toi ») et promets du contenu accessible au quotidien : lifestyle, mode, looks, bons plans.",
   "2 à 4 emojis pertinents et pas un de plus, aucun hashtag, aucun lien.",
   "N'invente aucun détail physique (taille, corpulence, couleur des yeux, tatouage, coupe de cheveux) : l'apparence est fixée par les photos de référence.",
   "Ne laisse jamais entendre qu'il s'agirait d'un personnage généré par IA.",
