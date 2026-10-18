@@ -120,6 +120,23 @@ async function store(base44, entry, stamp) {
   return { file_uri: upload.file_uri, megabytes: Math.round(total / 1048576) };
 }
 
+// Les sources déjà enregistrées dans la banque servent de clé d'unicité : le même fichier
+// Drive ne doit jamais donner deux modèles. La lecture passe par le rôle serveur pour voir
+// la banque entière, quelle que soit la visibilité des modèles dans la copie de l'app.
+async function existingSources(base44) {
+  const existing = new Set();
+  let cursor = "";
+  for (let page = 0; page < 20; page += 1) {
+    const options = { limit: 200, fields: ["id", "source_url"] };
+    if (cursor) options.cursor = cursor;
+    const result = await base44.asServiceRole.entities.ViralVideo.filter({}, options);
+    for (const item of result.items || []) existing.add(item.source_url || "");
+    if (!result.has_more) break;
+    cursor = result.next_cursor;
+  }
+  return existing;
+}
+
 // Un fichier nommé par un identifiant technique n'apprend rien : on le nomme par son dossier.
 function titleFor(entry, rank) {
   const stem = entry.name.replace(/\.[a-z0-9]+$/i, "").trim();
@@ -145,16 +162,7 @@ export default async function (req) {
     await walk(root, "", 0, found);
 
     // Les modèles déjà présents ne sont pas retéléchargés : la source Drive sert de clé.
-    const existing = new Set();
-    let cursor = "";
-    for (let page = 0; page < 20; page += 1) {
-      const options = { limit: 200, fields: ["id", "source_url"] };
-      if (cursor) options.cursor = cursor;
-      const result = await base44.entities.ViralVideo.filter({}, options);
-      for (const item of result.items || []) existing.add(item.source_url || "");
-      if (!result.has_more) break;
-      cursor = result.next_cursor;
-    }
+    const existing = await existingSources(base44);
 
     const ranks = {};
     const pending = [];
@@ -218,7 +226,15 @@ export default async function (req) {
       index += slice.length;
     }
 
-    if (created.length) await base44.entities.ViralVideo.bulkCreate(created);
+    // Deux installations qui se croisent (page ouverte plusieurs fois, plusieurs onglets,
+    // plusieurs appareils, plusieurs personnes) enregistrent les mêmes fichiers : on relit
+    // la banque juste avant l'écriture pour n'enregistrer que ce qui manque vraiment.
+    let inserted = created;
+    if (created.length) {
+      const present = await existingSources(base44);
+      inserted = created.filter((item) => !present.has(item.source_url));
+      if (inserted.length) await base44.entities.ViralVideo.bulkCreate(inserted);
+    }
 
     // Reste à traiter sur l'ensemble de la file : un `remaining` positif demande un nouveau passage.
     const remaining = pending.length - index;
