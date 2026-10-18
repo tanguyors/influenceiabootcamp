@@ -3,7 +3,7 @@ export const TRANSLATIONS = {
   fr: {
     "nav.dashboard": "Tableau de bord",
     "nav.influencers": "Mes influenceurs",
-    "nav.library": "Banque de modèles",
+    "nav.library": "Banque à vidéos virales",
     "nav.creations": "Mes créations",
     "nav.calendar": "Calendrier",
     "nav.how": "Comment ça marche",
@@ -51,7 +51,7 @@ export const TRANSLATIONS = {
     "influencers.deleteFailed": "Suppression impossible",
     "influencers.photos": "{n} photos",
 
-    "library.title": "Banque de modèles",
+    "library.title": "Banque à vidéos virales",
     "library.subtitle": "Vos propres modèles vidéo : ajoutez les références à recréer, avec leur fichier mp4. Ce fichier permet de reprendre le cadre, la caméra et le mouvement de l'original.",
     "library.add": "Ajouter un modèle",
     "library.pasteLink": "Coller un lien",
@@ -154,7 +154,7 @@ export const TRANSLATIONS = {
   en: {
     "nav.dashboard": "Dashboard",
     "nav.influencers": "My influencers",
-    "nav.library": "Model library",
+    "nav.library": "Viral video bank",
     "nav.creations": "My creations",
     "nav.calendar": "Calendar",
     "nav.how": "How it works",
@@ -202,7 +202,7 @@ export const TRANSLATIONS = {
     "influencers.deleteFailed": "Could not delete",
     "influencers.photos": "{n} photos",
 
-    "library.title": "Model library",
+    "library.title": "Viral video bank",
     "library.subtitle": "Your own video models: add the references to recreate, with their mp4 file. That file is what lets us reuse the original's framing, camera and motion.",
     "library.add": "Add a model",
     "library.pasteLink": "Paste a link",
