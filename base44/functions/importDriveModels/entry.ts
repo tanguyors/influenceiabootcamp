@@ -241,7 +241,7 @@ export default async function (req) {
     return Response.json({
       found: found.length,
       folders: ranks,
-      created: created.length,
+      created: inserted.length,
       imported,
       already_present: found.length - pending.length,
       failed,
