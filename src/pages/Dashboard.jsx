@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Users, Flame, Film, ArrowRight, Sparkles, Image as ImageIcon, Wand2, Download } from "lucide-react";
 import BankImportCard from "@/components/bank/BankImportCard";
+import MasterPromptCard from "@/components/MasterPromptCard";
 import { useI18n } from "@/lib/i18n";
 
 const steps = [
@@ -95,6 +96,8 @@ export default function Dashboard() {
           })}
         </div>
       </section>
+
+      <MasterPromptCard className="mt-10" />
 
       <div className="mt-8 flex items-center gap-2 text-xs text-muted-foreground/60">
         <Download className="h-3.5 w-3.5" />

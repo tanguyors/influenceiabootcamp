@@ -34,6 +34,11 @@ export const TRANSLATIONS = {
     "dashboard.open": "Ouvrir",
     "dashboard.footer": "Génération asynchrone · État conservé entre les visites · Pas de lancement en double",
 
+    "master.title": "Prompt maître : la même app pour tout le monde",
+    "master.intro": "Copiez ce texte et collez-le dans le chat Base44 : il recrée cette application à l'identique, même design et mêmes fonctionnalités, sans aucune différence.",
+    "master.copy": "Copier le prompt",
+    "master.note": "Chaque copie a besoin de ses propres secrets côté serveur (OpenAI, Apify) et de son propre compte Higgsfield connecté depuis la page de connexion.",
+
     "influencers.title": "Mes influenceurs",
     "influencers.subtitle": "Générez un personnage par IA ou importez vos propres photos. Plus il y a d'angles, mieux son apparence est conservée à chaque génération.",
     "influencers.import": "Importer un influenceur",
@@ -172,6 +177,11 @@ export const TRANSLATIONS = {
     "dashboard.step3Desc": "Take the reference's visual direction with your influencer. Adjust the outfit and the setting, then launch the generation.",
     "dashboard.open": "Open",
     "dashboard.footer": "Asynchronous generation · State kept between visits · No duplicate launches",
+
+    "master.title": "Master prompt: the same app for everyone",
+    "master.intro": "Copy this text and paste it into the Base44 chat: it rebuilds this application identically, same design and same features, no difference at all.",
+    "master.copy": "Copy the prompt",
+    "master.note": "Every copy needs its own server-side secrets (OpenAI, Apify) and its own Higgsfield account connected from the connection page.",
 
     "influencers.title": "My influencers",
     "influencers.subtitle": "Generate a character with AI or import your own photos. The more angles you have, the better the look is kept at every generation.",
