@@ -35,8 +35,7 @@ export default function ReferenceCard({ video, favorite, onToggleFavorite, onRec
       </div>
 
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="line-clamp-2 font-heading text-sm font-semibold tracking-tight">{video.title}</h3>
-        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
           {video.video_file_uri ? <span className="rounded bg-primary/15 px-1.5 py-0.5 text-primary">Vidéo source</span> : null}
         </div>
 
