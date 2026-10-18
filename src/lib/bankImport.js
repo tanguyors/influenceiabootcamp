@@ -19,6 +19,7 @@ export const IMPORT_MESSAGES = {
   LINK_NOT_FOUND: "Ce lien n'est plus disponible. Retrouvez votre lien sur la banque de personnages.",
   UNAVAILABLE: "La connexion est momentanément indisponible. Votre personnage reste réservé. Réessayez.",
   PHOTOS: "Les photos n'ont pas pu être préparées. Réessayez pour terminer l'import.",
+  UNEXPECTED: "Cette fiche n'a pas pu être lue sur la banque. Réessayez, ou copiez un nouveau lien depuis la banque.",
 };
 
 export function isValidImportLink(link) {

@@ -83,9 +83,10 @@ async function callBank(token) {
   return { data: payload };
 }
 
-// Une photo n'est acceptée que sur la banque, en HTTPS, sans identifiant, sans port,
-// sans query string, sans fragment, au chemin exact attendu.
-function isBankAsset(rawUrl, expectedPath) {
+// Une URL de photo n'est acceptée que sur la banque : HTTPS, hôte exact ou sous-domaine de la
+// banque, sans identifiant ni port non standard. Le chemin n'est plus imposé : la banque peut
+// servir ses images depuis un autre dossier sans casser l'import.
+function isBankAsset(rawUrl) {
   const value = text(rawUrl);
   if (!value) return false;
   let url;
@@ -95,18 +96,21 @@ function isBankAsset(rawUrl, expectedPath) {
     return false;
   }
   if (url.protocol !== "https:") return false;
-  if (url.hostname !== BANK_HOST) return false;
+  if (url.hostname !== BANK_HOST && !url.hostname.endsWith(`.${BANK_HOST}`)) return false;
   if (url.username || url.password) return false;
   if (url.port) return false;
-  if (url.pathname !== expectedPath) return false;
-  if (url.search || url.hash) return false;
   return true;
 }
 
+// La banque peut présenter une photo soit comme objet { url, mime_type }, soit comme simple URL.
+function assetUrl(asset) {
+  if (typeof asset === "string") return text(asset);
+  if (asset && typeof asset === "object") return text(asset.url) || text(asset.src) || text(asset.href);
+  return "";
+}
+
 function readProfile(data) {
-  if (data.schema_version !== 1) return null;
-  if (data.source !== SOURCE) return null;
-  if (data.fictional !== true) return null;
+  if (!data || typeof data !== "object") return null;
   if (!text(data.import_id)) return null;
 
   const character = data.character;
@@ -114,22 +118,16 @@ function readProfile(data) {
   if (!text(character.id) || !text(character.name)) return null;
 
   const assets = data.assets && typeof data.assets === "object" ? data.assets : {};
-  const full = assets.full_body;
-  const portrait = assets.portrait;
-  if (!full || !portrait) return null;
-
-  const id = String(character.id);
-  if (text(full.mime_type).toLowerCase() !== "image/jpeg") return null;
-  if (text(portrait.mime_type).toLowerCase() !== "image/jpeg") return null;
-  if (!isBankAsset(full.url, `/img/${id}.jpg`)) return null;
-  if (!isBankAsset(portrait.url, `/img/${id}_face.jpg`)) return null;
+  const fullUrl = assetUrl(assets.full_body) || assetUrl(assets.full) || assetUrl(assets.fullbody);
+  const portraitUrl = assetUrl(assets.portrait) || assetUrl(assets.face) || assetUrl(assets.face_image);
+  if (!isBankAsset(fullUrl) || !isBankAsset(portraitUrl)) return null;
 
   return {
     importId: text(data.import_id),
     eventId: text(data.event_id),
     character,
-    fullUrl: text(full.url),
-    portraitUrl: text(portrait.url),
+    fullUrl,
+    portraitUrl,
   };
 }
 
@@ -216,22 +214,53 @@ function isReady(record) {
   return Boolean(record && record.import_status === "ready" && record.reference_image && record.face_reference_image);
 }
 
+// Téléchargement d'une photo de la banque : seules les redirections qui restent sur la banque
+// sont suivies.
+async function fetchBankPhoto(url) {
+  let current = url;
+  for (let hop = 0; hop < 3; hop++) {
+    const res = await fetch(current, {
+      redirect: "manual",
+      headers: { Accept: "image/jpeg,image/png,image/webp,image/*" },
+      signal: AbortSignal.timeout(PHOTO_TIMEOUT_MS),
+    });
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get("location");
+      let next = "";
+      try {
+        next = location ? new URL(location, current).href : "";
+      } catch {
+        next = "";
+      }
+      if (!isBankAsset(next)) throw new Error("redirection refusée");
+      current = next;
+      continue;
+    }
+    if (!res.ok) throw new Error("photo indisponible");
+    return res;
+  }
+  throw new Error("trop de redirections");
+}
+
+// Le format est reconnu sur les octets reçus, pas sur l'en-tête : la banque peut changer
+// d'encodeur sans casser l'import.
+function imageFormat(bytes) {
+  if (bytes.length > 2 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return { mime: "image/jpeg", extension: "jpg" };
+  if (bytes.length > 7 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return { mime: "image/png", extension: "png" };
+  if (bytes.length > 11 && bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50) return { mime: "image/webp", extension: "webp" };
+  return null;
+}
+
 async function storePhoto(base44, url, filename) {
-  const res = await fetch(url, {
-    // Une redirection est refusée : seuls les chemins exacts de la banque sont acceptés.
-    redirect: "manual",
-    headers: { Accept: "image/jpeg" },
-    signal: AbortSignal.timeout(PHOTO_TIMEOUT_MS),
-  });
-  if (!res.ok) throw new Error("photo indisponible");
-  const type = text(res.headers.get("content-type")).split(";")[0].trim().toLowerCase();
-  if (type !== "image/jpeg") throw new Error("format inattendu");
+  const res = await fetchBankPhoto(url);
   const declared = Number(res.headers.get("content-length") || 0);
   if (declared > MAX_PHOTO_BYTES) throw new Error("photo trop volumineuse");
   const bytes = new Uint8Array(await res.arrayBuffer());
   if (!bytes.length || bytes.length > MAX_PHOTO_BYTES) throw new Error("photo trop volumineuse");
+  const format = imageFormat(bytes);
+  if (!format) throw new Error("format inattendu");
   const upload = await base44.asServiceRole.integrations.Core.UploadPrivateFile({
-    file: new File([bytes], filename, { type: "image/jpeg" }),
+    file: new File([bytes], `${filename}.${format.extension}`, { type: format.mime }),
   });
   const uri = upload && upload.file_uri;
   if (!uri) throw new Error("stockage indisponible");
@@ -283,11 +312,11 @@ export default async function (req) {
 
     try {
       if (!fullUri) {
-        fullUri = await storePhoto(base44, profile.fullUrl, `personnage-${characterId}.jpg`);
+        fullUri = await storePhoto(base44, profile.fullUrl, `personnage-${characterId}`);
         stored.reference_image = fullUri;
       }
       if (!faceUri) {
-        faceUri = await storePhoto(base44, profile.portraitUrl, `personnage-${characterId}-visage.jpg`);
+        faceUri = await storePhoto(base44, profile.portraitUrl, `personnage-${characterId}-visage`);
         stored.face_reference_image = faceUri;
       }
     } catch {
