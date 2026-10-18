@@ -165,6 +165,21 @@ export default async function (req) {
       pending.push({ ...entry, source_url, rank: ranks[entry.label] });
     }
 
+    // Vérification seule : on annonce ce qu'il reste à installer sans rien télécharger.
+    if (body.dry) {
+      return Response.json({
+        found: found.length,
+        folders: ranks,
+        created: 0,
+        imported: [],
+        already_present: found.length - pending.length,
+        failed: [],
+        remaining: pending.length,
+        done: pending.length === 0,
+        dry: true,
+      });
+    }
+
     // `limit` sert à traiter la file par petits lots : l'import complet demande plusieurs passages.
     const requested = Math.min(Math.max(Number(body.limit) || pending.length, 1), pending.length);
     const deadline = Date.now() + DEADLINE_MS;

@@ -94,7 +94,7 @@ export default function ViralLibrary() {
         onCreated={(created) => setItems((s) => [created, ...(s || [])])}
       />
 
-      {items && items.length === 0 && <ModelsInstaller onProgress={load} />}
+      <ModelsInstaller onProgress={load} />
 
       {/* Filters */}
       <div className="mb-6 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
