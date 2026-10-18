@@ -159,6 +159,11 @@ export const TRANSLATIONS = {
     "how.ctaLead": "Commence par un personnage, garde un rythme de publication, et laisse l'IA gérer le reste.",
     "how.ctaVideo": "Générer une vidéo",
     "how.ctaCreations": "Voir mes créations",
+
+    "nav.resources": "Ressources",
+    "resources.title": "Ressources",
+    "resources.subtitle": "Les procédures à suivre à la lettre pour lancer un compte, jour après jour, et le faire grandir. Première leçon : le lancement TikTok en 7 jours.",
+    "resources.lesson": "Leçon {n}",
   },
 
   en: {
@@ -320,5 +325,10 @@ export const TRANSLATIONS = {
     "how.ctaLead": "Start with a character, keep posting regularly, and let the AI handle the rest.",
     "how.ctaVideo": "Generate a video",
     "how.ctaCreations": "See my creations",
+
+    "nav.resources": "Resources",
+    "resources.title": "Resources",
+    "resources.subtitle": "The procedures to follow to the letter to launch an account, day after day, and make it grow. First lesson: the 7-day TikTok launch.",
+    "resources.lesson": "Lesson {n}",
   },
 };

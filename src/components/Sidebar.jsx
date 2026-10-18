@@ -1,5 +1,5 @@
 import { NavLink } from "react-router-dom";
-import { Users, Flame, Film, Plug, Sparkles, LayoutDashboard, CalendarDays, HelpCircle } from "lucide-react";
+import { Users, Flame, Film, Plug, Sparkles, LayoutDashboard, CalendarDays, HelpCircle, GraduationCap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n";
 import LanguageSwitch from "@/components/LanguageSwitch";
@@ -11,6 +11,7 @@ const navItems = [
   { to: "/creations", key: "nav.creations", icon: Film },
   { to: "/calendrier", key: "nav.calendar", icon: CalendarDays },
   { to: "/comment-ca-marche", key: "nav.how", icon: HelpCircle },
+  { to: "/ressources", key: "nav.resources", icon: GraduationCap },
   { to: "/connexion", key: "nav.setup", icon: Plug },
 ];
 
