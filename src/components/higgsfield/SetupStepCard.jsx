@@ -1,5 +1,5 @@
 // Carte d'une étape du setup : icône, numéro, état, titre, explication et contenu.
-export default function SetupStepCard({ num, title, text, done, icon: Icon, children }) {
+export default function SetupStepCard({ num, title, text, done, hideStatus = false, icon: Icon, children }) {
   return (
     <section
       className={`relative overflow-hidden rounded-2xl border p-6 ${
@@ -24,13 +24,15 @@ export default function SetupStepCard({ num, title, text, done, icon: Icon, chil
             <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Étape {num}
             </span>
-            <span
-              className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                done ? "bg-primary/15 text-primary" : "border border-border text-muted-foreground"
-              }`}
-            >
-              {done ? "Validé" : "À faire"}
-            </span>
+            {!hideStatus && (
+              <span
+                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                  done ? "bg-primary/15 text-primary" : "border border-border text-muted-foreground"
+                }`}
+              >
+                {done ? "Validé" : "À faire"}
+              </span>
+            )}
           </div>
           <h2 className="mt-2 font-heading text-lg font-semibold tracking-tight">{title}</h2>
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">{text}</p>

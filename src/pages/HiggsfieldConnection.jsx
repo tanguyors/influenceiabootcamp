@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ShieldCheck } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
 import PageShell from "@/components/PageShell";
@@ -117,11 +118,14 @@ export default function HiggsfieldConnection() {
       title="Setup Higgsfield"
       subtitle="Quatre étapes : créez votre compte Higgsfield (1), publiez l'application (2), ouvrez-la (3), puis connectez la connexion MCP (4). La connexion se termine depuis l'application publiée, hors Base44, et sans clé API."
     >
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="space-y-5">
         <AccountSetupStep
           done={Boolean(account?.connected) || Boolean(accountCreated)}
           onOpen={openAccountCreation}
         />
+
+        <McpSetupGuide className="space-y-5" />
+
         <ConnectionStep
           account={account}
           balance={balance}
@@ -134,7 +138,10 @@ export default function HiggsfieldConnection() {
         />
       </div>
 
-      <McpSetupGuide className="mt-5" />
+      <p className="mt-5 flex items-center gap-2 text-xs text-muted-foreground/80">
+        <ShieldCheck className="h-4 w-4 flex-none" /> Les jetons d'accès sont stockés côté serveur et ne sont jamais
+        exposés au navigateur.
+      </p>
     </PageShell>
   );
 }
