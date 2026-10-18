@@ -10,17 +10,19 @@ export const MASTER_PROMPT = {
 - Structure : barre latérale à gauche (logo, nom de l'app, navigation vers chaque page, sélecteur de langue FR/EN, mention « Propulsé par votre serveur MCP Higgsfield ») ; contenu centré en largeur maximale 1152px avec marges généreuses ; entièrement responsive, barre latérale repliée en tiroir sur mobile.
 - Tout le texte de l'interface passe par un système de traductions clé → FR/EN, avec détection automatique de la langue du navigateur (anglais → EN, sinon FR) et mémorisation du choix de l'utilisateur. Aucun texte en dur.
 - Toute image passe par un composant d'image optimisée (redimensionnement et srcset selon le conteneur). Toutes les listes ont un état de chargement et un état vide illustré.
+- Les fichiers privés (photos des personnages, vidéos sources, vidéos générées) ne sont jamais exposés directement : ils s'affichent via des URL signées générées à la demande, et les images passent par une transformation d'URL pour charger vite.
 
 2. ÉCRANS ET NAVIGATION
-- / — Tableau de bord : badge « Parcours : Mon influenceur → Une vidéo virale → Ma version », grand titre sur deux lignes, texte d'introduction, deux boutons (« Créer mon influenceur », « Explorer les vidéos virales »), carte d'import depuis la banque de personnages, trois compteurs (Influenceurs, Références virales, Créations), parcours en 3 étapes cliquables (Mon influenceur, Une vidéo virale, Ma version), mention de bas de page sur la génération asynchrone.
+- Barre latérale, dans cet ordre : Tableau de bord, Mes influenceurs, Banque de modèles, Mes créations, Calendrier, Comment ça marche, Setup Higgsfield, plus le sélecteur de langue.
+- / — Tableau de bord : badge « Parcours : Mon influenceur → Une vidéo virale → Ma version », grand titre sur deux lignes, texte d'introduction, deux boutons (« Créer mon influenceur », « Explorer les vidéos virales »), carte d'import depuis la banque de personnages, trois compteurs (Influenceurs, Références virales, Créations), parcours en 3 étapes cliquables (Mon influenceur, Une vidéo virale, Ma version), mention de bas de page sur la génération asynchrone, puis en bas la carte « Prompt maître » (titre, explication, texte du prompt maître dans une zone de texte en lecture seule, bouton « Copier le prompt » avec retour « Copié ») en FR et EN.
 - /influenceurs — Mes influenceurs : création d'un personnage par IA sous forme de funnel pas à pas (questionnaire : niche, plateforme, audience, ton, traits de personnalité ; puis génération des traits et du prompt, planche de 9 photos, choix du nom, histoire et phrase d'accroche) ou import de ses propres photos, cartes de personnages avec leurs photos, panneau de bio Instagram, suppression.
-- /videos — Banque de modèles : carte « cerveau Base44 » avec prompts à copier, recherche, filtre par période (6 h, 12 h, 24 h, 7 jours, tout), favoris, ajout d'un modèle par lien, pièce jointe du fichier mp4 source, bouton « Recréer ».
+- /videos — Banque de modèles : carte « cerveau Base44 » avec prompts à copier, recherche, filtre par période (6 h, 12 h, 24 h, 7 jours, tout), favoris mémorisés dans le navigateur, ajout d'un modèle par lien (titre, durée et vignette récupérés automatiquement au moment de l'ajout) ou avec un fichier mp4 depuis l'appareil, bouton « Recréer » sur chaque carte.
 - /creations — Mes créations : chaque génération avec son état (brouillon, en attente, en cours, prête, échouée), lecture de la vidéo, téléchargement, relance, rafraîchissement automatique toutes les 8 secondes.
-- /calendrier — Calendrier mensuel des publications programmées, navigation entre les mois, détail du post et son état (prévu / publié).
+- /calendrier — Calendrier mensuel des publications programmées, bouton « Aujourd'hui », navigation entre les mois, détail du post : aperçu vidéo 9:16, réseau et heure, état (prévu / publié), accroche, légende et hashtags copiables en un clic, ou message invitant à les demander au chat.
 - /comment-ca-marche — Explication du produit (le principe, les 3 idées, la routine quotidienne, ce qu'on peut demander à l'IA) et bibliothèque de prompts copiables.
 - /connexion — Setup Higgsfield en deux étapes, la première bloquante : (1) carte « Créer votre compte Higgsfield » dont le bouton ouvre le lien d'affiliation https://higgsfield.ai?fpr=thibault-e42228 dans un nouvel onglet, puis marque l'étape comme faite sur le compte de l'utilisateur (higgsfield_account_created) — l'étape 2 reste verrouillée tant que ce n'est pas validé ; (2) connexion du compte en OAuth (bouton Connecter / Déconnecter, état de la connexion, solde de crédits, outils MCP détectés). Garder ce lien d'affiliation tel quel dans chaque copie.
 - /recreer — Lancement de la génération (voir point 5).
-- Authentification : /login, /register, /forgot-password, /reset-password. Toutes les pages sont privées : un visiteur non connecté est renvoyé vers /login puis ramené à la page demandée.
+- Authentification : /login, /register, /forgot-password, /reset-password, avec connexion par e-mail et mot de passe ou par Google. Toutes les pages sont privées : un visiteur non connecté est renvoyé vers /login puis ramené à la page demandée.
 
 3. BASE DE DONNÉES (mêmes entités, mêmes champs)
 - Influencer : name, notes, reference_image, reference_images (liste), face_reference_image, motion_reference_image, motion_reference_source, niche, platform, audience, tone, personality (liste), tagline, story, instagram_bio, source, source_character_id, source_event_id, import_id, import_key, import_status (pending / ready), imported_at, profile (profil public complet).
@@ -42,6 +44,7 @@ export const MASTER_PROMPT = {
 - generateVideo : préparation des références du personnage, envoi de la tâche à Higgsfield, suivi de l'état, marquage en échec des tâches bloquées, estimation du coût.
 - generatePostCopy : analyse visuelle de la vidéo (décor, ambiance, tenue) et génération de l'accroche, de la légende et des hashtags, ton direct et typé réseaux sociaux.
 - Deux secrets côté serveur, jamais dans le navigateur : la clé OpenAI (personnages, textes, visuels) et la clé Apify (recherche et récupération des vidéos virales).
+- Modules serveur partagés : higgsfield (OAuth et appels MCP), mcp (transport), characterReplacement, motionReference, motionFraming, openaiText — plus les outils internes de diagnostic Higgsfield gardés en fonctions séparées (hfProbe, hfShape, hfJobProbe, hfDebug).
 
 5. GÉNÉRATION VIDÉO (le cœur du produit)
 - Écran /recreer avec la vidéo de référence : la référence et mon influenceur côte à côte en 9:16, sélecteur d'influenceur avec le choix mémorisé, alerte si le compte Higgsfield n'est pas connecté, alerte et blocage si le solde de crédits est nul, bandeau expliquant le mode utilisé.
@@ -58,10 +61,41 @@ export const MASTER_PROMPT = {
 - Tous les prompts existent en FR et EN et s'affichent dans la langue active.
 
 7. IMPORT DEPUIS LA BANQUE DE PERSONNAGES
-- Sur le tableau de bord : carte d'import avec un champ de lien (HTTPS uniquement), vérification du domaine, étapes d'avancement affichées, puis résultat : le personnage importé avec ses photos, prêt à générer.
+- Sur le tableau de bord : carte d'import avec un champ de lien, un bouton d'ouverture de la banque (https://characters.cashfluenceur.com) et un exemple de lien dans le champ.
+- Format de lien accepté, vérifié dans le navigateur puis côté serveur : protocole https, domaine characters.cashfluenceur.com, chemin /import, aucun paramètre de requête, ni identifiant ni mot de passe dans l'URL, et un fragment #token= suivi de 64 caractères hexadécimaux. Le lien n'est ni conservé ni transmis ailleurs qu'à la fonction d'import.
+- Étapes affichées pendant l'import : Vérification du lien, Récupération du personnage, Préparation des photos, Personnage prêt. Messages d'erreur dédiés : lien incomplet, lien expiré, connexion momentanément indisponible (le personnage reste réservé), photos non préparées (reprise possible).
+- Résultat : le personnage importé avec ses photos, prêt à générer ; import atomique et sans doublon, une même réservation ne crée jamais deux personnages.
 
 8. MISE EN ROUTE DE CHAQUE COPIE
 - Ajouter les secrets OPENAI_API_KEY et APIFY_TOKEN côté serveur, puis suivre le setup Higgsfield en deux étapes depuis la page de connexion : créer son compte Higgsfield avec le lien d'affiliation https://higgsfield.ai?fpr=thibault-e42228 (à conserver tel quel, c'est lui qui alimente le bouton « Créer mon compte Higgsfield »), puis autoriser la connexion. Les jetons restent côté serveur et aucune clé API n'est demandée à l'utilisateur.
+
+9. PARCOURS DE CRÉATION EN 24 ÉTAPES (contenu exact, aligné sur le funnel de référence)
+Mêmes sections, mêmes intitulés, mêmes choix, mêmes visuels : cartes illustrées, grandes options avec icône, ou vignettes d'icônes, dans cet ordre.
+1. Votre objectif — Que voulez-vous ? : Être payé par les vues · Partenariats · Vendre mes produits · Devenir viral
+2. Votre objectif de revenus — Combien par mois ? : 500 $ / mois · 2 000 $ / mois · 10 000 $ / mois · Je quitte mon job
+3. Votre temps — Combien de temps par jour ? (Aucune caméra. Jamais.) : 5 minutes · 30 minutes · 1 heure et +
+4. Identité — Qui est-ce ? : Homme · Femme · Non binaire (obligatoire)
+5. Origines — Quel look ? : Occidental · Latino/a · Est-asiatique · Africain · Sud-asiatique · Moyen-Orient
+6. Âge — Quel âge ? : Jeune · 20 ans · Adulte · 30 ans · Mature · 50 ans · Senior · 70 ans
+7. Apparence — Peau : Porcelaine · Ivoire · Sable · Miel · Caramel · Moka · Espresso · Ébène
+8. Corps — Corps : Mince · Athlétique · Musclé · Pulpeuse · Bedaine · Grand & élancé
+9. Cheveux — Couleur de cheveux : Noir de jais · Châtain foncé · Châtain · Auburn · Roux cuivré · Fraise · Blond · Platine · Gris · Blanc · Rose
+10. Coiffure — Coiffure : Wolf cut · Permanente broccoli · Mulet · Butterfly cut · Edgar cut · Afro · Crête · Buzz décoloré · Chauve
+11. Yeux — Couleur des yeux : Marron foncé · Ambre · Noisette · Vert · Océan · Bleu glacé · Gris · Violet
+12. Yeux — Forme des yeux : Amandes · Ronds · Monopli · Paupières lourdes · Immenses · Yeux de chat
+13. Visage — Forme du visage : Normal · Visage long · Cou long · Cou épais · Tête d'œuf · Ronde
+14. Visage — Détails du visage (plusieurs choix) : Taches de rousseur · Fossettes · Cernes · Pommettes hautes · Lèvres pulpeuses · Monosourcil · Grain de beauté · Dents du bonheur · Grandes oreilles
+15. Visage — Moustache & barbe : Rasé de près · Barbe naissante · Moustache · Bouc · Barbe courte · Barbe pleine · Moustache en guidon · Favoris · Moustache Dalí — étape sautée si le personnage est féminin
+16. Détails — Extras fun (plusieurs choix) : Yeux vairons · Tatouage facial · Piercing · Entailles aux sourcils · Grill doré · Tempête de taches · Pierres sur le visage · Oreilles d'elfe · Cicatrice au sourcil
+17. Détails — Accessoire : Aucun · Lunettes · Casque · Bijoux dorés · Chapeau bob · Monocle · Perles · Nœud papillon · Chapeau à plume
+18. Personnalité — Quel vibe ? : Luxe · Drôle · Inspirant · Sombre & provoc · Bienveillant · Boss sauvage · Zen · Romantique · Drama
+19. Style — Tenue : Vieux argent · Djellaba · Pull de grand-père · Disco 70s · Dandy · Chic Riviera · Peignoir en soie · Costume lilas · Safari · Or & fourrure · Tunique rouge · Survêtement velours
+20. Plateforme — Quelle appli ? : Instagram (Reels) · TikTok (FYP viral) · YouTube (format long) · Toutes
+21. Partenariats — Quelles marques ? (plusieurs choix) : Mode · Sneakers · Beauté · Tech · Applications · Perte de poids · Fitness · Boissons · Food
+22. Publication — À quelle fréquence ? : 5× par jour · 3× par jour · 1× par jour · 2× par semaine
+23. Identité — Donnez-lui un nom (obligatoire) : champ libre, avec des idées de prénom et de nom proposées automatiquement selon le genre
+24. Presque fini — Prêt à lui donner vie ? (obligatoire) : récapitulatif des traits retenus, de l'univers souhaité et « Votre star + 30 posts », puis lancement de la génération.
+Règles de traduction vers le moteur de génération : chaque choix correspond à un identifiant de trait (genre, origine, âge, teint, corps, couleur et coupe de cheveux, yeux, forme du visage, détails du visage, barbe, extras, accessoire, esthétique). Un seul choix par groupe, sauf les détails du visage et les extras fun (2 au maximum) et l'accessoire (3 au maximum) ; au-delà du plafond, le choix part dans le texte du brief. Les traits non choisis dans les étapes optionnelles (détails du visage, extras, accessoire, barbe) sont explicitement interdits dans le brief pour que le moteur ne les invente pas. Le brief final contient tous les choix, les traits interdits, le nom, les marques souhaitées et l'univers libre, limité en longueur, les choix passant en premier pour qu'une saisie longue ne les écrase pas. Après le parcours : planche de 9 photos du personnage (visage de face, profils, plans larges), histoire, phrase d'accroche et bio Instagram de 3 lignes.
 
 Critère de réussite : l'application obtenue doit être identique à celle-ci, écran par écran et fonctionnalité par fonctionnalité. Ne remplace, ne simplifie et n'omets aucun élément.`,
 
@@ -75,17 +109,19 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - Structure: left sidebar (logo, app name, navigation to every page, FR/EN language switcher, line "Powered by your Higgsfield MCP server"); content centered at a maximum width of 1152px with generous padding; fully responsive, sidebar collapsed into a drawer on mobile.
 - Every piece of interface text goes through a key -> FR/EN translation system, with automatic browser language detection (English -> EN, otherwise FR) and the user's choice remembered. No hardcoded text.
 - Every image goes through an optimized image component (resizing and srcset based on its container). Every list has a loading state and an illustrated empty state.
+- Private files (character photos, source videos, generated videos) are never exposed directly: they display through signed URLs generated on demand, and images go through URL transformation to load fast.
 
 2. SCREENS AND NAVIGATION
-- / - Dashboard: badge "My influencer -> A viral video -> My version", large two-line heading, intro text, two buttons ("Create my influencer", "Explore viral videos"), import card from the character bank, three counters (Influencers, Viral references, Creations), 3 clickable steps (My influencer, A viral video, My version), footer note about asynchronous generation.
+- Sidebar, in this order: Dashboard, My influencers, Model library, My creations, Calendar, How it works, Higgsfield setup, plus the language switcher.
+- / - Dashboard: badge "My influencer -> A viral video -> My version", large two-line heading, intro text, two buttons ("Create my influencer", "Explore viral videos"), import card from the character bank, three counters (Influencers, Viral references, Creations), 3 clickable steps (My influencer, A viral video, My version), footer note about asynchronous generation, then at the bottom the "Master prompt" card (title, explanation, the master prompt text in a read-only text area, a "Copy the prompt" button with a "Copied" feedback) in FR and EN.
 - /influenceurs - My influencers: create a character with AI as a step-by-step funnel (questionnaire: niche, platform, audience, tone, personality traits; then generation of the traits and the prompt, a sheet of 9 photos, name choice, story and tagline) or import your own photos, character cards with their photos, Instagram bio panel, delete.
-- /videos - Model library: "Base44 brain" card with prompts to copy, search, period filter (6h, 12h, 24h, 7 days, all time), favourites, add a model by link, attach the source mp4 file, "Recreate" button.
+- /videos - Model library: "Base44 brain" card with prompts to copy, search, period filter (6h, 12h, 24h, 7 days, all time), favourites remembered in the browser, adding a model by link (title, duration and thumbnail fetched automatically at that moment) or with an mp4 file from the device, a "Recreate" button on each card.
 - /creations - My creations: every generation with its status (draft, queued, generating, ready, failed), video playback, download, relaunch, automatic refresh every 8 seconds.
-- /calendrier - Monthly calendar of scheduled posts, month navigation, post detail and its status (planned / published).
+- /calendrier - Monthly calendar of scheduled posts, a "Today" button, month navigation, post detail: 9:16 video preview, platform and time, status (planned / published), hook, caption and hashtags copyable in one click, or a message inviting you to ask the chat for them.
 - /comment-ca-marche - Product explanation (the principle, the 3 ideas, the daily routine, what you can ask the AI) and a library of copyable prompts.
 - /connexion - Two-step Higgsfield setup, the first one blocking: (1) a "Create your Higgsfield account" card whose button opens the affiliate link https://higgsfield.ai?fpr=thibault-e42228 in a new tab, then marks the step as done on the user's account (higgsfield_account_created) - step 2 stays locked until it is validated; (2) connecting the account over OAuth (Connect / Disconnect buttons, connection state, credit balance, detected MCP tools). Keep this affiliate link as is in every copy.
 - /recreer - Launch the generation (see point 5).
-- Authentication: /login, /register, /forgot-password, /reset-password. Every page is private: a visitor who is not logged in is sent to /login and then back to the requested page.
+- Authentication: /login, /register, /forgot-password, /reset-password, with email and password or Google sign-in. Every page is private: a visitor who is not logged in is sent to /login and then back to the requested page.
 
 3. DATABASE (same entities, same fields)
 - Influencer: name, notes, reference_image, reference_images (list), face_reference_image, motion_reference_image, motion_reference_source, niche, platform, audience, tone, personality (list), tagline, story, instagram_bio, source, source_character_id, source_event_id, import_id, import_key, import_status (pending / ready), imported_at, profile (full public profile).
@@ -107,6 +143,7 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - generateVideo: prepare the character references, submit the Higgsfield job, track its status, mark stalled jobs as failed, estimate the cost.
 - generatePostCopy: visual analysis of the video (setting, mood, outfit) and generation of the hook, the caption and the hashtags, in a direct social-media tone.
 - Two server-side secrets, never in the browser: the OpenAI key (characters, texts, visuals) and the Apify key (finding and fetching viral videos).
+- Shared server modules: higgsfield (OAuth and MCP calls), mcp (transport), characterReplacement, motionReference, motionFraming, openaiText - plus the internal Higgsfield diagnostic helpers kept as separate functions (hfProbe, hfShape, hfJobProbe, hfDebug).
 
 5. VIDEO GENERATION (the core of the product)
 - /recreer screen with the reference video: the reference and my influencer side by side in 9:16, influencer picker with the choice remembered, warning if the Higgsfield account is not connected, warning and blocking when the credit balance is zero, banner explaining the mode being used.
@@ -123,10 +160,41 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - Every prompt exists in FR and EN and displays in the active language.
 
 7. IMPORT FROM THE CHARACTER BANK
-- On the dashboard: an import card with a link field (HTTPS only), domain check, visible progress steps, then the result: the imported character with its photos, ready to generate.
+- On the dashboard: an import card with a link field, a button opening the bank (https://characters.cashfluenceur.com) and an example link in the field.
+- Accepted link format, checked in the browser then server-side: https protocol, hostname characters.cashfluenceur.com, path /import, no query parameter, no username or password in the URL, and a #token= fragment followed by 64 hexadecimal characters. The link is neither stored nor sent anywhere except to the import function.
+- Steps shown during the import: Checking the link, Fetching the character, Preparing the photos, Character ready. Dedicated error messages: incomplete link, expired link, connection temporarily unavailable (the character stays reserved), photos not prepared (can be resumed).
+- Result: the imported character with its photos, ready to generate; atomic import with no duplicates, the same reservation never creates two characters.
 
 8. SETUP FOR EVERY COPY
 - Add the OPENAI_API_KEY and APIFY_TOKEN secrets server-side, then follow the two-step Higgsfield setup from the connection page: create your Higgsfield account through the affiliate link https://higgsfield.ai?fpr=thibault-e42228 (keep it as is, it is what backs the "Create my Higgsfield account" button), then authorise the connection. Tokens stay server-side and the user is never asked for an API key.
+
+9. CREATION FUNNEL IN 24 STEPS (exact content, aligned on the reference funnel)
+Same sections, same titles, same choices, same visuals: illustrated cards, large options with an icon, or icon tiles, in this order.
+1. Your goal - What do you want? : Get paid for views · Partnerships · Sell my products · Go viral
+2. Your income goal - How much per month? : $500 / month · $2,000 / month · $10,000 / month · I'm quitting my job
+3. Your time - How much time per day? (No camera. Ever.) : 5 minutes · 30 minutes · 1 hour+
+4. Identity - Who is it? : Man · Woman · Non-binary (required)
+5. Origins - Which look? : Western · Latino/a · East Asian · African · South Asian · Middle Eastern
+6. Age - How old? : Young · 20 · Adult · 30 · Mature · 50 · Senior · 70
+7. Appearance - Skin : Porcelain · Ivory · Sand · Honey · Caramel · Mocha · Espresso · Ebony
+8. Body - Body : Slim · Athletic · Muscular · Curvy · Belly · Tall and lean
+9. Hair - Hair colour : Jet black · Dark brown · Chestnut · Auburn · Copper red · Strawberry · Blonde · Platinum · Grey · White · Pink
+10. Hairstyle - Hairstyle : Wolf cut · Broccoli perm · Mullet · Butterfly cut · Edgar cut · Afro · Mohawk · Bleached buzz · Bald
+11. Eyes - Eye colour : Dark brown · Amber · Hazel · Green · Ocean · Ice blue · Grey · Violet
+12. Eyes - Eye shape : Almond · Round · Monolid · Hooded · Huge · Cat eyes
+13. Face - Face shape : Normal · Long face · Long neck · Thick neck · Egg head · Round
+14. Face - Face details (multiple choices) : Freckles · Dimples · Eye bags · High cheekbones · Full lips · Unibrow · Beauty mark · Gapped teeth · Big ears
+15. Face - Moustache & beard : Clean shaven · Stubble · Moustache · Goatee · Short beard · Full beard · Handlebar moustache · Sideburns · Dalí moustache - step skipped for a female character
+16. Details - Fun extras (multiple choices) : Heterochromia · Face tattoo · Piercing · Eyebrow slits · Gold grillz · Freckle storm · Face gems · Elf ears · Eyebrow scar
+17. Details - Accessory : None · Glasses · Headphones · Gold jewellery · Bucket hat · Monocle · Pearls · Bow tie · Feathered hat
+18. Personality - Which vibe? : Luxury · Funny · Inspiring · Dark and edgy · Wholesome · Savage boss · Zen · Romantic · Drama
+19. Style - Outfit : Old money · Djellaba · Grandpa knit · 70s disco · Dandy · Riviera chic · Silk robe · Lilac suit · Safari · Gold and fur · Red tunic · Velour tracksuit
+20. Platform - Which app? : Instagram (Reels) · TikTok (viral FYP) · YouTube (long form) · All of them
+21. Partnerships - Which brands? (multiple choices) : Fashion · Sneakers · Beauty · Tech · Apps · Weight loss · Fitness · Drinks · Food
+22. Posting - How often? : 5x a day · 3x a day · 1x a day · 2x a week
+23. Identity - Give it a name (required) : free field, with first and last name ideas suggested automatically based on the gender
+24. Almost done - Ready to bring it to life? (required) : recap of the chosen traits, the desired universe and "Your star + 30 posts", then the generation launch.
+Mapping rules to the generation engine: each choice matches a trait identifier (gender, origin, age, skin tone, body, hair colour and cut, eyes, face shape, face details, beard, extras, accessory, aesthetic). One choice per group, except face details and fun extras (2 maximum) and accessory (3 maximum); beyond the cap, the choice goes into the prompt text. Traits not chosen in the optional steps (face details, extras, accessory, beard) are explicitly forbidden in the brief so the engine does not invent them. The final brief contains every choice, the forbidden traits, the name, the wanted brands and the free universe text, length-limited, with the choices first so a long free text can never override them. After the funnel: a sheet of 9 character photos (frontal face, profiles, wide shots), a story, a tagline and a 3-line Instagram bio.
 
 Success criterion: the resulting application must be identical to this one, screen by screen and feature by feature. Do not replace, simplify or omit anything.`,
 };
