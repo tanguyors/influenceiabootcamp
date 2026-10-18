@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Plus, Users, Trash2, Check, Loader2, Image as ImageIcon, Upload } from "lucide-react";
+import { Users, Trash2, Check, Loader2, Image as ImageIcon, Upload } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -92,9 +92,6 @@ export default function Influencers() {
           <Button variant="outline" onClick={() => setImportOpen(true)} className="font-semibold">
             <Upload className="mr-2 h-4 w-4" /> {t("influencers.import")}
           </Button>
-          <Button onClick={() => setFunnelOpen(true)} className="font-semibold">
-            <Plus className="mr-2 h-4 w-4" /> {t("influencers.create")}
-          </Button>
         </div>
       }
     >
@@ -107,7 +104,6 @@ export default function Influencers() {
           icon={Users}
           title={t("influencers.emptyTitle")}
           description={t("influencers.emptyDesc")}
-          action={<Button onClick={() => setFunnelOpen(true)} className="font-semibold"><Plus className="mr-2 h-4 w-4" /> {t("influencers.emptyAction")}</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
