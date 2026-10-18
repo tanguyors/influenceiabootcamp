@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Users, Trash2, Check, Loader2, Image as ImageIcon, Upload } from "lucide-react";
+import { Users, Trash2, Check, Loader2, Upload } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,9 @@ import CreateInfluencerFunnel from "@/components/influencers/CreateInfluencerFun
 import CreateInfluencerDialog from "@/components/influencers/CreateInfluencerDialog";
 import ImportInfluencerFlow from "@/components/influencers/ImportInfluencerFlow";
 import InstagramBioPanel from "@/components/influencers/InstagramBioPanel";
+import InfluencerPhotoPane from "@/components/influencers/InfluencerPhotoPane";
+import PhotoEditDialog from "@/components/influencers/PhotoEditDialog";
+import { cardPhotosOf, photosOf } from "@/lib/influencerPhotos";
 import Base44PromptCard from "@/components/Base44PromptCard";
 import { promptGroup } from "@/lib/base44Prompts";
 import { useI18n } from "@/lib/i18n";
@@ -24,11 +27,7 @@ export default function Influencers() {
   const [funnelOpen, setFunnelOpen] = useState(false);
   const [photosOpen, setPhotosOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-
-  // Photos de référence d'un influenceur (les anciens n'en ont qu'une).
-  const photosOf = (inf) => (Array.isArray(inf.reference_images) && inf.reference_images.length
-    ? inf.reference_images
-    : (inf.reference_image ? [inf.reference_image] : []));
+  const [edit, setEdit] = useState(null);
 
   async function load() {
     try {
@@ -66,7 +65,7 @@ export default function Influencers() {
     if (!activeId) selectActive(influencer.id);
   }
 
-  function handleBioUpdated(updated) {
+  function handleInfluencerUpdated(updated) {
     setItems((s) => (s || []).map((i) => (i.id === updated.id ? updated : i)));
   }
 
@@ -107,26 +106,35 @@ export default function Influencers() {
         />
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((inf) => (
+          {list.map((inf) => {
+            const photos = cardPhotosOf(inf);
+            return (
             <div key={inf.id} className={`group relative overflow-hidden rounded-xl border bg-card ${activeId === inf.id ? "border-primary ring-2 ring-primary" : "border-border"}`}>
-              <button onClick={() => selectActive(inf.id)} className="block w-full text-left">
-                <div className="relative aspect-[3/4] bg-secondary">
-                  {photosOf(inf).length ? (
-                    <SignedImage src={photosOf(inf)[0]} fittingType="fit" className="h-full w-full" />
-                  ) : (
-                    <div className="flex h-full items-center justify-center"><ImageIcon className="h-8 w-8 text-muted-foreground/50" /></div>
-                  )}
-                  {photosOf(inf).length > 1 && (
-                    <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {t("influencers.photos", { n: photosOf(inf).length })}
-                    </span>
-                  )}
-                  {activeId === inf.id && (
-                    <div className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                      <Check className="h-4 w-4" />
-                    </div>
-                  )}
-                </div>
+              <div className="relative grid grid-cols-2 gap-px bg-border">
+                <InfluencerPhotoPane
+                  uri={photos.face}
+                  label={t("influencers.face")}
+                  onSelect={() => selectActive(inf.id)}
+                  onModify={() => { selectActive(inf.id); setEdit({ id: inf.id, target: "face", uri: photos.face }); }}
+                />
+                <InfluencerPhotoPane
+                  uri={photos.body}
+                  label={t("influencers.fullBody")}
+                  onSelect={() => selectActive(inf.id)}
+                  onModify={() => { selectActive(inf.id); setEdit({ id: inf.id, target: "body", uri: photos.body }); }}
+                />
+                {photosOf(inf).length > 1 && (
+                  <span className="absolute left-3 top-3 z-10 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
+                    {t("influencers.photos", { n: photosOf(inf).length })}
+                  </span>
+                )}
+                {activeId === inf.id && (
+                  <div className="absolute right-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                    <Check className="h-4 w-4" />
+                  </div>
+                )}
+              </div>
+              <button type="button" onClick={() => selectActive(inf.id)} className="block w-full text-left">
                 <div className="p-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <h3 className="font-heading text-base font-semibold tracking-tight">{inf.name}</h3>
@@ -142,19 +150,20 @@ export default function Influencers() {
                   ) : null}
                   {photosOf(inf).length > 1 && (
                     <div className="mt-3 flex flex-wrap gap-1.5">
-                      {photosOf(inf).slice(1).map((uri) => (
+                      {photos.extras.map((uri) => (
                         <SignedImage key={uri} src={uri} fittingType="fill" className="h-12 w-12 rounded-md border border-border bg-secondary" />
                       ))}
                     </div>
                   )}
                 </div>
               </button>
-              <InstagramBioPanel influencer={inf} onUpdated={handleBioUpdated} />
+              <InstagramBioPanel influencer={inf} onUpdated={handleInfluencerUpdated} />
               <button onClick={() => remove(inf.id)} className="absolute right-3 top-3 rounded-md bg-card/80 p-1.5 text-muted-foreground opacity-0 transition hover:text-destructive group-hover:opacity-100">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -166,6 +175,14 @@ export default function Influencers() {
       />
       <CreateInfluencerDialog open={photosOpen} onOpenChange={setPhotosOpen} onCreated={handleCreated} />
       <ImportInfluencerFlow open={importOpen} onClose={() => setImportOpen(false)} onSaved={handleImported} />
+      <PhotoEditDialog
+        open={Boolean(edit)}
+        onOpenChange={(value) => { if (!value) setEdit(null); }}
+        influencer={list.find((item) => item.id === edit?.id)}
+        target={edit?.target}
+        uri={edit?.uri}
+        onUpdated={handleInfluencerUpdated}
+      />
     </PageShell>
   );
 }
