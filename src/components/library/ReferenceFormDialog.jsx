@@ -1,133 +1,101 @@
 import { useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Link2, Loader2 } from "lucide-react";
 import { base44 } from "@/api/base44Client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { readVideoDuration } from "@/lib/videoDuration";
-import VideoLinkField from "@/components/library/VideoLinkField";
 
-const EMPTY = {
-  title: "",
-  duration: null,
-  reading: false,
-  thumbnailFile: null,
-  thumbnailPreview: "",
-  videoFile: null,
-};
+// Plateformes acceptées par l'entité ViralVideo.
+const PLATFORMS = ["tiktok", "instagram", "youtube"];
 
+// Le lien suffit : le titre, la durée, la vignette et le fichier mp4 sont récupérés
+// puis stockés de façon privée (stored privately), sans rien télécharger sur l'appareil.
 export default function ReferenceFormDialog({ open, onOpenChange, onCreated }) {
   const { toast } = useToast();
-  const [form, setForm] = useState(EMPTY);
-  const [saving, setSaving] = useState(false);
-  const [remote, setRemote] = useState(null);
+  const [link, setLink] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
-  function onThumbnail(e) {
-    const file = e.target.files?.[0];
-    if (file) setForm((s) => ({ ...s, thumbnailFile: file, thumbnailPreview: URL.createObjectURL(file) }));
-  }
-
-  // La durée n'est jamais saisie : elle est lue directement dans le fichier mp4.
-  async function onVideo(e) {
-    const file = e.target.files?.[0] || null;
-    setForm((s) => ({ ...s, videoFile: file, duration: null, reading: Boolean(file) }));
-    if (!file) return;
-    const duration = await readVideoDuration(file);
-    setForm((s) => (s.videoFile === file ? { ...s, duration, reading: false } : s));
-  }
-
-  async function save() {
-    // La vidéo vient du lien téléchargé, ou du fichier mp4 choisi.
-    if (!form.title.trim() || (!form.videoFile && !remote)) {
-      toast({ title: "Titre et vidéo requis", variant: "destructive" });
+  async function importModel() {
+    if (busy) return;
+    const url = link.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      setError("Collez un lien complet (https://…).");
       return;
     }
-    setSaving(true);
+    setBusy(true);
+    setError("");
     try {
-      let thumbnail_url = (remote && remote.thumbnail_url) || "";
-      if (form.thumbnailFile) {
-        const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: form.thumbnailFile });
-        thumbnail_url = file_uri;
+      const res = await base44.functions.invoke("downloadViralVideo", { url });
+      const data = res.data || {};
+      if (data.error) throw new Error(data.error);
+
+      // La durée n'est jamais saisie : elle vient de la source, sinon du fichier récupéré.
+      let duration = Number(data.duration) || 0;
+      if (!duration && data.video_file_uri) {
+        const { signed_url } = await base44.integrations.Core.CreateFileSignedUrl({ file_uri: data.video_file_uri });
+        if (signed_url) duration = (await readVideoDuration(signed_url)) || 0;
       }
-      let video_file_uri = (remote && remote.video_file_uri) || "";
-      if (form.videoFile) {
-        const { file_uri } = await base44.integrations.Core.UploadPrivateFile({ file: form.videoFile });
-        video_file_uri = file_uri;
-      }
+
       const created = await base44.entities.ViralVideo.create({
-        title: form.title.trim(),
-        duration: form.duration || (remote && remote.duration) || undefined,
-        thumbnail_url,
-        video_file_uri,
+        title: data.title || "Modèle importé",
+        duration: duration || undefined,
+        thumbnail_url: data.thumbnail_url || "",
+        video_file_uri: data.video_file_uri,
+        source_url: url,
+        platform: PLATFORMS.includes(data.platform) ? data.platform : undefined,
         published_date: new Date().toISOString(),
         is_manual: true,
         is_demo: false,
       });
       onCreated(created);
-      setForm(EMPTY);
-      setRemote(null);
+      setLink("");
       onOpenChange(false);
-      toast({ title: "Modèle ajouté" });
+      toast({ title: "Modèle ajouté", description: "Sa vignette et son fichier mp4 sont prêts pour la recréation." });
     } catch (e) {
-      toast({ title: "Ajout impossible", description: e.message, variant: "destructive" });
+      const payload = (e && e.response && e.response.data) || {};
+      setError(payload.error || (e && e.message) || "Téléchargement impossible");
     } finally {
-      setSaving(false);
+      setBusy(false);
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(next) => { if (!busy) onOpenChange(next); }}>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader><DialogTitle>Ajouter un modèle</DialogTitle></DialogHeader>
-        <div className="space-y-4 py-2">
-          <VideoLinkField
-            remote={remote}
-            onLoaded={(data) => {
-              setRemote(data);
-              setForm((s) => ({
-                ...s,
-                title: s.title.trim() ? s.title : data.title || "",
-                duration: data.duration || s.duration,
-              }));
-            }}
+        <DialogHeader>
+          <DialogTitle>Ajouter un modèle</DialogTitle>
+          <DialogDescription>
+            Collez le lien de la vidéo : Instagram, TikTok, Facebook ou un lien direct .mp4. Le titre, la vignette et le
+            fichier mp4 sont récupérés automatiquement.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div>
+          <Label htmlFor="model-link">Lien de la vidéo</Label>
+          <Input
+            id="model-link"
+            value={link}
+            onChange={(e) => setLink(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") importModel(); }}
+            placeholder="https://www.instagram.com/reel/…"
+            disabled={busy}
+            className="mt-1.5 h-11 px-4"
           />
-          <div>
-            <Label htmlFor="rtitle">Titre</Label>
-            <Input id="rtitle" value={form.title} onChange={(e) => setForm((s) => ({ ...s, title: e.target.value }))} placeholder="Description courte" />
-          </div>
-          <div>
-            <Label>Vignette (optionnel)</Label>
-            <div className="flex items-center gap-3">
-              {form.thumbnailPreview && <img src={form.thumbnailPreview} alt="" className="h-16 w-16 rounded-lg object-cover" />}
-              <Input type="file" accept="image/*" onChange={onThumbnail} />
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">La vignette est stockée de façon privée (stored privately).</p>
-          </div>
-          <div>
-            <Label>Vidéo mp4</Label>
-            <div className="flex items-center gap-3">
-              <Input type="file" accept="video/mp4" onChange={onVideo} />
-              {form.videoFile && <span className="text-xs font-medium text-primary">{form.videoFile.name}</span>}
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">Le transfert de mouvement reprend le mouvement de ce fichier (4 à 30 s). Il est stocké de façon privée (stored privately).</p>
-            <p className="mt-1 text-xs font-medium text-muted-foreground">
-              {form.reading
-                ? "Lecture de la durée…"
-                : form.duration
-                  ? `Durée détectée : ${form.duration} s — la génération reprendra exactement cette durée.`
-                  : "La durée sera lue automatiquement dans le fichier."}
-            </p>
-          </div>
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            La vidéo est récupérée puis stockée de façon privée (stored privately), sans rien télécharger sur votre appareil.
+          </p>
+          {busy && <p className="mt-2 text-xs text-muted-foreground">Récupération de la vidéo… comptez 10 à 30 secondes.</p>}
+          {error && <p className="mt-2 text-xs text-destructive">{error}</p>}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>Annuler</Button>
-          <Button onClick={save} disabled={saving} className="font-semibold">
-            {saving ? <Loader2 className="mr-2 animate-spin" /> : null}
-            Ajouter
-          </Button>
-        </DialogFooter>
+
+        <Button onClick={importModel} disabled={busy || !link.trim()} className="h-11 w-full font-semibold">
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Link2 className="mr-2 h-4 w-4" />}
+          Importer le modèle
+        </Button>
       </DialogContent>
     </Dialog>
   );
