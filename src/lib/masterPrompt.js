@@ -18,7 +18,7 @@ export const MASTER_PROMPT = {
 - /creations — Mes créations : chaque génération avec son état (brouillon, en attente, en cours, prête, échouée), lecture de la vidéo, téléchargement, relance, rafraîchissement automatique toutes les 8 secondes.
 - /calendrier — Calendrier mensuel des publications programmées, navigation entre les mois, détail du post et son état (prévu / publié).
 - /comment-ca-marche — Explication du produit (le principe, les 3 idées, la routine quotidienne, ce qu'on peut demander à l'IA) et bibliothèque de prompts copiables.
-- /connexion — Connexion du compte Higgsfield en OAuth et état de la connexion (compte, outils disponibles, crédits).
+- /connexion — Setup Higgsfield en deux étapes, la première bloquante : (1) carte « Créer votre compte Higgsfield » dont le bouton ouvre le lien d'affiliation https://higgsfield.ai?fpr=thibault-e42228 dans un nouvel onglet, puis marque l'étape comme faite sur le compte de l'utilisateur (higgsfield_account_created) — l'étape 2 reste verrouillée tant que ce n'est pas validé ; (2) connexion du compte en OAuth (bouton Connecter / Déconnecter, état de la connexion, solde de crédits, outils MCP détectés). Garder ce lien d'affiliation tel quel dans chaque copie.
 - /recreer — Lancement de la génération (voir point 5).
 - Authentification : /login, /register, /forgot-password, /reset-password. Toutes les pages sont privées : un visiteur non connecté est renvoyé vers /login puis ramené à la page demandée.
 
@@ -61,7 +61,7 @@ export const MASTER_PROMPT = {
 - Sur le tableau de bord : carte d'import avec un champ de lien (HTTPS uniquement), vérification du domaine, étapes d'avancement affichées, puis résultat : le personnage importé avec ses photos, prêt à générer.
 
 8. MISE EN ROUTE DE CHAQUE COPIE
-- Ajouter les secrets OPENAI_API_KEY et APIFY_TOKEN côté serveur, puis connecter son propre compte Higgsfield depuis la page de connexion de l'application.
+- Ajouter les secrets OPENAI_API_KEY et APIFY_TOKEN côté serveur, puis suivre le setup Higgsfield en deux étapes depuis la page de connexion : créer son compte Higgsfield avec le lien d'affiliation https://higgsfield.ai?fpr=thibault-e42228 (à conserver tel quel, c'est lui qui alimente le bouton « Créer mon compte Higgsfield »), puis autoriser la connexion. Les jetons restent côté serveur et aucune clé API n'est demandée à l'utilisateur.
 
 Critère de réussite : l'application obtenue doit être identique à celle-ci, écran par écran et fonctionnalité par fonctionnalité. Ne remplace, ne simplifie et n'omets aucun élément.`,
 
@@ -83,7 +83,7 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - /creations - My creations: every generation with its status (draft, queued, generating, ready, failed), video playback, download, relaunch, automatic refresh every 8 seconds.
 - /calendrier - Monthly calendar of scheduled posts, month navigation, post detail and its status (planned / published).
 - /comment-ca-marche - Product explanation (the principle, the 3 ideas, the daily routine, what you can ask the AI) and a library of copyable prompts.
-- /connexion - Connect the Higgsfield account over OAuth and show the connection state (account, available tools, credits).
+- /connexion - Two-step Higgsfield setup, the first one blocking: (1) a "Create your Higgsfield account" card whose button opens the affiliate link https://higgsfield.ai?fpr=thibault-e42228 in a new tab, then marks the step as done on the user's account (higgsfield_account_created) - step 2 stays locked until it is validated; (2) connecting the account over OAuth (Connect / Disconnect buttons, connection state, credit balance, detected MCP tools). Keep this affiliate link as is in every copy.
 - /recreer - Launch the generation (see point 5).
 - Authentication: /login, /register, /forgot-password, /reset-password. Every page is private: a visitor who is not logged in is sent to /login and then back to the requested page.
 
@@ -126,7 +126,7 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - On the dashboard: an import card with a link field (HTTPS only), domain check, visible progress steps, then the result: the imported character with its photos, ready to generate.
 
 8. SETUP FOR EVERY COPY
-- Add the OPENAI_API_KEY and APIFY_TOKEN secrets server-side, then connect your own Higgsfield account from the app's connection page.
+- Add the OPENAI_API_KEY and APIFY_TOKEN secrets server-side, then follow the two-step Higgsfield setup from the connection page: create your Higgsfield account through the affiliate link https://higgsfield.ai?fpr=thibault-e42228 (keep it as is, it is what backs the "Create my Higgsfield account" button), then authorise the connection. Tokens stay server-side and the user is never asked for an API key.
 
 Success criterion: the resulting application must be identical to this one, screen by screen and feature by feature. Do not replace, simplify or omit anything.`,
 };
