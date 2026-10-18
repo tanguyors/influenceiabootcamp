@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { base44 } from "@/api/base44Client";
-import { Flame, Loader2, Plus, Search } from "lucide-react";
+import { Flame, Loader2, Search } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import ReferenceCard from "@/components/library/ReferenceCard";
-import ReferenceFormDialog from "@/components/library/ReferenceFormDialog";
+import LibraryImportCard from "@/components/library/LibraryImportCard";
 import Base44PromptCard from "@/components/Base44PromptCard";
 import { promptGroup } from "@/lib/base44Prompts";
 import { useI18n } from "@/lib/i18n";
@@ -37,7 +36,6 @@ export default function ViralLibrary() {
   const [period, setPeriod] = useState("all");
   const [q, setQ] = useState("");
   const [favorites, setFavorites] = useState(() => new Set(JSON.parse(localStorage.getItem("influenceia.favs") || "[]")));
-  const [open, setOpen] = useState(false);
   const [attachingId, setAttachingId] = useState("");
 
   async function load() {
@@ -83,26 +81,16 @@ export default function ViralLibrary() {
     });
   }, [items, period, q]);
 
-  const addButton = (
-    <Button onClick={() => setOpen(true)} className="font-semibold">
-      <Plus className="mr-2 h-4 w-4" /> {t("library.add")}
-    </Button>
-  );
-
   return (
     <PageShell
       title={t("library.title")}
       subtitle={t("library.subtitle")}
-      actions={addButton}
     >
-      <Base44PromptCard
-        group={promptGroup("buzz", lang)}
-        className="mb-6"
-        action={
-          <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="shrink-0">
-            {t("library.pasteLink")}
-          </Button>
-        }
+      <Base44PromptCard group={promptGroup("buzz", lang)} className="mb-6" />
+
+      <LibraryImportCard
+        title={t("library.add")}
+        onCreated={(created) => setItems((s) => [created, ...(s || [])])}
       />
 
       {/* Filters */}
@@ -127,7 +115,6 @@ export default function ViralLibrary() {
             icon={Flame}
             title={t("library.emptyTitle")}
             description={t("library.emptyDesc")}
-            action={addButton}
           />
         ) : (
           <EmptyState icon={Flame} title={t("library.noMatchTitle")} description={t("library.noMatchDesc")} />
@@ -148,11 +135,6 @@ export default function ViralLibrary() {
         </div>
       )}
 
-      <ReferenceFormDialog
-        open={open}
-        onOpenChange={setOpen}
-        onCreated={(created) => setItems((s) => [created, ...(s || [])])}
-      />
     </PageShell>
   );
 }
