@@ -2,7 +2,7 @@
 // compte Higgsfield de l'utilisateur (aucune clé API).
 const DEFAULT_MCP_URL = "https://mcp.higgsfield.ai/mcp";
 const AUTH_BASE = "https://mcp.higgsfield.ai";
-const CLIENT_NAME = "InfluenceIA";
+const CLIENT_NAME = "CAI - Cashfluencer AI";
 export const SCOPES = "openid email offline_access";
 
 export function getMcpUrl() {

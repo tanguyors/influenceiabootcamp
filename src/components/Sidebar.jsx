@@ -24,7 +24,7 @@ export default function Sidebar() {
           <Sparkles className="h-5 w-5" />
         </div>
         <div className="leading-tight">
-          <div className="font-heading text-[15px] font-semibold tracking-tight">InfluenceIA</div>
+          <div className="font-heading text-[15px] font-semibold tracking-tight">CAI ⚜️</div>
           <div className="text-[11px] text-muted-foreground">{t("sidebar.tagline")}</div>
         </div>
       </div>
