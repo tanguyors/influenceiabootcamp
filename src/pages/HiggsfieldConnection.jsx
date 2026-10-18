@@ -115,7 +115,7 @@ export default function HiggsfieldConnection() {
   return (
     <PageShell
       title="Setup Higgsfield"
-      subtitle="Deux étapes : créez votre compte Higgsfield, puis connectez-le. La connexion MCP se fait depuis l'application publiée, hors Base44, et sans clé API."
+      subtitle="Quatre étapes : créez votre compte Higgsfield (1), publiez l'application (2), ouvrez-la (3), puis connectez la connexion MCP (4). La connexion se termine depuis l'application publiée, hors Base44, et sans clé API."
     >
       <div className="grid gap-5 lg:grid-cols-2">
         <AccountSetupStep

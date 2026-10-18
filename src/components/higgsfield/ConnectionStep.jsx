@@ -2,13 +2,13 @@ import { AlertCircle, CheckCircle2, Link2, Loader2, Plug, RefreshCw, Unlink, XCi
 import { Button } from "@/components/ui/button";
 import SetupStepCard from "@/components/higgsfield/SetupStepCard";
 
-// Étape 2 : connexion du compte Higgsfield (OAuth) et suivi de l'état.
+// Dernière étape : connexion du compte Higgsfield (OAuth) et suivi de l'état.
 export default function ConnectionStep({ account, balance, loading, connecting, locked, onConnect, onDisconnect, onRefresh }) {
   const connected = Boolean(account?.connected);
 
   return (
     <SetupStepCard
-      num={2}
+      num={4}
       icon={Plug}
       done={connected}
       title="Connecter votre compte"

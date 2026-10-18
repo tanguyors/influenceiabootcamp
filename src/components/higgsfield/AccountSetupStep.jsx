@@ -26,7 +26,7 @@ export default function AccountSetupStep({ done, onOpen }) {
       </Button>
       {!done && (
         <p className="mt-3 rounded-xl border border-border bg-secondary/40 px-3 py-2 text-center text-[11px] leading-relaxed text-muted-foreground">
-          Obligatoire : l'étape 2 se débloque juste après.
+          Obligatoire : la connexion se débloque juste après.
         </p>
       )}
     </SetupStepCard>
