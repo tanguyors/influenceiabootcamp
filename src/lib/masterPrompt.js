@@ -6,13 +6,14 @@ export const MASTER_PROMPT = {
 - Thème sombre uniquement : fond #080808, cartes #121212, bordures #262626, texte principal #f5f5f2, texte secondaire #a3a3a0, accent néon vert #c8ff00 (boutons principaux, liens, badges, focus), rouge destructif #ff5c5c.
 - Police unique : Plus Jakarta Sans (400, 500, 600, 700, 800) chargée depuis Google Fonts, appliquée aux titres comme au texte.
 - Rayon des bords 12px, bordures fines, aucune ombre lourde, aucun dégradé : esthétique minimaliste, beaucoup d'espace, titres en tracking serré.
+- Identité de marque : un cerveau néon vert #c8ff00 et le badge « Base44 Brain », pour montrer que Base44 est le cerveau de l'app (page d'explication et cartes de prompts des pages clés).
 - Structure : barre latérale à gauche (logo, nom de l'app, navigation vers chaque page, sélecteur de langue FR/EN, mention « Propulsé par votre serveur MCP Higgsfield ») ; contenu centré en largeur maximale 1152px avec marges généreuses ; entièrement responsive, barre latérale repliée en tiroir sur mobile.
 - Tout le texte de l'interface passe par un système de traductions clé → FR/EN, avec détection automatique de la langue du navigateur (anglais → EN, sinon FR) et mémorisation du choix de l'utilisateur. Aucun texte en dur.
 - Toute image passe par un composant d'image optimisée (redimensionnement et srcset selon le conteneur). Toutes les listes ont un état de chargement et un état vide illustré.
 
 2. ÉCRANS ET NAVIGATION
 - / — Tableau de bord : badge « Parcours : Mon influenceur → Une vidéo virale → Ma version », grand titre sur deux lignes, texte d'introduction, deux boutons (« Créer mon influenceur », « Explorer les vidéos virales »), carte d'import depuis la banque de personnages, trois compteurs (Influenceurs, Références virales, Créations), parcours en 3 étapes cliquables (Mon influenceur, Une vidéo virale, Ma version), mention de bas de page sur la génération asynchrone.
-- /influenceurs — Mes influenceurs : création d'un personnage par IA (questionnaire puis funnel) ou import de photos, cartes de personnages avec leurs photos, panneau de bio Instagram, suppression.
+- /influenceurs — Mes influenceurs : création d'un personnage par IA sous forme de funnel pas à pas (questionnaire : niche, plateforme, audience, ton, traits de personnalité ; puis génération des traits et du prompt, planche de 9 photos, choix du nom, histoire et phrase d'accroche) ou import de ses propres photos, cartes de personnages avec leurs photos, panneau de bio Instagram, suppression.
 - /videos — Banque de modèles : carte « cerveau Base44 » avec prompts à copier, recherche, filtre par période (6 h, 12 h, 24 h, 7 jours, tout), favoris, ajout d'un modèle par lien, pièce jointe du fichier mp4 source, bouton « Recréer ».
 - /creations — Mes créations : chaque génération avec son état (brouillon, en attente, en cours, prête, échouée), lecture de la vidéo, téléchargement, relance, rafraîchissement automatique toutes les 8 secondes.
 - /calendrier — Calendrier mensuel des publications programmées, navigation entre les mois, détail du post et son état (prévu / publié).
@@ -32,6 +33,7 @@ export const MASTER_PROMPT = {
 4. FONCTIONS SERVEUR
 - higgsfieldConnect et higgsfieldOAuthCallback : connexion OAuth (PKCE) au compte Higgsfield de l'utilisateur, jetons conservés côté serveur avec rafraîchissement automatique.
 - higgsfieldGateway : état de la connexion, liste des outils Higgsfield disponibles, solde de crédits.
+- Serveur MCP Higgsfield : l'app parle au compte de l'utilisateur par un canal MCP appelé uniquement côté serveur — découverte des outils disponibles (les modèles de génération), appel d'un outil par son nom, lecture du solde de crédits. Aucun jeton ni identifiant Higgsfield ne transite par le navigateur : l'authentification se fait en OAuth (PKCE) et les jetons sont rafraîchis automatiquement côté serveur. Si le compte n'est pas connecté, ou si le solde de crédits est nul, la génération est bloquée et la raison est affichée à l'utilisateur.
 - generateInfluencer et generateInfluencerGpt : génération du personnage (traits, planche de 9 photos avec visage de face, profils et plans larges).
 - generateInfluencerStory et generateInstagramBio : histoire du personnage et bio Instagram (3 lignes, 150 caractères maximum).
 - importCharacterFromLink : import d'un personnage depuis la banque externe via son lien HTTPS (profil et photos), import atomique et sans doublon pour un même utilisateur (clé utilisateur + source + import_id), état pending puis ready.
@@ -44,7 +46,8 @@ export const MASTER_PROMPT = {
 5. GÉNÉRATION VIDÉO (le cœur du produit)
 - Écran /recreer avec la vidéo de référence : la référence et mon influenceur côte à côte en 9:16, sélecteur d'influenceur avec le choix mémorisé, alerte si le compte Higgsfield n'est pas connecté, alerte et blocage si le solde de crédits est nul, bandeau expliquant le mode utilisé.
 - Réglages : format (9:16, 1:1, 4:5, 16:9), résolution (1080p, 720p, 4k), tenue, décor, instructions complémentaires. Le modèle et la durée sont automatiques : la durée est exactement celle de la vidéo d'origine et le 1080p natif est privilégié, une mise à l'échelle étant signalée si le modèle ne le permet pas.
-- Avec le fichier vidéo source : remplacement de personnage — le portrait et les photos d'origine du personnage remplacent la personne principale en conservant le plan, l'environnement et les autres personnes présentes. Aucun repli automatique vers un mode solo.
+- Avec le fichier vidéo source : remplacement de personnage via l'outil Higgsfield dédié (hf_mult_replace_object) — le portrait et les photos d'origine du personnage remplacent la personne principale en conservant le plan, l'environnement et les autres personnes présentes. Aucun repli automatique vers un mode solo.
+- Préparation des références avant l'envoi : portrait du visage, photos du personnage et une photo individuelle au cadrage vérifié pour le mouvement, mises en cache et régénérées automatiquement quand le personnage change.
 - Sans fichier source : adaptation à partir de la photo et du texte, annoncée clairement comme telle.
 - Génération asynchrone : état conservé entre les visites, aucun lancement en double.
 
@@ -68,13 +71,14 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 - Dark theme only: background #080808, cards #121212, borders #262626, main text #f5f5f2, secondary text #a3a3a0, neon green accent #c8ff00 (primary buttons, links, badges, focus), destructive red #ff5c5c.
 - Single font: Plus Jakarta Sans (400, 500, 600, 700, 800) loaded from Google Fonts, applied to headings and body text alike.
 - 12px border radius, thin borders, no heavy shadows, no gradients: minimal aesthetic, generous spacing, tight-tracking headings.
+- Brand identity: a neon green brain #c8ff00 and the "Base44 Brain" badge, to show that Base44 is the brain of the app (explainer page and prompt cards on the key pages).
 - Structure: left sidebar (logo, app name, navigation to every page, FR/EN language switcher, line "Powered by your Higgsfield MCP server"); content centered at a maximum width of 1152px with generous padding; fully responsive, sidebar collapsed into a drawer on mobile.
 - Every piece of interface text goes through a key -> FR/EN translation system, with automatic browser language detection (English -> EN, otherwise FR) and the user's choice remembered. No hardcoded text.
 - Every image goes through an optimized image component (resizing and srcset based on its container). Every list has a loading state and an illustrated empty state.
 
 2. SCREENS AND NAVIGATION
 - / - Dashboard: badge "My influencer -> A viral video -> My version", large two-line heading, intro text, two buttons ("Create my influencer", "Explore viral videos"), import card from the character bank, three counters (Influencers, Viral references, Creations), 3 clickable steps (My influencer, A viral video, My version), footer note about asynchronous generation.
-- /influenceurs - My influencers: create a character with AI (questionnaire then funnel) or import photos, character cards with their photos, Instagram bio panel, delete.
+- /influenceurs - My influencers: create a character with AI as a step-by-step funnel (questionnaire: niche, platform, audience, tone, personality traits; then generation of the traits and the prompt, a sheet of 9 photos, name choice, story and tagline) or import your own photos, character cards with their photos, Instagram bio panel, delete.
 - /videos - Model library: "Base44 brain" card with prompts to copy, search, period filter (6h, 12h, 24h, 7 days, all time), favourites, add a model by link, attach the source mp4 file, "Recreate" button.
 - /creations - My creations: every generation with its status (draft, queued, generating, ready, failed), video playback, download, relaunch, automatic refresh every 8 seconds.
 - /calendrier - Monthly calendar of scheduled posts, month navigation, post detail and its status (planned / published).
@@ -94,6 +98,7 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 4. SERVER FUNCTIONS
 - higgsfieldConnect and higgsfieldOAuthCallback: OAuth (PKCE) connection to the user's Higgsfield account, tokens kept server-side with automatic refresh.
 - higgsfieldGateway: connection state, list of available Higgsfield tools, credit balance.
+- Higgsfield MCP server: the app talks to the user's account over an MCP channel called server-side only - discovering the available tools (the generation models), calling a tool by name, reading the credit balance. No Higgsfield token or credential ever goes through the browser: authentication happens over OAuth (PKCE) and tokens are refreshed automatically server-side. If the account is not connected, or the credit balance is zero, the generation is blocked and the reason is shown to the user.
 - generateInfluencer and generateInfluencerGpt: character generation (traits, a sheet of 9 photos with a frontal face, profiles and wide shots).
 - generateInfluencerStory and generateInstagramBio: character story and Instagram bio (3 lines, 150 characters maximum).
 - importCharacterFromLink: import a character from the external bank through its HTTPS link (profile and photos), atomic import with no duplicates for the same user (key: user + source + import_id), status pending then ready.
@@ -106,7 +111,8 @@ Critère de réussite : l'application obtenue doit être identique à celle-ci, 
 5. VIDEO GENERATION (the core of the product)
 - /recreer screen with the reference video: the reference and my influencer side by side in 9:16, influencer picker with the choice remembered, warning if the Higgsfield account is not connected, warning and blocking when the credit balance is zero, banner explaining the mode being used.
 - Settings: aspect ratio (9:16, 1:1, 4:5, 16:9), resolution (1080p, 720p, 4k), outfit, setting, extra instructions. Model and duration are automatic: the duration is exactly the source video's, native 1080p is preferred, and an upscale is flagged when the model does not allow it.
-- With the source video file: character replacement - the character's portrait and original photos replace the main person while keeping the shot, the environment and the other people in frame. No automatic fallback to a solo mode.
+- With the source video file: character replacement through the dedicated Higgsfield tool (hf_mult_replace_object) - the character's portrait and original photos replace the main person while keeping the shot, the environment and the other people in frame. No automatic fallback to a solo mode.
+- Reference preparation before sending: face portrait, character photos and a single photo with a verified framing for motion, cached and regenerated automatically when the character changes.
 - Without a source file: an adaptation from the photo and the text, clearly announced as such.
 - Asynchronous generation: state kept between visits, no duplicate launches.
 
