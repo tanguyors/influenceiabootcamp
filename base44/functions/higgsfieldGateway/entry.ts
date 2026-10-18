@@ -18,7 +18,7 @@ export default async function(req) {
     const user = await base44.auth.me();
     if (!user) return Response.json({ error: "Non authentifié" }, { status: 401 });
 
-    const token = await getAccessToken(base44);
+    const token = await getAccessToken(base44, user.id);
     if (!token) {
       return Response.json({
         connected: false,

@@ -46,6 +46,7 @@ export default async function(req) {
       tokens,
       clientId: pending.client_id,
       account: (claims && (claims.email || claims.preferred_username)) || "",
+      userId: pending.user_id,
     });
     await base44.asServiceRole.entities.HiggsfieldOAuth.delete(pending.id);
 

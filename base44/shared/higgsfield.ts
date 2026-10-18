@@ -111,13 +111,19 @@ export function decodeIdTokenClaims(idToken) {
 
 /* --------------------------- Session enregistrée ------------------------ */
 
-export async function getAuthRecord(base44) {
-  const page = await base44.asServiceRole.entities.HiggsfieldAuth.filter({}, { sort: "-created_date", limit: 1 });
+// Chaque utilisateur connecte son propre compte Higgsfield : la session est
+// rattachée à celui qui l'a autorisée (connected_by), jamais partagée.
+export async function getAuthRecord(base44, userId) {
+  if (!userId) return null;
+  const page = await base44.asServiceRole.entities.HiggsfieldAuth.filter(
+    { connected_by: userId },
+    { sort: "-created_date", limit: 1 }
+  );
   return (page.items || [])[0] || null;
 }
 
 export async function saveSession(base44, { tokens, clientId, account, userId }) {
-  const existing = await getAuthRecord(base44);
+  const existing = await getAuthRecord(base44, userId);
   const data = {
     access_token: tokens.access_token || "",
     refresh_token: tokens.refresh_token || (existing && existing.refresh_token) || "",
@@ -135,8 +141,8 @@ export async function saveSession(base44, { tokens, clientId, account, userId })
   return data;
 }
 
-export async function clearSession(base44) {
-  const existing = await getAuthRecord(base44);
+export async function clearSession(base44, userId) {
+  const existing = await getAuthRecord(base44, userId);
   if (!existing) return;
   await base44.asServiceRole.entities.HiggsfieldAuth.update(existing.id, {
     access_token: "",
@@ -147,13 +153,13 @@ export async function clearSession(base44) {
 }
 
 // Jeton d'accès utilisable, rafraîchi automatiquement si nécessaire.
-export async function getAccessToken(base44) {
-  const auth = await getAuthRecord(base44);
+export async function getAccessToken(base44, userId) {
+  const auth = await getAuthRecord(base44, userId);
   if (!auth || !auth.access_token) return null;
   if (auth.expires_at && auth.expires_at - Date.now() > 60000) return auth.access_token;
   if (!auth.refresh_token || !auth.client_id) return auth.access_token;
   const refreshed = await refreshAccessToken({ clientId: auth.client_id, refreshToken: auth.refresh_token });
-  await saveSession(base44, { tokens: refreshed, clientId: auth.client_id, account: auth.account });
+  await saveSession(base44, { tokens: refreshed, clientId: auth.client_id, account: auth.account, userId });
   return refreshed.access_token;
 }
 

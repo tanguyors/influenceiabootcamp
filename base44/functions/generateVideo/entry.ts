@@ -194,7 +194,7 @@ export default async function(req) {
 
     const body = await req.json().catch(() => ({}));
 
-    const token = await getAccessToken(base44);
+    const token = await getAccessToken(base44, user.id);
     if (!token) {
       return Response.json({
         error: "Compte Higgsfield non connecté. Connectez-le depuis la page Connexion Higgsfield.",

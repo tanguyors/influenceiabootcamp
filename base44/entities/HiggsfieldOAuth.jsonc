@@ -2,6 +2,10 @@
   "name": "HiggsfieldOAuth",
   "type": "object",
   "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Utilisateur ayant lanc\u00e9 cette autorisation : la session est enregistr\u00e9e pour lui"
+    },
     "state": {
       "type": "string",
       "description": "Valeur al\u00e9atoire anti-CSRF de la demande d'autorisation en cours"

@@ -19,7 +19,7 @@ export default async function(req) {
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || "status";
-    const auth = await getAuthRecord(base44);
+    const auth = await getAuthRecord(base44, user.id);
     const connected = Boolean(auth && auth.access_token);
 
     if (action === "status") {
@@ -30,12 +30,8 @@ export default async function(req) {
       });
     }
 
-    if (user.role !== "admin") {
-      return Response.json({ error: "Seul un administrateur peut connecter le compte Higgsfield." }, { status: 403 });
-    }
-
     if (action === "disconnect") {
-      await clearSession(base44);
+      await clearSession(base44, user.id);
       return Response.json({ connected: false });
     }
 
@@ -48,6 +44,7 @@ export default async function(req) {
     const state = createState();
 
     await base44.asServiceRole.entities.HiggsfieldOAuth.create({
+      user_id: user.id,
       state,
       code_verifier: verifier,
       client_id: clientId,
