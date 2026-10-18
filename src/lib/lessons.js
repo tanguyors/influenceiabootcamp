@@ -8,6 +8,8 @@ export const LESSONS = [
       title: "Lancement TikTok en 7 jours",
       lead: "Ce document décrit ce qu'il faut faire, jour par jour, pour lancer un compte TikTok de promotion. Chaque étape a sa raison d'être : ne pas en avancer une, ne pas en sauter une.",
       redNote: "Les points en rouge sont ceux qui font bannir un compte quand on ne les respecte pas.",
+      tag: "7 jours",
+      excerpt: "La procédure complète, jour par jour, pour lancer un compte TikTok de promotion sans le faire bannir.",
       setupTitle: "Avant de créer le moindre compte",
       setup: [
         {
@@ -107,6 +109,8 @@ export const LESSONS = [
       title: "TikTok launch in 7 days",
       lead: "This document describes what to do, day by day, to launch a TikTok promotion account. Every step has its reason: do not move ahead on one, do not skip one.",
       redNote: "The points in red are the ones that get an account banned when they are not respected.",
+      tag: "7 days",
+      excerpt: "The full procedure, day by day, to launch a TikTok promotion account without getting it banned.",
       setupTitle: "Before creating any account",
       setup: [
         {

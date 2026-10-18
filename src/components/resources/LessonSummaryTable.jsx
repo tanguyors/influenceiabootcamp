@@ -1,9 +1,11 @@
+import LessonChapterHead from "@/components/resources/LessonChapterHead";
+
 // Aide-mémoire : le plan entier sur une seule page, à relire avant chaque compte lancé.
-export default function LessonSummaryTable({ title, head, rows }) {
+export default function LessonSummaryTable({ id, ordinal, title, head, rows }) {
   return (
-    <section className="mb-12">
-      <h3 className="font-heading text-xl font-semibold tracking-tight">{title}</h3>
-      <div className="mt-5 overflow-x-auto rounded-xl border border-border">
+    <section id={id} className="scroll-mt-24">
+      <LessonChapterHead ordinal={ordinal} title={title} />
+      <div className="overflow-x-auto rounded-xl border border-border">
         <table className="w-full border-collapse text-left text-sm">
           <thead className="bg-secondary">
             <tr>

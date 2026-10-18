@@ -164,6 +164,10 @@ export const TRANSLATIONS = {
     "resources.title": "Ressources",
     "resources.subtitle": "Les procédures à suivre à la lettre pour lancer un compte, jour après jour, et le faire grandir. Première leçon : le lancement TikTok en 7 jours.",
     "resources.lesson": "Leçon {n}",
+    "resources.openLesson": "Ouvrir la leçon",
+    "resources.outline": "Au sommaire",
+    "resources.all": "Toutes les leçons",
+    "resources.more": "Les prochaines leçons arriveront ici.",
   },
 
   en: {
@@ -330,5 +334,9 @@ export const TRANSLATIONS = {
     "resources.title": "Resources",
     "resources.subtitle": "The procedures to follow to the letter to launch an account, day after day, and make it grow. First lesson: the 7-day TikTok launch.",
     "resources.lesson": "Lesson {n}",
+    "resources.openLesson": "Open the lesson",
+    "resources.outline": "Contents",
+    "resources.all": "All lessons",
+    "resources.more": "The next lessons will appear here.",
   },
 };

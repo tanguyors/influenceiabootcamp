@@ -1,14 +1,12 @@
 import { ShieldAlert } from "lucide-react";
+import LessonChapterHead from "@/components/resources/LessonChapterHead";
 
-// Les règles qui coûtent le compte, rappelées en rouge à la fin de la leçon.
-export default function LessonNeverRules({ title, items }) {
+// Le chapitre des règles qui coûtent le compte : encadré rouge, une règle par ligne.
+export default function LessonNeverRules({ id, ordinal, title, items }) {
   return (
-    <section className="mb-12 rounded-xl border border-destructive/40 bg-destructive/5 p-6">
-      <h3 className="flex items-center gap-2.5 font-heading text-xl font-semibold tracking-tight text-destructive">
-        <ShieldAlert className="h-5 w-5" />
-        {title}
-      </h3>
-      <ul className="mt-5 space-y-3">
+    <section id={id} className="scroll-mt-24 rounded-xl border border-destructive/40 bg-destructive/5 p-6">
+      <LessonChapterHead ordinal={ordinal} title={title} tone="danger" icon={ShieldAlert} />
+      <ul className="space-y-3">
         {items.map((item) => (
           <li key={item} className="flex gap-3">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-destructive" />

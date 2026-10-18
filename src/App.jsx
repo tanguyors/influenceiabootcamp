@@ -17,6 +17,7 @@ import Creations from '@/pages/Creations';
 import Calendar from '@/pages/Calendar';
 import HowItWorks from '@/pages/HowItWorks';
 import Resources from '@/pages/Resources';
+import Lesson from '@/pages/Lesson';
 import HiggsfieldConnection from '@/pages/HiggsfieldConnection';
 import Recreate from '@/pages/Recreate';
 import Login from '@/pages/Login';
@@ -66,6 +67,7 @@ const AuthenticatedApp = () => {
           <Route path="/calendrier" element={<Calendar />} />
           <Route path="/comment-ca-marche" element={<HowItWorks />} />
           <Route path="/ressources" element={<Resources />} />
+          <Route path="/ressources/:lessonId" element={<Lesson />} />
           <Route path="/connexion" element={<HiggsfieldConnection />} />
           <Route path="/recreer" element={<Recreate />} />
         </Route>
