@@ -4,11 +4,13 @@ import { callTool } from "./higgsfield.ts";
 export const replacementModelId = "hf_mult_replace_object";
 
 export function characterPhotos(influencer) {
+  // Genjutsu accepte jusqu'à 30 photos du personnage (portrait compris) : toutes les
+  // références disponibles sont transmises pour verrouiller le visage.
   return [...new Set([
     influencer.face_reference_image,
     influencer.reference_image,
     ...(Array.isArray(influencer.reference_images) ? influencer.reference_images : []),
-  ].filter(Boolean))].slice(0, 8);
+  ].filter(Boolean))].slice(0, 30);
 }
 
 export function replacementParams(prompt, imageIds, videoId, resolution) {

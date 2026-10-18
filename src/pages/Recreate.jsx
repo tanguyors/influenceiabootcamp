@@ -254,14 +254,14 @@ export default function Recreate() {
           {/* Summary + launch */}
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-              <span>Modèle : <strong className="text-foreground">automatique</strong></span>
-              <span>Mode : <strong className="text-foreground">{hasSourceVideo ? "plan d'origine conservé : la personne principale est remplacée, les autres personnes du plan restent en place" : "adaptation sans fichier source"}</strong></span>
+              <span>Modèle : <strong className="text-foreground">{hasSourceVideo ? "Genjutsu (Higgsfield)" : "automatique"}</strong></span>
+              <span>Mode : <strong className="text-foreground">{hasSourceVideo ? "plan d'origine conservé : le mouvement, la scène et les autres personnes restent en place, seule la personne principale est remplacée" : "adaptation sans fichier source"}</strong></span>
               <span>Durée : <strong className="text-foreground">identique à la vidéo d'origine</strong></span>
               <span>Format : <strong className="text-foreground">{form.aspect_ratio}</strong></span>
               <span>Résolution : <strong className="text-foreground">{form.resolution}</strong></span>
             </div>
             <p className="mt-2 text-[11px] text-muted-foreground/80">Le 1080p natif est privilégié ; une mise à l'échelle sera signalée si le modèle ne le permet pas. La musique originale n'est pas réutilisée automatiquement.</p>
-            {hasSourceVideo && <p className="mt-2 text-[11px] text-muted-foreground">Le remplacement utilise le portrait et les photos d'origine de votre personnage, sans recréer sa photo. Aucun repli automatique vers un mode solo.</p>}
+            {hasSourceVideo && <p className="mt-2 text-[11px] text-muted-foreground">Mode Genjutsu : le mouvement est extrait de la vidéo de référence et le remplacement utilise le portrait et les photos d'origine de votre personnage (jusqu'à 30 photos), sans recréer sa photo. Aucun repli automatique vers un mode solo.</p>}
             <Button
               onClick={launch}
               disabled={launching || !selectedInfluencer || connected === false}
