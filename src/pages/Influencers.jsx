@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { base44 } from "@/api/base44Client";
-import { Users, Trash2, Check, Loader2, Upload } from "lucide-react";
+import { Users, Trash2, Check, Loader2, Upload, Wand2 } from "lucide-react";
 import PageShell from "@/components/PageShell";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
@@ -121,13 +121,11 @@ export default function Influencers() {
                   uri={photos.face}
                   label={t("influencers.face")}
                   onSelect={() => selectActive(inf.id)}
-                  onModify={() => openEdit(inf.id)}
                 />
                 <InfluencerPhotoPane
                   uri={photos.body}
                   label={t("influencers.fullBody")}
                   onSelect={() => selectActive(inf.id)}
-                  onModify={() => openEdit(inf.id)}
                 />
                 {photosOf(inf).length > 1 && (
                   <span className="absolute left-3 top-3 z-10 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-medium text-white">
@@ -140,6 +138,19 @@ export default function Influencers() {
                   </div>
                 )}
               </div>
+              {/*
+                Une seule retouche pour la paire : la consigne part une fois et
+                modifie les deux photos ensemble. Jamais de retouche photo par photo.
+              */}
+              {(photos.face || photos.body) && (
+                <button
+                  type="button"
+                  onClick={() => openEdit(inf.id)}
+                  className="flex w-full items-center justify-center gap-2 border-b border-border bg-secondary/40 px-3 py-2 text-[11px] font-semibold text-muted-foreground transition hover:text-primary"
+                >
+                  <Wand2 className="h-3.5 w-3.5" /> {t("influencers.editPhotos")}
+                </button>
+              )}
               <button type="button" onClick={() => selectActive(inf.id)} className="block w-full text-left">
                 <div className="p-4">
                   <div className="flex flex-wrap items-center gap-2">

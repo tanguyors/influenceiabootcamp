@@ -1,8 +1,8 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.52';
 
-// Retouche IA des photos de référence d'un personnage : la consigne décrite par
-// l'utilisateur est appliquée à chacune de ses photos (visage + plan en pied),
-// et chaque photo d'origine est remplacée dans le stockage privé de l'application.
+// Retouche IA des photos de référence d'un personnage : une seule consigne, un seul
+// prompt, appliqué à ses deux photos (visage + plan en pied) envoyées ensemble.
+// Chaque photo d'origine est remplacée dans le stockage privé de l'application.
 
 const MAX_PHOTOS = 2;
 const MAX_INSTRUCTION = 400;
@@ -74,35 +74,43 @@ export default async function (req) {
     for (const item of requested) {
       const uri = text(item?.uri);
       if (!uri || sources.some((photo) => photo.uri === uri)) continue;
-      sources.push({ uri, url: text(item?.url), role: item?.role === "face" ? "face" : "body" });
+      sources.push({ uri, url: text(item?.url) });
     }
     if (!sources.length) return Response.json({ error: "Photo invalide." }, { status: 400 });
 
-    const description = String(influencer.notes || "").slice(0, 400);
-    const replacements = {};
-
-    // Chaque photo repart de sa propre image : le cadrage est conservé, seule la
-    // modification demandée change.
     for (const photo of sources) {
       if (!isCharacterPhoto(photo.uri) || !isOwnPhoto(photo.url, photo.uri)) {
         return Response.json({ error: "Photo invalide." }, { status: 400 });
       }
-      const prompt = [
-        `Retouche d'une photo du personnage « ${influencer.name} ».`,
-        description ? `Description du personnage : ${description}` : "",
-        photo.role === "face" ? "Cette photo est son portrait de référence (visage)." : "Cette photo est sa photo de référence en pied.",
-        "Conserve exactement son visage, son identité, sa morphologie, sa tenue et son style : seuls les éléments demandés changent.",
-        `Modification demandée : ${instruction}`,
-        "Rends une seule photo nette, bien exposée, bien cadrée, sans texte ni filigrane.",
-      ].filter(Boolean).join(" ");
+    }
 
-      const generated = await base44.asServiceRole.integrations.Core.GenerateImage({
-        prompt,
-        existing_image_urls: [photo.url],
-      });
-      const imageUrl = text(generated?.url);
-      if (!imageUrl) return Response.json({ error: "Retouche impossible : relancez." }, { status: 502 });
-      replacements[photo.uri] = await storeEditedPhoto(base44, imageUrl, influencer.id);
+    const description = String(influencer.notes || "").slice(0, 400);
+    const replacements: Record<string, string> = {};
+
+    // Un seul prompt pour la paire : jamais deux consignes différentes. Chaque photo
+    // repart de sa propre image, donc son cadrage est conservé, et la même
+    // modification demandée s'applique aux deux.
+    const prompt = [
+      `Retouche des photos de référence du personnage « ${influencer.name} ».`,
+      description ? `Description du personnage : ${description}` : "",
+      "Conserve exactement son visage, son identité, sa morphologie, sa tenue et son style : seuls les éléments demandés changent.",
+      `Modification demandée : ${instruction}`,
+      "Rends une seule photo nette, bien exposée, bien cadrée, sans texte ni filigrane.",
+    ].filter(Boolean).join(" ");
+
+    try {
+      const edited = await Promise.all(sources.map(async (photo) => {
+        const generated = await base44.asServiceRole.integrations.Core.GenerateImage({
+          prompt,
+          existing_image_urls: [photo.url],
+        });
+        const imageUrl = text(generated?.url);
+        if (!imageUrl) throw new Error("Retouche impossible : relancez.");
+        return [photo.uri, await storeEditedPhoto(base44, imageUrl, influencer.id)] as const;
+      }));
+      for (const [uri, stored] of edited) replacements[uri] = stored;
+    } catch (error) {
+      return Response.json({ error: error.message || "Retouche impossible : relancez." }, { status: 502 });
     }
 
     const update = {};
